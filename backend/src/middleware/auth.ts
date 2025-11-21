@@ -11,7 +11,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     req.user = verifyToken(token);
     return next();
-  } catch (error) {
+  } catch (_error) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
@@ -25,7 +25,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
 
   try {
     req.user = verifyToken(token);
-  } catch (error) {
+  } catch (_error) {
     // ignore invalid token for optional auth
   }
   return next();

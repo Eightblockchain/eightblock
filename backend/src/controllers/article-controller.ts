@@ -4,7 +4,11 @@ import { logger } from '@/utils/logger';
 
 export async function listArticles(_req: Request, res: Response) {
   const articles = await prisma.article.findMany({
-    include: { tags: { include: { tag: true } }, author: true, _count: { select: { likes: true, comments: true } } },
+    include: {
+      tags: { include: { tag: true } },
+      author: true,
+      _count: { select: { likes: true, comments: true } },
+    },
     orderBy: { publishedAt: 'desc' },
   });
   return res.json(articles);
@@ -76,7 +80,7 @@ export async function updateArticle(req: Request, res: Response) {
       },
     });
     return res.json(updated);
-  } catch (error) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Failed to update article' });
   }
 }
@@ -86,7 +90,7 @@ export async function deleteArticle(req: Request, res: Response) {
   try {
     await prisma.article.delete({ where: { id } });
     return res.status(204).send();
-  } catch (error) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Failed to delete article' });
   }
 }
