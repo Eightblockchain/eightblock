@@ -26,6 +26,8 @@ app.use('/api', routes);
 
 app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 
+app.use(errorHandler);
+
 process.on('uncaughtException', (err) => logger.error(`uncaughtException ${err.message}`));
 process.on('unhandledRejection', (err) =>
   logger.error(`unhandledRejection ${(err as Error).message}`)
