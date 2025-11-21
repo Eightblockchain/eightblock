@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222 47% 11%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 215 20% 65%;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+.prose h2 {
+  @apply text-2xl font-semibold text-foreground mt-10 mb-4;
+}
+
+.prose p {
+  @apply leading-7 text-muted-foreground;
+}
