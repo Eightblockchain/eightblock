@@ -19,6 +19,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter ./backend prisma generate
+      - name: Generate Prisma Client
+        run: cd backend && pnpm prisma generate
       - run: pnpm lint
       - run: pnpm test
