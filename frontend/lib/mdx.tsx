@@ -1,13 +1,15 @@
-import type { MDXComponents } from 'mdx/types';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+
+type MDXComponents = {
+  a?: (props: { href?: string; children?: ReactNode; [key: string]: any }) => JSX.Element;
+  h2?: (props: { children?: ReactNode }) => JSX.Element;
+  p?: (props: { children?: ReactNode }) => JSX.Element;
+};
 
 export const mdxComponents: MDXComponents = {
   a: ({ href = '#', children, ...rest }) => (
-    <Link
-      href={href}
-      {...rest}
-      className="underline decoration-accent hover:text-primary"
-    >
+    <Link href={href} {...rest} className="underline decoration-accent hover:text-primary">
       {children}
     </Link>
   ),

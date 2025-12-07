@@ -1,7 +1,20 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
-import SearchComponent from '../search/Search';
+import dynamic from 'next/dynamic';
 import { Hero } from '../hero';
+
+// Dynamically import client components to reduce initial bundle
+const SearchComponent = dynamic(() => import('../search/Search'), {
+  ssr: false,
+  loading: () => <div className="w-5 h-5" />,
+});
+
+const LoginBtn = dynamic(() => import('../profile/LoginBtn'), {
+  ssr: false,
+  loading: () => <div className="h-10 w-32 bg-gray-200 animate-pulse rounded" />,
+});
 
 export function SiteHeader() {
   return (
@@ -12,6 +25,7 @@ export function SiteHeader() {
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
           <SearchComponent />
+          <LoginBtn />
         </nav>
       </div>
 

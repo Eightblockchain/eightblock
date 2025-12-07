@@ -1,0 +1,98 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { BrowserWallet } from '@meshsdk/core';
+
+interface WalletContextType {
+  connected: boolean;
+  connecting: boolean;
+  address: string | null;
+  wallet: BrowserWallet | null;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+}
+
+const WalletContext = createContext<WalletContextType>({
+  connected: false,
+  connecting: false,
+  address: null,
+  wallet: null,
+  connect: async () => {},
+  disconnect: () => {},
+});
+
+export function WalletProvider({ children }: { children: React.ReactNode }) {
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [wallet, setWallet] = useState<BrowserWallet | null>(null);
+
+  const connect = useCallback(async () => {
+    setConnecting(true);
+    try {
+      // Get list of available wallets
+      const installedWallets = BrowserWallet.getInstalledWallets();
+
+      if (installedWallets.length === 0) {
+        alert('No Cardano wallet found. Please install a wallet extension (Nami, Eternl, etc.)');
+        setConnecting(false);
+        return;
+      }
+
+      // Connect to the first available wallet
+      const walletName = installedWallets[0].name;
+      const browserWallet = await BrowserWallet.enable(walletName);
+      const walletAddress = await browserWallet.getChangeAddress();
+
+      setWallet(browserWallet);
+      setAddress(walletAddress);
+      setConnected(true);
+      localStorage.setItem('walletConnected', 'true');
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      setConnected(false);
+      setAddress(null);
+      setWallet(null);
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
+  const disconnect = useCallback(() => {
+    setWallet(null);
+    setAddress(null);
+    setConnected(false);
+    localStorage.removeItem('walletConnected');
+  }, []);
+
+  // Auto-reconnect on mount if previously connected
+  useEffect(() => {
+    const wasConnected = localStorage.getItem('walletConnected');
+    if (wasConnected === 'true') {
+      connect();
+    }
+  }, [connect]);
+
+  return (
+    <WalletContext.Provider
+      value={{
+        connected,
+        connecting,
+        address,
+        wallet,
+        connect,
+        disconnect,
+      }}
+    >
+      {children}
+    </WalletContext.Provider>
+  );
+}
+
+export function useWallet() {
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error('useWallet must be used within WalletProvider');
+  }
+  return context;
+}
