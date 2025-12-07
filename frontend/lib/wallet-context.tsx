@@ -26,6 +26,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [connecting, setConnecting] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
+  const [initializing, setInitializing] = useState(true);
 
   const connect = useCallback(async () => {
     setConnecting(true);
@@ -48,11 +49,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setAddress(walletAddress);
       setConnected(true);
       localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletName', walletName);
     } catch (error) {
       console.error('Failed to connect wallet:', error);
       setConnected(false);
       setAddress(null);
       setWallet(null);
+      // Clear localStorage on connection failure
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletName');
     } finally {
       setConnecting(false);
     }
@@ -63,6 +68,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setAddress(null);
     setConnected(false);
     localStorage.removeItem('walletConnected');
+    localStorage.removeItem('walletName');
   }, []);
 
   // Auto-reconnect on mount if previously connected
@@ -70,14 +76,23 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     const wasConnected = localStorage.getItem('walletConnected');
     if (wasConnected === 'true') {
       connect();
+    } else {
+      setInitializing(false);
     }
   }, [connect]);
+
+  // Mark initialization complete after connection attempt
+  useEffect(() => {
+    if (!connecting && initializing) {
+      setInitializing(false);
+    }
+  }, [connecting, initializing]);
 
   return (
     <WalletContext.Provider
       value={{
         connected,
-        connecting,
+        connecting: connecting || initializing,
         address,
         wallet,
         connect,

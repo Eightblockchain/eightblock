@@ -9,16 +9,21 @@ import { Wallet, LogOut, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ProfilePage() {
-  const { connected, address, disconnect, wallet } = useWallet();
+  const { connected, connecting, address, disconnect, wallet } = useWallet();
   const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (!connected) {
-      router.push('/');
+    // Wait for wallet to finish attempting reconnection
+    if (!connecting) {
+      setIsChecking(false);
+      if (!connected) {
+        router.push('/');
+      }
     }
-  }, [connected, router]);
+  }, [connected, connecting, router]);
 
   useEffect(() => {
     async function fetchBalance() {
@@ -47,6 +52,20 @@ export default function ProfilePage() {
     disconnect();
     router.push('/');
   };
+
+  // Show loading state while checking wallet connection
+  if (isChecking || connecting) {
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-16">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-[#080808] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Connecting to wallet...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!connected || !address) {
     return null;
