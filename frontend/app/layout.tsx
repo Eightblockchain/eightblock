@@ -1,12 +1,16 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Lato } from 'next/font/google';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { siteConfig } from '@/lib/site-config';
 import './globals.css';
 import '../styles/mdx.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const lato = Lato({
+  subsets: ['latin'],
+  weight: ['300', '400', '700', '900'],
+  variable: '--font-lato',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -31,7 +35,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} min-h-screen bg-background text-foreground`}>
+      <body className={`${lato.variable} min-h-screen bg-background text-foreground`}>
         <div className="flex min-h-screen flex-col">
           <SiteHeader />
           <main className="flex-1 bg-gradient-to-b from-white to-slate-50">{children}</main>

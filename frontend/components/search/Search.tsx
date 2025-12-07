@@ -11,10 +11,10 @@ export default function SearchComponent() {
       <SearchTrigger onClick={openSearch} />
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-20">
           <SearchOverlay onClose={closeSearch} />
 
-          <div className="relative z-10 w-full max-w-2xl mx-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="relative z-[10000] w-full max-w-2xl mx-4 animate-in fade-in slide-in-from-top-4 duration-300">
             <form onSubmit={handleSubmit} className="relative">
               <SearchInput
                 value={query}

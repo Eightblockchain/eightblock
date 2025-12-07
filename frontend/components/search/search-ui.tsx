@@ -38,6 +38,12 @@ interface SearchInputProps {
 }
 
 export function SearchInput({ value, onChange, onClose, inputRef }: SearchInputProps) {
+  const handleCloseClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClose();
+  };
+
   return (
     <div className="relative flex items-center bg-white border-2 border-[#080808] rounded-lg shadow-2xl">
       <Search className="absolute left-4 w-5 h-5 text-[#080808]" />
@@ -51,7 +57,8 @@ export function SearchInput({ value, onChange, onClose, inputRef }: SearchInputP
       />
       <button
         type="button"
-        onClick={onClose}
+        onClick={handleCloseClick}
+        onMouseDown={(e) => e.preventDefault()}
         className="absolute right-4 text-[#080808] hover:bg-gray-100 rounded-full p-1 transition-colors"
         aria-label="Close search"
       >

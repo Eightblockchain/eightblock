@@ -38,7 +38,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', ...fontFamily.sans],
+        sans: ['var(--font-lato)', ...fontFamily.sans],
       },
       borderRadius: {
         lg: '0.75rem',
