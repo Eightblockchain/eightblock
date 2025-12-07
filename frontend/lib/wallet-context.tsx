@@ -8,8 +8,9 @@ interface WalletContextType {
   connecting: boolean;
   address: string | null;
   wallet: BrowserWallet | null;
-  connect: () => Promise<void>;
+  connect: (walletName?: string) => Promise<void>;
   disconnect: () => void;
+  availableWallets: Array<{ name: string; icon: string; version: string }>;
 }
 
 const WalletContext = createContext<WalletContextType>({
@@ -19,6 +20,7 @@ const WalletContext = createContext<WalletContextType>({
   wallet: null,
   connect: async () => {},
   disconnect: () => {},
+  availableWallets: [],
 });
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
@@ -27,8 +29,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [wallet, setWallet] = useState<BrowserWallet | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [availableWallets, setAvailableWallets] = useState<
+    Array<{ name: string; icon: string; version: string }>
+  >([]);
 
-  const connect = useCallback(async () => {
+  // Get available wallets on mount
+  useEffect(() => {
+    const wallets = BrowserWallet.getInstalledWallets();
+    setAvailableWallets(wallets);
+  }, []);
+
+  const connect = useCallback(async (walletName?: string) => {
     setConnecting(true);
     try {
       // Get list of available wallets
@@ -97,6 +108,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         wallet,
         connect,
         disconnect,
+        availableWallets,
       }}
     >
       {children}
