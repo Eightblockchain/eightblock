@@ -349,9 +349,36 @@ export async function updateArticle(req: Request, res: Response) {
 
 export async function deleteArticle(req: Request, res: Response) {
   const { id } = req.params;
+  const userId = (req as any).user?.userId;
 
   try {
-    await prisma.article.delete({ where: { id } });
+    // Verify article exists and user owns it
+    const article = await prisma.article.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    if (article.authorId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this article' });
+    }
+
+    // Delete all related records first to avoid foreign key constraint violations
+    await prisma.$transaction([
+      // Delete likes
+      prisma.like.deleteMany({ where: { articleId: id } }),
+      // Delete comments
+      prisma.comment.deleteMany({ where: { articleId: id } }),
+      // Delete tag associations
+      prisma.tagOnArticle.deleteMany({ where: { articleId: id } }),
+      // Delete article views
+      prisma.articleView.deleteMany({ where: { articleId: id } }),
+      // Finally delete the article
+      prisma.article.delete({ where: { id } }),
+    ]);
 
     // Invalidate article list cache
     await cacheDelPattern('articles:page:*');

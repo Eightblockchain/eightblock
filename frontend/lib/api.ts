@@ -99,10 +99,18 @@ export async function updateArticle(
  */
 export async function deleteArticle(id: string) {
   const token = localStorage.getItem('authToken');
-  return fetcher(`/articles/${id}`, {
+  const res = await fetch(`${API_URL}/articles/${id}`, {
     method: 'DELETE',
     headers: {
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
   });
+
+  if (!res.ok) {
+    throw new Error('Failed to delete article');
+  }
+
+  // 204 No Content doesn't have a response body
+  return;
 }

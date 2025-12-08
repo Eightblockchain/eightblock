@@ -139,16 +139,16 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     retry: false,
   });
 
-  // Check if user liked the article
+  // Check if user liked the article (only for published articles)
   const { data: userLiked = false } = useQuery({
     queryKey: ['article-like', article?.id, userId],
     queryFn: () => checkUserLike(article!.id, userId!),
-    enabled: !!article?.id && !!userId && !!authToken,
+    enabled: !!article?.id && !!userId && !!authToken && article?.status === 'PUBLISHED',
   });
 
-  // Initialize view tracking
+  // Initialize view tracking (only for published articles)
   useEffect(() => {
-    if (article?.id && !viewTrackerRef.current) {
+    if (article?.id && article?.status === 'PUBLISHED' && !viewTrackerRef.current) {
       viewTrackerRef.current = new PageViewTracker(article.id);
     }
 
@@ -159,21 +159,21 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         viewTrackerRef.current = null;
       }
     };
-  }, [article?.id]);
+  }, [article?.id, article?.status]);
 
-  // Check if article is bookmarked
+  // Check if article is bookmarked (only for published articles)
   const [bookmarked, setBookmarked] = useState(false);
   useEffect(() => {
-    if (article?.id) {
+    if (article?.id && article?.status === 'PUBLISHED') {
       setBookmarked(isBookmarked(article.id));
     }
-  }, [article?.id]);
+  }, [article?.id, article?.status]);
 
-  // Fetch comments
+  // Fetch comments (only for published articles)
   const { data: comments = [] } = useQuery({
     queryKey: ['article-comments', article?.id],
     queryFn: () => fetchComments(article!.id),
-    enabled: !!article?.id,
+    enabled: !!article?.id && article?.status === 'PUBLISHED',
   });
 
   // Like mutation
@@ -394,6 +394,28 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     notFound();
   }
 
+  // Access control: Draft articles can only be viewed by their owner
+  if (article.status === 'DRAFT' && article.author.id !== userId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center max-w-md px-4">
+          <div className="mb-6">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-orange-100">
+              <AlertTriangle className="h-8 w-8 text-orange-600" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">Draft Article</h1>
+          <p className="text-gray-600 mb-6">
+            This article is currently in draft mode and can only be viewed by its author.
+          </p>
+          <Link href="/">
+            <Button>Browse Published Articles</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const readingTime = Math.ceil(article.content.split(' ').length / 200);
   const publishedDate = new Date(article.publishedAt).toLocaleDateString('en-US', {
     day: 'numeric',
@@ -595,71 +617,73 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         />
       </article>
 
-      {/* Reactions & Engagement Section */}
-      <div className="border-t border-b bg-gray-50">
-        <div className="mx-auto max-w-4xl px-4 py-8">
-          {/* Reaction Stats */}
-          <div className="mb-6 flex items-center gap-6 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <Heart className="h-5 w-5" />
-              <span>{likesCount} likes</span>
+      {/* Reactions & Engagement Section - Only for published articles */}
+      {article.status === 'PUBLISHED' && (
+        <div className="border-t border-b bg-gray-50">
+          <div className="mx-auto max-w-4xl px-4 py-8">
+            {/* Reaction Stats */}
+            <div className="mb-6 flex items-center gap-6 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5" />
+                <span>{likesCount} likes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                <span>{comments.length} comments</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              <span>{comments.length} comments</span>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant={userLiked ? 'default' : 'outline'}
+                onClick={handleLike}
+                disabled={likeMutation.isPending}
+                className={`flex items-center gap-2 transition-all ${
+                  userLiked
+                    ? 'bg-red-500 hover:bg-red-600 text-white border-red-500'
+                    : 'hover:bg-red-50 hover:text-red-600 hover:border-red-300'
+                }`}
+              >
+                {likeMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Heart
+                    className={`h-4 w-4 transition-all ${userLiked ? 'fill-current scale-110' : ''}`}
+                  />
+                )}
+                {userLiked ? 'Liked' : 'Like'}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const commentsSection = document.getElementById('comments');
+                  commentsSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex items-center gap-2"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Comment
+              </Button>
+
+              <Button variant="outline" onClick={handleShare} className="flex items-center gap-2">
+                <Share2 className="h-4 w-4" />
+                Share
+              </Button>
+
+              <Button
+                variant={bookmarked ? 'default' : 'outline'}
+                onClick={handleBookmark}
+                className="flex items-center gap-2"
+              >
+                <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />
+                {bookmarked ? 'Saved' : 'Save'}
+              </Button>
             </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant={userLiked ? 'default' : 'outline'}
-              onClick={handleLike}
-              disabled={likeMutation.isPending}
-              className={`flex items-center gap-2 transition-all ${
-                userLiked
-                  ? 'bg-red-500 hover:bg-red-600 text-white border-red-500'
-                  : 'hover:bg-red-50 hover:text-red-600 hover:border-red-300'
-              }`}
-            >
-              {likeMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Heart
-                  className={`h-4 w-4 transition-all ${userLiked ? 'fill-current scale-110' : ''}`}
-                />
-              )}
-              {userLiked ? 'Liked' : 'Like'}
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                const commentsSection = document.getElementById('comments');
-                commentsSection?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="flex items-center gap-2"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Comment
-            </Button>
-
-            <Button variant="outline" onClick={handleShare} className="flex items-center gap-2">
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-
-            <Button
-              variant={bookmarked ? 'default' : 'outline'}
-              onClick={handleBookmark}
-              className="flex items-center gap-2"
-            >
-              <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />
-              {bookmarked ? 'Saved' : 'Save'}
-            </Button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Author Section */}
       <div className="border-b bg-white">
@@ -686,182 +710,185 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
         </div>
       </div>
 
-      {/* Comments Section */}
-      <div id="comments" className="bg-white">
-        <div className="mx-auto max-w-4xl px-4 py-12">
-          <h3 className="mb-6 text-2xl font-bold text-gray-900">Comments ({comments.length})</h3>
+      {/* Comments Section - Only for published articles */}
+      {article.status === 'PUBLISHED' && (
+        <div id="comments" className="bg-white">
+          <div className="mx-auto max-w-4xl px-4 py-12">
+            <h3 className="mb-6 text-2xl font-bold text-gray-900">Comments ({comments.length})</h3>
 
-          {!address ? (
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-              <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-4">Connect your wallet to join the discussion</p>
-              <Button>Connect Wallet</Button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Comment Input */}
-              <form
-                onSubmit={handleCommentSubmit}
-                className="rounded-lg border border-gray-200 bg-white p-4"
-              >
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Share your thoughts..."
-                  className="w-full resize-none border-0 p-2 focus:outline-none focus:ring-0"
-                  rows={3}
-                  disabled={commentMutation.isPending}
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCommentText('')}
+            {!address ? (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+                <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-600 mb-4">Connect your wallet to join the discussion</p>
+                <Button>Connect Wallet</Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Comment Input */}
+                <form
+                  onSubmit={handleCommentSubmit}
+                  className="rounded-lg border border-gray-200 bg-white p-4"
+                >
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Share your thoughts..."
+                    className="w-full resize-none border-0 p-2 focus:outline-none focus:ring-0"
+                    rows={3}
                     disabled={commentMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={!commentText.trim() || commentMutation.isPending}
-                  >
-                    {commentMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Posting...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Post Comment
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCommentText('')}
+                      disabled={commentMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!commentText.trim() || commentMutation.isPending}
+                    >
+                      {commentMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Posting...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Post Comment
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
 
-              {/* Comments List */}
-              {comments.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  No comments yet. Be the first to share your thoughts!
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {comments.map((comment) => {
-                    const isOwner = userId === comment.author.id;
-                    const isEditing = editingCommentId === comment.id;
+                {/* Comments List */}
+                {comments.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    No comments yet. Be the first to share your thoughts!
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {comments.map((comment) => {
+                      const isOwner = userId === comment.author.id;
+                      const isEditing = editingCommentId === comment.id;
 
-                    return (
-                      <div
-                        key={comment.id}
-                        className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow"
-                      >
-                        <div className="flex items-start gap-3">
-                          <Avatar
-                            src={comment.author.avatarUrl}
-                            name={comment.author.name}
-                            size="md"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="font-semibold text-gray-900 truncate">
-                                  {comment.author.name || 'Anonymous'}
-                                </span>
-                                <span className="text-xs text-gray-500 flex-shrink-0">
-                                  {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                  })}
-                                </span>
-                              </div>
-                              {isOwner && !isEditing && (
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleEditComment(comment)}
-                                    className="h-8 px-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                                  >
-                                    <Edit2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleDeleteComment(comment.id)}
-                                    disabled={deleteCommentMutation.isPending}
-                                    className="h-8 px-2 text-gray-600 hover:text-red-600 hover:bg-red-50"
-                                  >
-                                    {deleteCommentMutation.isPending ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="h-4 w-4" />
-                                    )}
-                                  </Button>
+                      return (
+                        <div
+                          key={comment.id}
+                          className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow"
+                        >
+                          <div className="flex items-start gap-3">
+                            <Avatar
+                              src={comment.author.avatarUrl}
+                              name={comment.author.name}
+                              size="md"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-semibold text-gray-900 truncate">
+                                    {comment.author.name || 'Anonymous'}
+                                  </span>
+                                  <span className="text-xs text-gray-500 flex-shrink-0">
+                                    {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                    })}
+                                  </span>
                                 </div>
+                                {isOwner && !isEditing && (
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleEditComment(comment)}
+                                      className="h-8 px-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDeleteComment(comment.id)}
+                                      disabled={deleteCommentMutation.isPending}
+                                      className="h-8 px-2 text-gray-600 hover:text-red-600 hover:bg-red-50"
+                                    >
+                                      {deleteCommentMutation.isPending ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {isEditing ? (
+                                <div className="mt-2 space-y-2">
+                                  <textarea
+                                    value={editingCommentText}
+                                    onChange={(e) => setEditingCommentText(e.target.value)}
+                                    className="w-full resize-none rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    rows={3}
+                                    disabled={updateCommentMutation.isPending}
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUpdateComment(comment.id)}
+                                      disabled={
+                                        !editingCommentText.trim() ||
+                                        updateCommentMutation.isPending
+                                      }
+                                      className="bg-blue-600 hover:bg-blue-700"
+                                    >
+                                      {updateCommentMutation.isPending ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Check className="mr-2 h-4 w-4" />
+                                          Save
+                                        </>
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={handleCancelEdit}
+                                      disabled={updateCommentMutation.isPending}
+                                    >
+                                      <X className="mr-2 h-4 w-4" />
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                                  {comment.body}
+                                </p>
                               )}
                             </div>
-
-                            {isEditing ? (
-                              <div className="mt-2 space-y-2">
-                                <textarea
-                                  value={editingCommentText}
-                                  onChange={(e) => setEditingCommentText(e.target.value)}
-                                  className="w-full resize-none rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  rows={3}
-                                  disabled={updateCommentMutation.isPending}
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleUpdateComment(comment.id)}
-                                    disabled={
-                                      !editingCommentText.trim() || updateCommentMutation.isPending
-                                    }
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                  >
-                                    {updateCommentMutation.isPending ? (
-                                      <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Saving...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Check className="mr-2 h-4 w-4" />
-                                        Save
-                                      </>
-                                    )}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={handleCancelEdit}
-                                    disabled={updateCommentMutation.isPending}
-                                  >
-                                    <X className="mr-2 h-4 w-4" />
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-                                {comment.body}
-                              </p>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Footer CTA */}
       <div className="border-t bg-gray-50 py-12">

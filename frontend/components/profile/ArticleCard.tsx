@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,6 +27,7 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article, onDelete }: ArticleCardProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -34,10 +36,18 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
     try {
       await deleteArticle(article.id);
       setOpen(false);
+      toast({
+        title: 'Article deleted',
+        description: 'Your article has been successfully deleted.',
+      });
       if (onDelete) onDelete();
     } catch (error) {
       console.error('Failed to delete article:', error);
-      alert('Failed to delete article. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to delete article. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsDeleting(false);
     }
