@@ -267,21 +267,62 @@ export async function createArticle(req: Request, res: Response) {
 
 export async function updateArticle(req: Request, res: Response) {
   const { id } = req.params;
-  const { tagIds, ...rest } = req.body;
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const { title, slug, excerpt, content, tags = [], status } = req.body;
 
   try {
+    // Check if article exists and user is the author
+    const existingArticle = await prisma.article.findUnique({
+      where: { id },
+      include: { author: true },
+    });
+
+    if (!existingArticle) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    if (existingArticle.author.id !== userId) {
+      return res.status(403).json({ error: 'You can only edit your own articles' });
+    }
+
+    // Get or create tags
+    const tagRecords = await Promise.all(
+      tags.map(async (tagName: string) => {
+        const tagSlug = tagName
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '');
+
+        const tag = await prisma.tag.upsert({
+          where: { name: tagName },
+          update: {},
+          create: {
+            name: tagName,
+            slug: tagSlug,
+          },
+        });
+        return tag;
+      })
+    );
+
     const updated = await prisma.article.update({
       where: { id },
       data: {
-        ...rest,
-        ...(tagIds
-          ? {
-              tags: {
-                deleteMany: {},
-                create: tagIds.map((tagId: string) => ({ tagId })),
-              },
-            }
-          : {}),
+        title,
+        slug,
+        description: excerpt || '',
+        content,
+        category: tags[0] || existingArticle.category,
+        status,
+        tags: {
+          deleteMany: {},
+          create: tagRecords.map((tag) => ({ tagId: tag.id })),
+        },
       },
       include: {
         tags: { include: { tag: true } },

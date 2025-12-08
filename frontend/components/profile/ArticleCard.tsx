@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ article, onDelete }: ArticleCardProps) {
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -79,7 +81,12 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
           </Badge>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="h-9">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={() => router.push(`/articles/${article.slug}/edit`)}
+          >
             <Edit className="h-4 w-4" />
           </Button>
           <AlertDialog open={open} onOpenChange={setOpen}>

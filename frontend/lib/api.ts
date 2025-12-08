@@ -98,7 +98,11 @@ export async function updateArticle(
  * Delete article
  */
 export async function deleteArticle(id: string) {
+  const token = localStorage.getItem('authToken');
   return fetcher(`/articles/${id}`, {
     method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 }

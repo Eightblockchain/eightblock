@@ -35,6 +35,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { PageViewTracker } from '@/lib/view-tracking';
 import { useWallet } from '@/lib/wallet-context';
 import {
@@ -64,6 +65,7 @@ interface Article {
   category: string;
   status: string;
   featured: boolean;
+  featuredImage?: string;
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -466,14 +468,62 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
       {/* Header */}
       <div className="border-b bg-gray-50">
         <div className="mx-auto max-w-4xl px-4 py-6">
-          <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-2">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="ghost" onClick={() => router.back()} className="-ml-2">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+
+            {/* Edit/Publish buttons for draft articles by owner */}
+            {article.status === 'DRAFT' && userId === article.author.id && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/articles/${article.slug}/edit`)}
+                >
+                  <Edit2 className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${API_URL}/articles/${article.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${authToken}`,
+                        },
+                        body: JSON.stringify({ status: 'PUBLISHED' }),
+                      });
+                      if (response.ok) {
+                        toast.toast?.({ title: 'Success', description: 'Article published!' });
+                        queryClient.invalidateQueries({ queryKey: ['article', slug] });
+                      }
+                    } catch (error) {
+                      toast.toast?.({
+                        title: 'Error',
+                        description: 'Failed to publish article',
+                        variant: 'destructive',
+                      });
+                    }
+                  }}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Publish Now
+                </Button>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Badge variant="secondary">{article.category}</Badge>
+              {article.status === 'DRAFT' && (
+                <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Draft</Badge>
+              )}
               {article.featured && (
                 <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
                   Featured
@@ -486,6 +536,20 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
             </h1>
 
             <p className="text-xl text-gray-600">{article.description}</p>
+
+            {/* Featured Image */}
+            {article.featuredImage && (
+              <div className="relative w-full rounded-lg overflow-hidden">
+                <Image
+                  src={article.featuredImage}
+                  alt={article.title}
+                  width={1200}
+                  height={630}
+                  className="w-full h-auto object-contain"
+                  priority
+                />
+              </div>
+            )}
 
             {/* Meta Info */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">

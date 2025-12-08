@@ -11,6 +11,7 @@ import {
   PaginationEllipsis,
 } from '@/components/ui/pagination';
 import { Edit } from 'lucide-react';
+import Link from 'next/link';
 import { useProfile } from '@/hooks/useProfile';
 import { ArticleCard } from '@/components/profile/ArticleCard';
 import { EmptyState } from '@/components/profile/EmptyState';
@@ -48,10 +49,12 @@ export default function MyArticlesPage() {
             <h1 className="text-4xl font-bold text-[#080808]">My Articles</h1>
             <p className="mt-2 text-gray-600">Manage your published and draft articles</p>
           </div>
-          <Button className="bg-[#080808] text-white hover:bg-gray-800">
-            <Edit className="h-4 w-4 mr-2" />
-            New Article
-          </Button>
+          <Link href="/articles/new">
+            <Button className="bg-[#080808] text-white hover:bg-gray-800">
+              <Edit className="h-4 w-4 mr-2" />
+              New Article
+            </Button>
+          </Link>
         </div>
       </div>
 
