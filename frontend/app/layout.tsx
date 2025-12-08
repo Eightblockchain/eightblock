@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { WalletProvider } from '@/lib/wallet-context';
 import { ReactQueryProvider } from '@/lib/react-query-provider';
+import { Toaster } from '@/components/ui/toaster';
 import { siteConfig } from '@/lib/site-config';
 import './globals.css';
 import '../styles/mdx.css';
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <main className="flex-1 bg-gradient-to-b from-white to-slate-50">{children}</main>
               <SiteFooter />
             </div>
+            <Toaster />
           </WalletProvider>
         </ReactQueryProvider>
       </body>

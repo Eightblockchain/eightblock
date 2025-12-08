@@ -24,3 +24,15 @@ export async function removeLike(req: Request, res: Response) {
   await prisma.like.delete({ where: { articleId_userId: { articleId, userId: finalUserId } } });
   return res.status(204).send();
 }
+
+export async function checkUserLike(req: Request, res: Response) {
+  const { articleId } = req.params;
+  const { userId } = req.query;
+  const finalUserId = (userId as string) ?? req.user?.userId;
+  if (!finalUserId) return res.json({ liked: false });
+
+  const like = await prisma.like.findUnique({
+    where: { articleId_userId: { articleId, userId: finalUserId } },
+  });
+  return res.json({ liked: !!like });
+}

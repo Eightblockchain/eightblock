@@ -6,6 +6,16 @@ export async function listComments(req: Request, res: Response) {
   const comments = await prisma.comment.findMany({
     where: { articleId },
     orderBy: { createdAt: 'desc' },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          walletAddress: true,
+          avatarUrl: true,
+        },
+      },
+    },
   });
   return res.json(comments);
 }
@@ -17,6 +27,16 @@ export async function createComment(req: Request, res: Response) {
   if (!finalAuthorId) return res.status(401).json({ error: 'Author required' });
   const comment = await prisma.comment.create({
     data: { body, articleId, authorId: finalAuthorId },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          walletAddress: true,
+          avatarUrl: true,
+        },
+      },
+    },
   });
   return res.status(201).json(comment);
 }

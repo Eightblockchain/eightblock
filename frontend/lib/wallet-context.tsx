@@ -56,6 +56,33 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       const browserWallet = await BrowserWallet.enable(walletName);
       const walletAddress = await browserWallet.getChangeAddress();
 
+      // Authenticate with backend to get JWT token
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/wallet', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ walletAddress }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Backend authentication failed');
+        }
+
+        const data = await response.json();
+
+        // Store authentication token and user ID
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('userId', data.user.id);
+
+        console.log('Wallet authenticated successfully:', data.user);
+      } catch (authError) {
+        console.error('Failed to authenticate with backend:', authError);
+        // Continue with wallet connection even if auth fails
+        // This allows wallet features to work while auth features require login
+      }
+
       setWallet(browserWallet);
       setAddress(walletAddress);
       setConnected(true);
@@ -69,6 +96,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       // Clear localStorage on connection failure
       localStorage.removeItem('walletConnected');
       localStorage.removeItem('walletName');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
     } finally {
       setConnecting(false);
     }
@@ -80,6 +109,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setConnected(false);
     localStorage.removeItem('walletConnected');
     localStorage.removeItem('walletName');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
   }, []);
 
   // Auto-reconnect on mount if previously connected
