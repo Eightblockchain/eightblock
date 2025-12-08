@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/lib/wallet-context';
 import { getArticlesByWallet, upsertUser } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 export function useProfile() {
   const { connected, connecting, address, disconnect, wallet } = useWallet();
@@ -9,9 +10,9 @@ export function useProfile() {
   const [copied, setCopied] = useState(false);
   const [balance, setBalance] = useState<string | null>(null);
   const [isChecking, setIsChecking] = useState(true);
-  const [articles, setArticles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [allStats, setAllStats] = useState({ published: 0, drafts: 0, totalLikes: 0 });
 
   useEffect(() => {
     // Wait for wallet to finish attempting reconnection
@@ -38,22 +39,60 @@ export function useProfile() {
     fetchBalance();
   }, [wallet]);
 
+  // Query for articles with pagination
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['profile-articles', address, currentPage],
+    queryFn: async () => {
+      if (!address)
+        return { articles: [], pagination: { hasMore: false, page: 1, total: 0, totalPages: 0 } };
+      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
+      const response = await fetch(
+        `${API_URL}/articles/wallet/${address}?page=${currentPage}&limit=10`
+      );
+      if (!response.ok) throw new Error('Failed to fetch articles');
+      return response.json();
+    },
+    enabled: !!address && connected,
+  });
+
+  const articles = data?.articles ?? [];
+  const pagination = data?.pagination ?? { page: 1, totalPages: 0, total: 0 };
+
+  // Fetch all articles stats (without pagination) for accurate stats display
+  useEffect(() => {
+    async function fetchAllStats() {
+      if (address && connected) {
+        try {
+          const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
+          const response = await fetch(`${API_URL}/articles/wallet/${address}?page=1&limit=1000`);
+          if (response.ok) {
+            const data = await response.json();
+            const allArticles = data.articles || [];
+            const published = allArticles.filter((a: any) => a.status === 'PUBLISHED').length;
+            const drafts = allArticles.filter((a: any) => a.status === 'DRAFT').length;
+            const totalLikes = allArticles.reduce(
+              (sum: number, a: any) => sum + (a._count?.likes || 0),
+              0
+            );
+            setAllStats({ published, drafts, totalLikes });
+          }
+        } catch (error) {
+          console.error('Failed to fetch all stats:', error);
+        }
+      }
+    }
+    fetchAllStats();
+  }, [address, connected]);
+
   useEffect(() => {
     async function fetchUserData() {
       if (address && connected) {
-        setLoading(true);
         try {
           // Create/update user in backend
           const userData = await upsertUser({ walletAddress: address });
           setUser(userData);
-
-          // Fetch user's articles
-          const userArticles = await getArticlesByWallet(address);
-          setArticles(userArticles);
         } catch (error) {
           console.error('Failed to fetch user data:', error);
-        } finally {
-          setLoading(false);
         }
       }
     }
@@ -73,25 +112,29 @@ export function useProfile() {
     router.push('/');
   };
 
-  const refreshArticles = async () => {
-    if (address) {
-      setLoading(true);
-      try {
-        const userArticles = await getArticlesByWallet(address);
-        setArticles(userArticles);
-      } catch (error) {
-        console.error('Failed to refresh articles:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+  const refreshArticles = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
-  // Calculate stats
-  const publishedArticles = articles.filter((a) => a.status === 'PUBLISHED');
-  const draftArticles = articles.filter((a) => a.status === 'DRAFT');
-  const totalViews = articles.reduce((sum, a) => sum + (a._count?.likes || 0), 0);
-  const totalLikes = articles.reduce((sum, a) => sum + (a._count?.likes || 0), 0);
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const nextPage = useCallback(() => {
+    if (currentPage < pagination.totalPages) {
+      setCurrentPage((prev) => prev + 1);
+    }
+  }, [currentPage, pagination.totalPages]);
+
+  const prevPage = useCallback(() => {
+    if (currentPage > 1) {
+      setCurrentPage((prev) => prev - 1);
+    }
+  }, [currentPage]);
+
+  // Calculate stats from all articles (not just current page)
+  const totalViews = allStats.totalLikes; // Using likes as views for now
+  const totalLikes = allStats.totalLikes;
 
   return {
     connected,
@@ -101,16 +144,26 @@ export function useProfile() {
     copied,
     isChecking,
     articles,
-    loading,
+    loading: isLoading,
     user,
     stats: {
       views: totalViews,
       likes: totalLikes,
-      articles: publishedArticles.length,
-      drafts: draftArticles.length,
+      articles: allStats.published,
+      drafts: allStats.drafts,
+    },
+    pagination: {
+      currentPage,
+      totalPages: pagination.totalPages,
+      total: pagination.total,
+      hasNext: currentPage < pagination.totalPages,
+      hasPrev: currentPage > 1,
     },
     copyAddress,
     handleDisconnect,
     refreshArticles,
+    goToPage,
+    nextPage,
+    prevPage,
   };
 }

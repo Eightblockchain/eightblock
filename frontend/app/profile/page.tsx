@@ -1,6 +1,15 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 import { LogOut, Edit } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { WalletCard } from '@/components/profile/WalletCard';
@@ -20,9 +29,13 @@ export default function ProfilePage() {
     articles,
     loading,
     stats,
+    pagination,
     copyAddress,
     handleDisconnect,
     refreshArticles,
+    goToPage,
+    nextPage,
+    prevPage,
   } = useProfile();
 
   // Show loading state while checking wallet connection
@@ -84,11 +97,71 @@ export default function ProfilePage() {
         {loading ? (
           <p className="text-gray-600">Loading articles...</p>
         ) : (
-          <div className="space-y-4">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} onDelete={refreshArticles} />
-            ))}
-          </div>
+          <>
+            <div className="space-y-4">
+              {articles.map((article) => (
+                <ArticleCard key={article.id} article={article} onDelete={refreshArticles} />
+              ))}
+            </div>
+
+            {/* Classic Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => pagination.hasPrev && prevPage()}
+                        className={!pagination.hasPrev ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+
+                    {/* Page Numbers */}
+                    {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => {
+                      // Show first page, last page, current page, and pages around current
+                      const showPage =
+                        page === 1 ||
+                        page === pagination.totalPages ||
+                        Math.abs(page - pagination.currentPage) <= 1;
+
+                      if (!showPage) {
+                        // Show ellipsis for gaps
+                        if (
+                          page === pagination.currentPage - 2 ||
+                          page === pagination.currentPage + 2
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          );
+                        }
+                        return null;
+                      }
+
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => goToPage(page)}
+                            isActive={page === pagination.currentPage}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => pagination.hasNext && nextPage()}
+                        className={!pagination.hasNext ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         )}
 
         {!loading && articles.length === 0 && <EmptyState />}

@@ -4,7 +4,18 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Edit, Trash2, Eye, AlertTriangle } from 'lucide-react';
 import { deleteArticle } from '@/lib/api';
 
 interface ArticleCardProps {
@@ -14,17 +25,13 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article, onDelete }: ArticleCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const handleDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${article.title}"? This action cannot be undone.`
-    );
-
-    if (!confirmed) return;
-
     setIsDeleting(true);
     try {
       await deleteArticle(article.id);
+      setOpen(false);
       if (onDelete) onDelete();
     } catch (error) {
       console.error('Failed to delete article:', error);
@@ -75,15 +82,46 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
           <Button variant="outline" size="sm" className="h-9">
             <Edit className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 border-red-200 text-red-500 hover:bg-red-50"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 border-red-200 text-red-500 hover:bg-red-50"
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                    <AlertTriangle className="h-5 w-5 text-red-600" />
+                  </div>
+                  <AlertDialogTitle className="text-xl">Delete Article</AlertDialogTitle>
+                </div>
+                <AlertDialogDescription className="text-base">
+                  Are you sure you want to delete{' '}
+                  <span className="font-semibold text-gray-700">"{article.title}"</span>?
+                  <br />
+                  <br />
+                  This action cannot be undone. The article and all associated data will be
+                  permanently removed.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Article'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </Card>

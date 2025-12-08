@@ -76,9 +76,13 @@ export async function listArticles(req: Request, res: Response) {
 /**
  * Get articles by wallet address
  * Returns all articles (including drafts) if walletAddress matches author
+ * Supports pagination with page and limit query params
  */
 export async function getArticlesByWallet(req: Request, res: Response) {
   const { walletAddress } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const skip = (page - 1) * limit;
 
   try {
     // Find user by wallet address
@@ -90,26 +94,44 @@ export async function getArticlesByWallet(req: Request, res: Response) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const articles = await prisma.article.findMany({
-      where: {
-        authorId: user.id,
-      },
-      include: {
-        tags: { include: { tag: true } },
-        author: {
-          select: {
-            id: true,
-            walletAddress: true,
-            name: true,
-            avatarUrl: true,
-          },
+    const [articles, total] = await Promise.all([
+      prisma.article.findMany({
+        where: {
+          authorId: user.id,
         },
-        _count: { select: { likes: true, comments: true } },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+        include: {
+          tags: { include: { tag: true } },
+          author: {
+            select: {
+              id: true,
+              walletAddress: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          _count: { select: { likes: true, comments: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.article.count({
+        where: {
+          authorId: user.id,
+        },
+      }),
+    ]);
 
-    return res.json(articles);
+    return res.json({
+      articles,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
+      },
+    });
   } catch (error) {
     logger.error(`getArticlesByWallet: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to fetch user articles' });
