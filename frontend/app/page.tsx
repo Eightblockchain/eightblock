@@ -5,13 +5,17 @@ import { useInfiniteArticles, Article } from '@/hooks/useInfiniteArticles';
 import { useFeaturedArticles } from '@/hooks/useFeaturedArticles';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Hero } from '@/components/hero';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteArticles(10);
   const { data: featuredArticles, isLoading: featuredLoading } = useFeaturedArticles();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const searchQuery = searchParams.get('search') || '';
 
   const observerTarget = useRef<HTMLDivElement>(null);
   const articlesRef = useRef<HTMLDivElement>(null);
@@ -23,6 +27,23 @@ export default function HomePage() {
   // Flatten all pages into a single array of articles
   const allArticles = data?.pages.flatMap((page) => page.articles) ?? [];
   const featured = featuredArticles ?? [];
+
+  // Filter articles based on search query
+  const filteredArticles = searchQuery
+    ? allArticles.filter((article) => {
+        const query = searchQuery.toLowerCase();
+        return (
+          article.title.toLowerCase().includes(query) ||
+          article.description.toLowerCase().includes(query) ||
+          article.category?.toLowerCase().includes(query) ||
+          article.tags?.some((t) => t.tag.name.toLowerCase().includes(query))
+        );
+      })
+    : allArticles;
+
+  const clearSearch = () => {
+    router.push('/');
+  };
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
@@ -117,8 +138,8 @@ export default function HomePage() {
       {/* Hero Section */}
       <Hero onScrollToArticles={scrollToArticles} />
 
-      {/* Featured Articles Carousel - Only show if more than 3 featured articles */}
-      {!featuredLoading && featured.length > 0 && (
+      {/* Featured Articles Carousel - Only show if more than 3 featured articles and not searching */}
+      {!searchQuery && !featuredLoading && featured.length > 0 && (
         <section className="bg-gray-50 py-16">
           <div className="mx-auto max-w-6xl px-4">
             <h2 className="mb-8 text-2xl font-bold text-[#080808]">Featured Articles</h2>
@@ -214,13 +235,33 @@ export default function HomePage() {
       {/* Explore Articles with Infinite Scroll */}
       <section ref={articlesRef} className="py-16" id="articles">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="mb-8 text-2xl font-bold text-[#080808]">Explore Articles</h2>
-          {allArticles.length === 0 ? (
-            <p className="text-center text-gray-600">No articles found.</p>
+          <div className="mb-8 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-[#080808]">
+              {searchQuery ? 'Search Results' : 'Explore Articles'}
+            </h2>
+            {searchQuery && (
+              <Button variant="outline" onClick={clearSearch} className="flex items-center gap-2">
+                <X className="h-4 w-4" />
+                Clear Search
+              </Button>
+            )}
+          </div>
+
+          {searchQuery && (
+            <p className="mb-6 text-sm text-gray-600">
+              Found {filteredArticles.length} article{filteredArticles.length !== 1 ? 's' : ''}{' '}
+              matching "{searchQuery}"
+            </p>
+          )}
+
+          {filteredArticles.length === 0 ? (
+            <p className="text-center text-gray-600">
+              {searchQuery ? `No articles found matching "${searchQuery}".` : 'No articles found.'}
+            </p>
           ) : (
             <>
               <div className="space-y-6">
-                {allArticles.map((article) => (
+                {filteredArticles.map((article) => (
                   <div key={article.slug} className="flex gap-6 border-b pb-6 last:border-b-0">
                     <div className="flex-1">
                       <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -244,18 +285,20 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Loading indicator */}
-              <div ref={observerTarget} className="mt-8 text-center">
-                {isFetchingNextPage && (
-                  <div className="inline-flex items-center gap-2">
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-                    <span className="text-gray-600">Loading more...</span>
-                  </div>
-                )}
-                {!hasNextPage && allArticles.length > 0 && (
-                  <p className="text-gray-500">You've reached the end!</p>
-                )}
-              </div>
+              {/* Loading indicator - only show when not searching */}
+              {!searchQuery && (
+                <div ref={observerTarget} className="mt-8 text-center">
+                  {isFetchingNextPage && (
+                    <div className="inline-flex items-center gap-2">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
+                      <span className="text-gray-600">Loading more...</span>
+                    </div>
+                  )}
+                  {!hasNextPage && allArticles.length > 0 && (
+                    <p className="text-gray-500">You've reached the end!</p>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

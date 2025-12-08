@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface UseSearchReturn {
   isOpen: boolean;
@@ -14,6 +15,8 @@ export function useSearch(): UseSearchReturn {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const openSearch = useCallback(() => setIsOpen(true), []);
 
@@ -26,11 +29,12 @@ export function useSearch(): UseSearchReturn {
     (e: React.FormEvent) => {
       e.preventDefault();
       if (query.trim()) {
-        // TODO: Implement search functionality
-        console.log('Searching for:', query);
+        // Navigate to homepage with search query
+        router.push(`/?search=${encodeURIComponent(query.trim())}`);
+        closeSearch();
       }
     },
-    [query]
+    [query, router, closeSearch]
   );
 
   // Auto-focus input when search opens
