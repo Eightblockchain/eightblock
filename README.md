@@ -5,7 +5,10 @@ Open-source blockchain and Cardano education hub featuring a collaborative blog,
 ## Features
 
 - **Education-first blog** with MDX-powered articles, categories, tags, and featured content
+- **Infinite scroll** with React Query for seamless content browsing
+- **Redis caching** for blazing-fast performance and reduced database load
 - **Community engagement** via likes, threaded comments, and newsletter subscriptions
+- **Wallet-based authentication** using Cardano wallets (no email/password required)
 - **Admin experience** for managing articles, metadata, and reader interactions
 - **Stateless REST API** with OpenAPI docs, Prisma ORM, and PostgreSQL storage
 - **Open-source readiness** including contribution guidelines, issue/PR templates, linting, tests, and CI
@@ -20,7 +23,7 @@ backend/    # Express + Prisma + PostgreSQL REST API
 
 ## Getting Started
 
-Requirements: Node.js 20+, pnpm 9+, PostgreSQL 15+, and OpenSSL for JWT signing.
+Requirements: Node.js 20+, pnpm 9+, PostgreSQL 15+, Redis 7+ (optional), and OpenSSL for JWT signing.
 
 1. **Install dependencies**
    ```bash
@@ -29,18 +32,31 @@ Requirements: Node.js 20+, pnpm 9+, PostgreSQL 15+, and OpenSSL for JWT signing.
 2. **Environment variables**
    - Copy `.env.example` to `.env` at the repo root and fill in database + auth secrets (see comments inside the sample file).
    - Frontend uses `NEXT_PUBLIC_API_URL`; backend uses `DATABASE_URL`, `JWT_SECRET`, and optional NextAuth provider keys.
-3. **Database setup**
+   - For Redis caching, set `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` (see `REDIS_SETUP.md`)
+3. **Redis setup (optional but recommended)**
+
+   ```bash
+   # macOS
+   brew install redis && brew services start redis
+
+   # Docker
+   docker run -d --name redis -p 6379:6379 redis:latest
+
+   # See REDIS_SETUP.md for detailed instructions
+   ```
+
+4. **Database setup**
    ```bash
    cd backend
    pnpm prisma migrate dev
    pnpm prisma db seed # (optional) adds sample content
    ```
-4. **Run the backend API**
+5. **Run the backend API**
    ```bash
    cd backend
    pnpm dev
    ```
-5. **Run the frontend**
+6. **Run the frontend**
 
    ```bash
    cd frontend
@@ -73,9 +89,10 @@ Root scripts proxy to workspaces via pnpm:
 
 ## Tech Stack
 
-- **Frontend:** Next.js 15, TypeScript, TailwindCSS, ShadCN UI, Contentlayer MDX
-- **Backend:** Express 5, Prisma ORM, PostgreSQL, Zod validation, Winston logging, Swagger UI
-- **Auth:** JWT-first architecture with optional NextAuth providers
+- **Frontend:** Next.js 15, TypeScript, TailwindCSS, ShadCN UI, React Query, Contentlayer MDX
+- **Backend:** Express 5, Prisma ORM, PostgreSQL, Redis (ioredis), Zod validation, Winston logging, Swagger UI
+- **Auth:** Cardano wallet-based authentication (MeshSDK)
+- **Caching:** Redis for API responses with automatic invalidation
 - **Tooling:** pnpm workspaces, ESLint, Prettier, Husky, GitHub Actions (lint & tests)
 
 ## Contribution Flow
