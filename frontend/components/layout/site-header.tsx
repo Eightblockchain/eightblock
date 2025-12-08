@@ -5,7 +5,6 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
 import { Hero } from '../hero';
-import { Bookmark } from 'lucide-react';
 
 // Dynamically import client components to reduce initial bundle
 const SearchComponent = dynamic(() => import('../search/Search'), {
@@ -43,13 +42,6 @@ export function SiteHeader() {
             <Image src="/logo.svg" alt="eightblock logo" width={150} height={40} priority />
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-            <Link
-              href="/bookmarks"
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors"
-            >
-              <Bookmark className="h-4 w-4" />
-              <span>Bookmarks</span>
-            </Link>
             <SearchComponent />
             <LoginBtn />
           </nav>

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useWallet } from '@/lib/wallet-context';
 import { Button } from '../ui/button';
-import { ChevronDown, LogOut, User, Wallet } from 'lucide-react';
+import { ChevronDown, LogOut, User, Wallet, Bookmark, FileText } from 'lucide-react';
 
 export default function LoginBtn() {
   const { connected, connecting, address, connect, disconnect, availableWallets } = useWallet();
@@ -43,6 +43,23 @@ export default function LoginBtn() {
                 <User className="h-4 w-4" />
                 My Profile
               </Link>
+              <Link
+                href="/profile/articles"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                onClick={() => setShowProfileMenu(false)}
+              >
+                <FileText className="h-4 w-4" />
+                My Articles
+              </Link>
+              <Link
+                href="/profile/bookmarks"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                onClick={() => setShowProfileMenu(false)}
+              >
+                <Bookmark className="h-4 w-4" />
+                Bookmarks
+              </Link>
+              <div className="border-t border-gray-200 my-1"></div>
               {availableWallets.length > 1 && (
                 <button
                   onClick={() => {

@@ -107,3 +107,75 @@ export async function updateUser(req: Request, res: Response) {
     return res.status(500).json({ error: 'Failed to update user' });
   }
 }
+
+/**
+ * Get current user's profile
+ */
+export async function getMyProfile(req: Request, res: Response) {
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        _count: {
+          select: {
+            articles: true,
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    logger.error(`getMyProfile: ${(error as Error).message}`);
+    return res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+}
+
+/**
+ * Update current user's profile
+ */
+export async function updateMyProfile(req: Request, res: Response) {
+  const userId = req.user?.userId;
+  const { name, bio, avatarUrl } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  try {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(bio !== undefined && { bio }),
+        ...(avatarUrl !== undefined && { avatarUrl }),
+      },
+      include: {
+        _count: {
+          select: {
+            articles: true,
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
+
+    return res.json(user);
+  } catch (error) {
+    logger.error(`updateMyProfile: ${(error as Error).message}`);
+    return res.status(500).json({ error: 'Failed to update profile' });
+  }
+}
