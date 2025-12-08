@@ -94,6 +94,47 @@ export async function createComment(
   return response.json();
 }
 
+export async function updateComment(
+  articleId: string,
+  commentId: string,
+  content: string,
+  token: string
+): Promise<Comment> {
+  const response = await fetch(`${API_URL}/articles/${articleId}/comments/${commentId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ body: content }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update comment');
+  }
+
+  return response.json();
+}
+
+export async function deleteComment(
+  articleId: string,
+  commentId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(`${API_URL}/articles/${articleId}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to delete comment' }));
+    throw new Error(error.error || 'Failed to delete comment');
+  }
+}
+
 // Bookmarks (using localStorage for now, can be replaced with API)
 export function getBookmarks(): string[] {
   if (typeof window === 'undefined') return [];

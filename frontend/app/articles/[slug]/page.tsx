@@ -6,6 +6,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   ArrowLeft,
   Calendar,
   Clock,
@@ -17,6 +27,11 @@ import {
   Loader2,
   Send,
   Eye,
+  Edit2,
+  Trash2,
+  X,
+  Check,
+  AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { PageViewTracker } from '@/lib/view-tracking';
@@ -27,6 +42,8 @@ import {
   checkUserLike,
   fetchComments,
   createComment,
+  updateComment,
+  deleteComment,
   isBookmarked,
   addBookmark,
   removeBookmark,
@@ -81,6 +98,10 @@ async function fetchArticle(slug: string): Promise<Article> {
 export default function ArticlePage({ params }: { params: { slug: string } }) {
   const [slug, setSlug] = useState<string>('');
   const [commentText, setCommentText] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const router = useRouter();
   const { address } = useWallet();
   const queryClient = useQueryClient();
@@ -219,6 +240,53 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     },
   });
 
+  // Update comment mutation
+  const updateCommentMutation = useMutation({
+    mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
+      if (!article || !authToken) throw new Error('Not authenticated');
+      return updateComment(article.id, commentId, content, authToken);
+    },
+    onSuccess: () => {
+      setEditingCommentId(null);
+      setEditingCommentText('');
+      queryClient.invalidateQueries({ queryKey: ['article-comments', article?.id] });
+      toast.toast?.({
+        title: 'Comment updated!',
+        description: 'Your comment has been updated successfully.',
+      });
+    },
+    onError: (error) => {
+      toast.toast?.({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to update comment',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete comment mutation
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId: string) => {
+      if (!article || !authToken) throw new Error('Not authenticated');
+      return deleteComment(article.id, commentId, authToken);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['article-comments', article?.id] });
+      queryClient.invalidateQueries({ queryKey: ['article', slug] });
+      toast.toast?.({
+        title: 'Comment deleted!',
+        description: 'Your comment has been removed.',
+      });
+    },
+    onError: (error) => {
+      toast.toast?.({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to delete comment',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Handlers
   const handleLike = () => {
     if (!userId || !authToken) {
@@ -277,6 +345,34 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     }
 
     commentMutation.mutate(commentText.trim());
+  };
+
+  const handleEditComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentText(comment.body);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const handleUpdateComment = (commentId: string) => {
+    if (!editingCommentText.trim()) return;
+    updateCommentMutation.mutate({ commentId, content: editingCommentText.trim() });
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    setCommentToDelete(commentId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteComment = () => {
+    if (commentToDelete) {
+      deleteCommentMutation.mutate(commentToDelete);
+      setDeleteDialogOpen(false);
+      setCommentToDelete(null);
+    }
   };
 
   if (!slug || isLoading) {
@@ -584,33 +680,111 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <div
-                      key={comment.id}
-                      className="rounded-lg border border-gray-200 bg-white p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm">
-                          {(comment.author.name || 'A')[0].toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-gray-900">
-                              {comment.author.name || 'Anonymous'}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}
-                            </span>
+                  {comments.map((comment) => {
+                    const isOwner = userId === comment.author.id;
+                    const isEditing = editingCommentId === comment.id;
+
+                    return (
+                      <div
+                        key={comment.id}
+                        className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold text-sm flex-shrink-0">
+                            {(comment.author.name || 'A')[0].toUpperCase()}
                           </div>
-                          <p className="text-gray-700 leading-relaxed">{comment.body}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="font-semibold text-gray-900 truncate">
+                                  {comment.author.name || 'Anonymous'}
+                                </span>
+                                <span className="text-xs text-gray-500 flex-shrink-0">
+                                  {new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+                              {isOwner && !isEditing && (
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditComment(comment)}
+                                    className="h-8 px-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteComment(comment.id)}
+                                    disabled={deleteCommentMutation.isPending}
+                                    className="h-8 px-2 text-gray-600 hover:text-red-600 hover:bg-red-50"
+                                  >
+                                    {deleteCommentMutation.isPending ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+
+                            {isEditing ? (
+                              <div className="mt-2 space-y-2">
+                                <textarea
+                                  value={editingCommentText}
+                                  onChange={(e) => setEditingCommentText(e.target.value)}
+                                  className="w-full resize-none rounded-md border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  rows={3}
+                                  disabled={updateCommentMutation.isPending}
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleUpdateComment(comment.id)}
+                                    disabled={
+                                      !editingCommentText.trim() || updateCommentMutation.isPending
+                                    }
+                                    className="bg-blue-600 hover:bg-blue-700"
+                                  >
+                                    {updateCommentMutation.isPending ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Saving...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Check className="mr-2 h-4 w-4" />
+                                        Save
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleCancelEdit}
+                                    disabled={updateCommentMutation.isPending}
+                                  >
+                                    <X className="mr-2 h-4 w-4" />
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                                {comment.body}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -627,6 +801,36 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
           </Link>
         </div>
       </div>
+
+      {/* Delete Comment Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-xl">Delete Comment</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-base">
+              Are you sure you want to delete this comment?
+              <br />
+              <br />
+              This action cannot be undone. The comment will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteCommentMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteComment}
+              disabled={deleteCommentMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleteCommentMutation.isPending ? 'Deleting...' : 'Delete Comment'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
