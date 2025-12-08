@@ -10,10 +10,17 @@ export async function fetcher(path: string, init?: RequestInit) {
 }
 
 /**
- * Fetch all published articles
+ * Fetch all published articles (legacy - without pagination)
  */
 export async function getPublishedArticles() {
   return fetcher('/articles');
+}
+
+/**
+ * Fetch published articles with pagination
+ */
+export async function getPublishedArticlesPaginated(page: number = 1, limit: number = 10) {
+  return fetcher(`/articles?page=${page}&limit=${limit}`);
 }
 
 /**

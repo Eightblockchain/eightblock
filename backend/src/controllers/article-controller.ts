@@ -1,32 +1,72 @@
 import type { Request, Response } from 'express';
 import { prisma } from '@/prisma/client';
 import { logger } from '@/utils/logger';
+import { cacheGet, cacheSet, cacheDelPattern } from '@/utils/redis';
 
 /**
- * List published articles (public endpoint)
+ * List published articles with pagination and caching (public endpoint)
  * Only returns PUBLISHED articles for public consumption
  */
-export async function listArticles(_req: Request, res: Response) {
+export async function listArticles(req: Request, res: Response) {
   try {
-    const articles = await prisma.article.findMany({
-      where: {
-        status: 'PUBLISHED',
-      },
-      include: {
-        tags: { include: { tag: true } },
-        author: {
-          select: {
-            id: true,
-            walletAddress: true,
-            name: true,
-            avatarUrl: true,
-          },
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    // Try to get from cache
+    const cacheKey = `articles:page:${page}:limit:${limit}`;
+    const cached = await cacheGet<any>(cacheKey);
+
+    if (cached) {
+      logger.info(`Cache hit for ${cacheKey}`);
+      return res.json(cached);
+    }
+
+    // If not in cache, fetch from database
+    const [articles, total] = await Promise.all([
+      prisma.article.findMany({
+        where: {
+          status: 'PUBLISHED',
         },
-        _count: { select: { likes: true, comments: true } },
+        include: {
+          tags: { include: { tag: true } },
+          author: {
+            select: {
+              id: true,
+              walletAddress: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          _count: { select: { likes: true, comments: true } },
+        },
+        orderBy: { publishedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.article.count({
+        where: {
+          status: 'PUBLISHED',
+        },
+      }),
+    ]);
+
+    const response = {
+      articles,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
       },
-      orderBy: { publishedAt: 'desc' },
-    });
-    return res.json(articles);
+    };
+
+    // Cache for 5 minutes
+    await cacheSet(cacheKey, response, 300);
+    logger.info(`Cache set for ${cacheKey}`);
+
+    return res.json(response);
   } catch (error) {
     logger.error(`listArticles: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to fetch articles' });
@@ -167,6 +207,10 @@ export async function createArticle(req: Request, res: Response) {
         },
       },
     });
+
+    // Invalidate article list cache
+    await cacheDelPattern('articles:page:*');
+
     return res.status(201).json(created);
   } catch (error) {
     logger.error(`createArticle: ${(error as Error).message}`);
@@ -204,6 +248,10 @@ export async function updateArticle(req: Request, res: Response) {
         },
       },
     });
+
+    // Invalidate article list cache
+    await cacheDelPattern('articles:page:*');
+
     return res.json(updated);
   } catch (error) {
     logger.error(`updateArticle: ${(error as Error).message}`);
@@ -216,6 +264,10 @@ export async function deleteArticle(req: Request, res: Response) {
 
   try {
     await prisma.article.delete({ where: { id } });
+
+    // Invalidate article list cache
+    await cacheDelPattern('articles:page:*');
+
     return res.status(204).send();
   } catch (error) {
     logger.error(`deleteArticle: ${(error as Error).message}`);
