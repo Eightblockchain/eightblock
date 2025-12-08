@@ -2,7 +2,20 @@
 
 This application uses Redis for caching to improve performance. Follow these steps to set up Redis.
 
-## Installation
+## Automatic Setup (Recommended)
+
+**Using Docker Compose** - This is the easiest method and is automatically included when you run `pnpm dev`:
+
+```bash
+# This command starts PostgreSQL, Redis, Backend, and Frontend all together
+pnpm dev
+```
+
+The `docker-compose.yml` file will automatically start Redis on port 6379. No manual installation required! ✨
+
+## Manual Installation
+
+If you prefer to install Redis locally instead of using Docker:
 
 ### macOS (using Homebrew)
 
@@ -20,21 +33,23 @@ sudo systemctl start redis-server
 sudo systemctl enable redis-server
 ```
 
-### Docker (recommended for development)
+### Docker (standalone)
 
 ```bash
-docker run -d --name redis -p 6379:6379 redis:latest
+docker run -d --name redis -p 6379:6379 redis:7-alpine
 ```
 
 ## Configuration
 
-The application will automatically connect to Redis using environment variables. Create a `.env` file in the `backend` directory:
+The application will automatically connect to Redis using environment variables from your `.env` file:
 
 ```env
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=  # Leave empty for local development
 ```
+
+**Note**: If you're using `pnpm dev` with Docker Compose, these default values are already configured correctly.
 
 ## Verify Redis is Running
 

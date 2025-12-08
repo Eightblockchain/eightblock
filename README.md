@@ -23,59 +23,116 @@ backend/    # Express + Prisma + PostgreSQL REST API
 
 ## Getting Started
 
-Requirements: Node.js 20+, pnpm 9+, PostgreSQL 15+, Redis 7+ (optional), and OpenSSL for JWT signing.
+### Quick Start (Recommended - With Docker)
+
+Requirements: Node.js 20+, pnpm 9+, Docker Desktop
 
 1. **Install dependencies**
+
    ```bash
    pnpm install
    ```
+
 2. **Environment variables**
-   - Copy `.env.example` to `.env` at the repo root and fill in database + auth secrets (see comments inside the sample file).
-   - Frontend uses `NEXT_PUBLIC_API_URL`; backend uses `DATABASE_URL`, `JWT_SECRET`, and optional NextAuth provider keys.
-   - For Redis caching, set `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` (see `REDIS_SETUP.md`)
-3. **Redis setup (optional but recommended)**
+
+   ```bash
+   cp .env.example .env
+   # Edit .env if needed - default values work with Docker setup
+   ```
+
+3. **Start everything** (PostgreSQL + Redis + Backend + Frontend)
+
+   ```bash
+   pnpm dev
+   ```
+
+   This single command will:
+   - Start PostgreSQL and Redis in Docker containers
+   - Run database migrations automatically
+   - Start the backend API (port 3001)
+   - Start the frontend (port 3000)
+
+4. **Seed the database** (first time only)
+
+   ```bash
+   cd backend
+   pnpm prisma db seed
+   ```
+
+5. **Access the app**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:3001/api
+   - API Docs: http://localhost:3001/api/docs
+
+### Manual Setup (Without Docker)
+
+Requirements: Node.js 20+, pnpm 9+, PostgreSQL 15+, Redis 7+
+
+1. **Install dependencies**
+
+   ```bash
+   pnpm install
+   ```
+
+2. **Start PostgreSQL and Redis manually**
 
    ```bash
    # macOS
-   brew install redis && brew services start redis
+   brew install postgresql@15 redis
+   brew services start postgresql@15
+   brew services start redis
 
-   # Docker
-   docker run -d --name redis -p 6379:6379 redis:latest
+   # Ubuntu
+   sudo apt install postgresql redis-server
+   sudo systemctl start postgresql redis-server
+   ```
 
-   # See REDIS_SETUP.md for detailed instructions
+3. **Environment variables**
+
+   ```bash
+   cp .env.example .env
+   # Update DATABASE_URL with your PostgreSQL credentials
    ```
 
 4. **Database setup**
+
    ```bash
    cd backend
    pnpm prisma migrate dev
-   pnpm prisma db seed # (optional) adds sample content
+   pnpm prisma db seed
    ```
-5. **Run the backend API**
+
+5. **Run the app**
    ```bash
-   cd backend
-   pnpm dev
-   ```
-6. **Run the frontend**
-
-   ```bash
-   cd frontend
-   pnpm dev
+   pnpm dev  # Starts frontend + backend (but not DB/Redis)
    ```
 
-   ## Frontend (Next.js)
-   - Located in `frontend/` with `app/`, `components/`, `lib/`, `styles/`, and MDX `content/`
-   - TailwindCSS + ShadCN UI pre-configured (see `components.json`)
-   - Contentlayer ingests MDX posts (run `pnpm --filter frontend dev` for hot reload)
-   - NextAuth route at `app/api/auth/[...nextauth]` proxies to backend JWT login
-   - Sample article lives at `content/welcome-to-eightblock.mdx`
+### Useful Commands
 
-   ## Backend (Express API)
-   - Located in `backend/` with `src/routes`, `controllers`, `middleware`, `utils`, and `prisma`
-   - Run `pnpm --filter backend dev` to start the server on port 4000
-   - Prisma schema models users, articles, comments, likes, tags, and subscriptions
-   - Swagger docs exposed at `/api/docs`; REST endpoints mounted under `/api/*`
-   - Winston-based logger, Zod validation middleware, and JWT auth helpers included
+| Command               | Description                                      |
+| --------------------- | ------------------------------------------------ |
+| `pnpm dev`            | Start all services (Docker + Frontend + Backend) |
+| `pnpm services:start` | Start only Docker services (PostgreSQL + Redis)  |
+| `pnpm services:stop`  | Stop Docker services                             |
+| `pnpm services:logs`  | View Docker service logs                         |
+| `pnpm dev:frontend`   | Start only the frontend                          |
+| `pnpm dev:backend`    | Start only the backend                           |
+
+## Frontend (Next.js)
+
+- Located in `frontend/` with `app/`, `components/`, `lib/`, `styles/`, and MDX `content/`
+- TailwindCSS + ShadCN UI pre-configured (see `components.json`)
+- Contentlayer ingests MDX posts (run `pnpm --filter frontend dev` for hot reload)
+- NextAuth route at `app/api/auth/[...nextauth]` proxies to backend JWT login
+- Sample article lives at `content/welcome-to-eightblock.mdx`
+
+## Backend (Express API)
+
+- Located in `backend/` with `src/routes`, `controllers`, `middleware`, `utils`, and `prisma`
+- Run `pnpm --filter backend dev` to start the server on port 4000
+- Prisma schema models users, articles, comments, likes, tags, and subscriptions
+- Swagger docs exposed at `/api/docs`; REST endpoints mounted under `/api/*`
+- Winston-based logger, Zod validation middleware, and JWT auth helpers included
 
 ## Scripts
 

@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+.contentlayer
+.env
+.env.local
+.git
+.vscode
+*.log
+coverage
+.DS_Store

@@ -4,7 +4,10 @@
   "private": true,
   "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "dev": "pnpm services:start && pnpm -r --parallel dev",
+    "services:start": "docker compose up -d redis postgres && echo 'Waiting for services...' && sleep 3",
+    "services:stop": "docker compose down",
+    "services:logs": "docker compose logs -f",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
