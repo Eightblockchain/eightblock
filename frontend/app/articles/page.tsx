@@ -1,14 +1,30 @@
 import type { Metadata } from 'next';
-import { allPosts } from 'contentlayer/generated';
 import { ArticleList } from '@/components/articles/article-list';
+import { getPublishedArticles } from '@/lib/api';
 
 export const metadata: Metadata = {
   title: 'Articles',
   description: 'Browse Cardano, Intersect, and blockchain knowledge from the community.',
 };
 
-export default function ArticlesPage() {
-  const posts = allPosts.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+// Force dynamic rendering to fetch latest articles
+export const dynamic = 'force-dynamic';
+
+export default async function ArticlesPage() {
+  let articles = [];
+
+  try {
+    articles = await getPublishedArticles();
+  } catch (error) {
+    console.error('Failed to fetch articles:', error);
+  }
+
+  // Transform API data to match the expected format
+  const posts = articles.map((article: any) => ({
+    ...article,
+    publishedAt: article.publishedAt,
+    url: `/articles/${article.slug}`,
+  }));
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-10">
@@ -16,10 +32,15 @@ export default function ArticlesPage() {
         <p className="text-sm uppercase tracking-wide text-primary/80">Knowledge base</p>
         <h1 className="text-4xl font-bold">All Articles</h1>
         <p className="mt-3 text-muted-foreground">
-          Filter by categories such as Cardano, Intersect, governance, and more using the tags below.
+          Filter by categories such as Cardano, Intersect, governance, and more using the tags
+          below.
         </p>
       </div>
-      <ArticleList posts={posts} />
+      {articles.length === 0 ? (
+        <p className="text-center text-muted-foreground">No articles found.</p>
+      ) : (
+        <ArticleList posts={posts} />
+      )}
     </div>
   );
 }

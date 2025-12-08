@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createArticle, deleteArticle, getArticle, listArticles, updateArticle } from '@/controllers/article-controller';
+import {
+  createArticle,
+  deleteArticle,
+  getArticle,
+  listArticles,
+  updateArticle,
+  getArticlesByWallet,
+} from '@/controllers/article-controller';
 import { validateBody } from '@/middleware/validate';
 import { requireAuth } from '@/middleware/auth';
 
@@ -20,6 +27,7 @@ const articleSchema = z.object({
 });
 
 router.get('/', listArticles);
+router.get('/wallet/:walletAddress', getArticlesByWallet);
 router.get('/:slug', getArticle);
 router.post('/', requireAuth, validateBody(articleSchema), createArticle);
 router.put('/:id', requireAuth, updateArticle);

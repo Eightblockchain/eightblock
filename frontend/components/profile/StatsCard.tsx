@@ -1,20 +1,27 @@
 import { Card } from '@/components/ui/card';
-import { Eye, Heart, Coins, TrendingUp, FileText, Users } from 'lucide-react';
+import { Eye, Heart, Coins, FileText } from 'lucide-react';
 
 interface StatsCardProps {
-  articles: Array<{ views: number; status: string }>;
+  articles: Array<any>;
+  stats?: {
+    views: number;
+    likes: number;
+    articles: number;
+    drafts: number;
+  };
 }
 
-export function StatsCard({ articles }: StatsCardProps) {
-  const publishedArticles = articles.filter((a) => a.status === 'published');
-  const totalViews = articles.reduce((sum, article) => sum + article.views, 0);
+export function StatsCard({ articles, stats }: StatsCardProps) {
+  // Use provided stats or calculate from articles
+  const totalViews =
+    stats?.views || articles.reduce((sum, article) => sum + (article.views || 0), 0);
+  const totalLikes =
+    stats?.likes || articles.reduce((sum, article) => sum + (article._count?.likes || 0), 0);
+  const publishedCount = stats?.articles || articles.filter((a) => a.status === 'PUBLISHED').length;
+  const draftCount = stats?.drafts || articles.filter((a) => a.status === 'DRAFT').length;
   const totalArticles = articles.length;
-  const totalPublished = publishedArticles.length;
 
-  // Mock likes data - will be real in V2
-  const totalLikes = 147;
-
-  const stats = [
+  const statsData = [
     {
       label: 'Total Views',
       value: totalViews.toLocaleString(),
@@ -31,11 +38,11 @@ export function StatsCard({ articles }: StatsCardProps) {
     },
     {
       label: 'Articles',
-      value: `${totalPublished}/${totalArticles}`,
+      value: `${publishedCount}/${totalArticles}`,
       icon: FileText,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      subtitle: 'Published',
+      subtitle: `${draftCount} drafts`,
     },
     {
       label: 'Rewards Earned',
@@ -49,7 +56,7 @@ export function StatsCard({ articles }: StatsCardProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat) => {
+      {statsData.map((stat) => {
         const Icon = stat.icon;
         return (
           <Card key={stat.label} className="p-4 hover:shadow-md transition-shadow">

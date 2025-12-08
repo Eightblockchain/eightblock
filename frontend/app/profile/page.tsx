@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { LogOut, Edit } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
-import { userArticles } from '@/lib/mock-data';
 import { WalletCard } from '@/components/profile/WalletCard';
 import { StatsCard } from '@/components/profile/StatsCard';
 import { ArticleCard } from '@/components/profile/ArticleCard';
@@ -18,6 +17,9 @@ export default function ProfilePage() {
     balance,
     copied,
     isChecking,
+    articles,
+    loading,
+    stats,
     copyAddress,
     handleDisconnect,
   } = useProfile();
@@ -61,7 +63,11 @@ export default function ProfilePage() {
       {/* Stats Section */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-[#080808] mb-4">Your Stats</h2>
-        <StatsCard articles={userArticles} />
+        {loading ? (
+          <p className="text-gray-600">Loading stats...</p>
+        ) : (
+          <StatsCard articles={articles} stats={stats} />
+        )}
       </div>
 
       {/* Articles Section */}
@@ -74,13 +80,17 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        <div className="space-y-4">
-          {userArticles.map((article) => (
-            <ArticleCard key={article.id} article={article} />
-          ))}
-        </div>
+        {loading ? (
+          <p className="text-gray-600">Loading articles...</p>
+        ) : (
+          <div className="space-y-4">
+            {articles.map((article) => (
+              <ArticleCard key={article.id} article={article} />
+            ))}
+          </div>
+        )}
 
-        {userArticles.length === 0 && <EmptyState />}
+        {!loading && articles.length === 0 && <EmptyState />}
       </div>
     </div>
   );

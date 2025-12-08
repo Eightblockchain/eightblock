@@ -1,25 +1,963 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ArticleStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const categories = ['Cardano', 'Intersect', 'Blockchain', 'Governance', 'Development'];
-  await Promise.all(
-    categories.map((name) =>
-      prisma.tag.upsert({
-        where: { slug: name.toLowerCase() },
-        update: {},
-        create: { name, slug: name.toLowerCase() },
-      })
-    )
-  );
+  console.log('🌱 Starting database seeding...');
+
+  // Create the user with the specified wallet address
+  const user = await prisma.user.upsert({
+    where: {
+      walletAddress:
+        'addr1q9pyac4s5jxhhhfr4uqft4pcf830zj0kge24d52rrlljmc5mquh7wnm244uznlqx7xck0ppkyecsftexwxkv33cay4vsqd2jsh',
+    },
+    update: {},
+    create: {
+      walletAddress:
+        'addr1q9pyac4s5jxhhhfr4uqft4pcf830zj0kge24d52rrlljmc5mquh7wnm244uznlqx7xck0ppkyecsftexwxkv33cay4vsqd2jsh',
+      name: 'Cardano Developer',
+      role: 'WRITER',
+      bio: 'Blockchain enthusiast and Cardano ecosystem contributor',
+    },
+  });
+
+  console.log('✅ Created user:', user.walletAddress);
+
+  // Create tags
+  const tags = await Promise.all([
+    prisma.tag.upsert({
+      where: { slug: 'blockchain' },
+      update: {},
+      create: { name: 'Blockchain', slug: 'blockchain' },
+    }),
+    prisma.tag.upsert({
+      where: { slug: 'cardano' },
+      update: {},
+      create: { name: 'Cardano', slug: 'cardano' },
+    }),
+    prisma.tag.upsert({
+      where: { slug: 'defi' },
+      update: {},
+      create: { name: 'DeFi', slug: 'defi' },
+    }),
+    prisma.tag.upsert({
+      where: { slug: 'smart-contracts' },
+      update: {},
+      create: { name: 'Smart Contracts', slug: 'smart-contracts' },
+    }),
+    prisma.tag.upsert({
+      where: { slug: 'web3' },
+      update: {},
+      create: { name: 'Web3', slug: 'web3' },
+    }),
+    prisma.tag.upsert({
+      where: { slug: 'cryptocurrency' },
+      update: {},
+      create: { name: 'Cryptocurrency', slug: 'cryptocurrency' },
+    }),
+    prisma.tag.upsert({
+      where: { slug: 'nft' },
+      update: {},
+      create: { name: 'NFT', slug: 'nft' },
+    }),
+    prisma.tag.upsert({
+      where: { slug: 'plutus' },
+      update: {},
+      create: { name: 'Plutus', slug: 'plutus' },
+    }),
+  ]);
+
+  console.log('✅ Created tags:', tags.length);
+
+  // Article data with varied content
+  const articlesData = [
+    {
+      title: 'Getting Started with Cardano Development',
+      slug: 'getting-started-cardano-development',
+      description:
+        'A comprehensive guide to starting your journey in Cardano blockchain development, covering tools, SDKs, and best practices.',
+      content: `# Getting Started with Cardano Development
+
+Cardano is a proof-of-stake blockchain platform that enables developers to build secure and scalable decentralized applications. In this guide, we'll explore the essential tools and concepts you need to begin your Cardano development journey.
+
+## Setting Up Your Environment
+
+First, you'll need to set up your development environment. This includes installing the Cardano node, setting up a wallet, and familiarizing yourself with the Cardano CLI.
+
+### Required Tools
+
+- **Cardano Node**: The core component that connects to the Cardano network
+- **Cardano CLI**: Command-line interface for interacting with the blockchain
+- **Plutus Platform**: Smart contract development framework
+- **Cardano Wallet**: For managing ADA and tokens
+
+## Understanding the Cardano Architecture
+
+Cardano uses a unique two-layer architecture:
+
+1. **Cardano Settlement Layer (CSL)**: Handles ADA transactions
+2. **Cardano Computation Layer (CCL)**: Executes smart contracts
+
+This separation allows for greater flexibility and security in the platform.
+
+## Your First Smart Contract
+
+Let's write a simple validator in Plutus:
+
+\`\`\`haskell
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TemplateHaskell #-}
+
+module SimpleValidator where
+
+import PlutusTx
+import PlutusTx.Prelude
+
+simpleValidator :: () -> () -> ScriptContext -> Bool
+simpleValidator _ _ _ = True
+
+validator :: Validator
+validator = mkValidatorScript $$(PlutusTx.compile [|| simpleValidator ||])
+\`\`\`
+
+## Next Steps
+
+- Explore the Cardano documentation
+- Join the developer community
+- Build your first dApp
+- Contribute to open-source projects
+
+Happy coding on Cardano!`,
+      category: 'Tutorial',
+      status: ArticleStatus.PUBLISHED,
+      featured: true,
+      tagIds: [tags[0].id, tags[1].id, tags[3].id],
+    },
+    {
+      title: 'Understanding Cardano Staking Mechanisms',
+      slug: 'understanding-cardano-staking-mechanisms',
+      description:
+        "Deep dive into how Cardano's proof-of-stake consensus mechanism works and how users can participate in network security.",
+      content: `# Understanding Cardano Staking Mechanisms
+
+Cardano's Ouroboros protocol is a groundbreaking proof-of-stake consensus mechanism that allows ADA holders to participate in network security and earn rewards.
+
+## What is Staking?
+
+Staking is the process of delegating your ADA to a stake pool, which then validates transactions and produces blocks on the Cardano blockchain.
+
+## Benefits of Staking
+
+- **Passive Income**: Earn approximately 4-5% annual returns
+- **Network Security**: Help secure the Cardano network
+- **No Lock-up**: Your ADA remains liquid
+- **Low Barrier**: Start with any amount of ADA
+
+## How to Stake
+
+1. Choose a reliable wallet (Daedalus, Yoroi, etc.)
+2. Select a stake pool based on performance metrics
+3. Delegate your ADA
+4. Start earning rewards after 15-20 days
+
+## Stake Pool Selection Criteria
+
+When choosing a stake pool, consider:
+
+- Pool performance and reliability
+- Saturation level
+- Pool operator reputation
+- Fee structure
+- Mission alignment
+
+Staking is one of the easiest ways to support the Cardano ecosystem while earning passive rewards!`,
+      category: 'Education',
+      status: ArticleStatus.PUBLISHED,
+      featured: false,
+      tagIds: [tags[1].id, tags[5].id],
+    },
+    {
+      title: 'Building Decentralized Applications on Cardano',
+      slug: 'building-dapps-on-cardano',
+      description:
+        'Learn how to build production-ready decentralized applications on the Cardano blockchain using modern tools and frameworks.',
+      content: `# Building Decentralized Applications on Cardano
+
+The Cardano ecosystem offers powerful tools for building secure and scalable decentralized applications (dApps). This guide will walk you through the process.
+
+## Architecture Overview
+
+A typical Cardano dApp consists of:
+
+1. **Smart Contracts**: Written in Plutus (Haskell)
+2. **Frontend**: JavaScript/TypeScript with Cardano libraries
+3. **Wallet Integration**: Using CIP-30 standard
+4. **Backend** (optional): Off-chain services
+
+## Essential Libraries
+
+- **@meshsdk/core**: Comprehensive SDK for Cardano
+- **cardano-serialization-lib**: Low-level transaction building
+- **lucid-cardano**: Lightweight, easy-to-use library
+- **@emurgo/cardano-serialization-lib-browser**: WebAssembly bindings
+
+## Development Workflow
+
+\`\`\`typescript
+import { BrowserWallet } from '@meshsdk/core';
+
+// Connect to user's wallet
+const wallet = await BrowserWallet.enable('eternl');
+
+// Get wallet balance
+const balance = await wallet.getBalance();
+
+// Build and submit transaction
+const tx = await wallet.createTx()
+  .sendLovelace(
+    'addr1...',
+    '1000000'
+  )
+  .build();
+
+const signed = await wallet.signTx(tx);
+const txHash = await wallet.submitTx(signed);
+\`\`\`
+
+## Best Practices
+
+- Always validate user inputs
+- Handle wallet disconnections gracefully
+- Implement proper error handling
+- Test thoroughly on testnet first
+- Use TypeScript for type safety
+
+## Testing Strategy
+
+- Unit tests for smart contracts
+- Integration tests for wallet interactions
+- End-to-end tests for user flows
+- Security audits before mainnet deployment
+
+Start building the future of decentralized applications on Cardano!`,
+      category: 'Development',
+      status: ArticleStatus.PUBLISHED,
+      featured: true,
+      tagIds: [tags[1].id, tags[3].id, tags[4].id],
+    },
+    {
+      title: 'The Future of DeFi on Cardano',
+      slug: 'future-of-defi-on-cardano',
+      description:
+        'Exploring the growing DeFi ecosystem on Cardano and what makes it unique compared to other blockchain platforms.',
+      content: `# The Future of DeFi on Cardano
+
+Cardano is emerging as a major player in the decentralized finance (DeFi) space, offering unique advantages through its research-driven approach and secure architecture.
+
+## Why Cardano for DeFi?
+
+### Security First
+
+Cardano's formal verification methods ensure smart contracts are mathematically proven to be correct, reducing the risk of exploits that have plagued other DeFi platforms.
+
+### Lower Transaction Costs
+
+With average transaction fees under $0.20, Cardano makes DeFi accessible to everyone, not just whales.
+
+### Scalability
+
+The upcoming Hydra protocol will enable millions of transactions per second, solving the scalability trilemma.
+
+## Major DeFi Projects
+
+**SundaeSwap**: First major DEX on Cardano
+**Minswap**: Community-driven decentralized exchange
+**Liqwid**: Lending and borrowing protocol
+**AADA Finance**: Peer-to-peer lending
+**Indigo Protocol**: Synthetic assets platform
+
+## Unique Features
+
+1. **Native Tokens**: No smart contract needed for token creation
+2. **Multi-Asset Support**: Built-in support for multiple tokens in transactions
+3. **Deterministic Fees**: Predictable transaction costs
+4. **Extended UTXO Model**: More expressive than account-based models
+
+## Challenges and Opportunities
+
+While Cardano's DeFi ecosystem is still growing, it benefits from:
+
+- Strong academic foundation
+- Active developer community
+- Sustainable development approach
+- Growing institutional interest
+
+The future of DeFi on Cardano looks bright as more protocols launch and liquidity grows!`,
+      category: 'Analysis',
+      status: ArticleStatus.PUBLISHED,
+      featured: false,
+      tagIds: [tags[1].id, tags[2].id, tags[0].id],
+    },
+    {
+      title: 'NFT Marketplaces on Cardano: A Complete Guide',
+      slug: 'nft-marketplaces-cardano-guide',
+      description:
+        'Everything you need to know about creating, buying, and selling NFTs on the Cardano blockchain.',
+      content: `# NFT Marketplaces on Cardano: A Complete Guide
+
+The Cardano NFT ecosystem has exploded in recent years, with vibrant communities and innovative marketplaces emerging. Here's your complete guide.
+
+## Top Cardano NFT Marketplaces
+
+### JPG.store
+The largest NFT marketplace on Cardano, offering:
+- Clean, user-friendly interface
+- Zero marketplace fees
+- Advanced filtering and analytics
+- Mobile-friendly design
+
+### CNFT.io
+One of the first marketplaces, featuring:
+- Large collection variety
+- Rarity rankings
+- Collection verification
+- Community chat
+
+### Artano
+Focused on digital art:
+- Curated collections
+- Artist verification
+- Fair royalty system
+- Social features
+
+## Creating Your First NFT
+
+\`\`\`javascript
+import { Mesh } from '@meshsdk/core';
+
+const mesh = new Mesh('mainnet');
+
+// Mint NFT
+const asset = {
+  assetName: 'MyArtwork',
+  metadata: {
+    name: 'Beautiful Artwork',
+    image: 'ipfs://...',
+    description: 'A stunning piece of digital art'
+  }
+};
+
+const tx = await mesh.mintAsset(asset);
+\`\`\`
+
+## Best Practices for NFT Projects
+
+1. **High-Quality Artwork**: Invest in professional design
+2. **Strong Community**: Build engagement before launch
+3. **Clear Roadmap**: Set realistic expectations
+4. **Fair Distribution**: Consider various minting methods
+5. **Utility**: Provide real value beyond speculation
+
+## Understanding Royalties
+
+Cardano's native token standard supports:
+- On-chain royalty enforcement
+- Creator-set percentages
+- Automatic distribution
+- Transparent tracking
+
+## The Future of Cardano NFTs
+
+Upcoming developments:
+- Cross-chain NFT bridges
+- Advanced metadata standards
+- Improved smart contract capabilities
+- Enhanced marketplace features
+
+Whether you're a creator or collector, Cardano's NFT ecosystem offers exciting opportunities!`,
+      category: 'NFTs',
+      status: ArticleStatus.PUBLISHED,
+      featured: false,
+      tagIds: [tags[1].id, tags[6].id, tags[0].id],
+    },
+    {
+      title: 'Cardano Governance and Project Catalyst',
+      slug: 'cardano-governance-project-catalyst',
+      description:
+        "How Cardano's innovative governance model empowers the community to shape the future of the blockchain.",
+      content: `# Cardano Governance and Project Catalyst
+
+Cardano is pioneering a new approach to blockchain governance through Project Catalyst, the world's largest decentralized innovation fund.
+
+## What is Project Catalyst?
+
+Project Catalyst is Cardano's community-driven innovation engine that:
+- Distributes treasury funds
+- Funds community proposals
+- Enables democratic decision-making
+- Accelerates ecosystem growth
+
+## How It Works
+
+### 1. Proposal Submission
+Anyone can submit a project proposal requesting funding from the Cardano treasury.
+
+### 2. Community Review
+Community advisors review and provide feedback on proposals.
+
+### 3. Voting
+ADA holders vote on which proposals should receive funding.
+
+### 4. Funding and Delivery
+Successful proposals receive funding and work begins.
+
+## Participation Opportunities
+
+**As a Proposer**: Submit innovative ideas
+**As a Voter**: Shape the ecosystem's future
+**As a Community Advisor**: Review proposals
+**As a Veteran Proposer Advisor**: Mentor newcomers
+
+## Impact and Statistics
+
+Since launch, Project Catalyst has:
+- Funded over 1,000 projects
+- Distributed $100M+ in treasury funds
+- Engaged 50,000+ community members
+- Created thousands of jobs in the ecosystem
+
+## Voltaire Era
+
+The upcoming Voltaire phase will introduce:
+- On-chain governance
+- Constitutional framework
+- Decentralized decision-making
+- Enhanced voting mechanisms
+
+## Getting Involved
+
+1. Register to vote in the Catalyst app
+2. Review current fund proposals
+3. Participate in community discussions
+4. Submit your own proposals
+
+Project Catalyst represents true decentralized governance in action!`,
+      category: 'Governance',
+      status: ArticleStatus.PUBLISHED,
+      featured: true,
+      tagIds: [tags[1].id, tags[0].id],
+    },
+    {
+      title: 'Security Best Practices for Cardano Smart Contracts',
+      slug: 'security-cardano-smart-contracts',
+      description:
+        'Essential security considerations when developing and auditing smart contracts on the Cardano blockchain.',
+      content: `# Security Best Practices for Cardano Smart Contracts
+
+Security is paramount in blockchain development. This guide covers essential practices for building secure smart contracts on Cardano.
+
+## The EUTXO Advantage
+
+Cardano's Extended UTXO model provides inherent security benefits:
+- Deterministic execution
+- Parallel transaction processing
+- Local state management
+- Predictable fees
+
+## Common Vulnerabilities
+
+### 1. Insufficient Validation
+Always validate all inputs and datum fields.
+
+\`\`\`haskell
+validator :: Datum -> Redeemer -> ScriptContext -> Bool
+validator datum redeemer ctx = 
+    traceIfFalse "Invalid datum" (validDatum datum) &&
+    traceIfFalse "Invalid redeemer" (validRedeemer redeemer) &&
+    traceIfFalse "Invalid context" (validContext ctx)
+\`\`\`
+
+### 2. Integer Overflow
+Use safe arithmetic operations.
+
+### 3. Front-running
+Design protocols resistant to MEV attacks.
+
+## Formal Verification
+
+Cardano enables formal verification:
+- Mathematical proofs of correctness
+- Automated theorem proving
+- Property-based testing
+- Model checking
+
+## Testing Strategy
+
+\`\`\`haskell
+-- Property-based testing with QuickCheck
+prop_validatorAlwaysSucceeds :: Datum -> Redeemer -> ScriptContext -> Bool
+prop_validatorAlwaysSucceeds d r c = validator d r c == True
+
+-- Unit tests
+testValidator :: TestTree
+testValidator = testCase "Validator accepts valid input" $
+    validator validDatum validRedeemer validContext @?= True
+\`\`\`
+
+## Audit Checklist
+
+- [ ] All inputs validated
+- [ ] Safe arithmetic used
+- [ ] No hardcoded values
+- [ ] Proper error handling
+- [ ] Access control implemented
+- [ ] Time locks verified
+- [ ] Comprehensive tests
+- [ ] Formal verification (where possible)
+
+## Third-Party Audits
+
+Before mainnet deployment:
+- Engage professional auditors
+- Get community review
+- Run bug bounty programs
+- Conduct stress testing
+
+## Emergency Procedures
+
+Plan for the worst:
+- Implement pause mechanisms
+- Design upgrade paths
+- Establish incident response
+- Maintain emergency contacts
+
+Security is an ongoing process, not a one-time task!`,
+      category: 'Security',
+      status: ArticleStatus.DRAFT,
+      featured: false,
+      tagIds: [tags[1].id, tags[3].id, tags[7].id],
+    },
+    {
+      title: 'Optimizing Transaction Fees on Cardano',
+      slug: 'optimizing-transaction-fees-cardano',
+      description:
+        'Learn how to minimize transaction costs while building applications on the Cardano blockchain.',
+      content: `# Optimizing Transaction Fees on Cardano
+
+Understanding and optimizing transaction fees is crucial for building cost-effective applications on Cardano.
+
+## Fee Structure
+
+Cardano fees consist of:
+- **Base fee**: Constant component (~0.15 ADA)
+- **Size fee**: Based on transaction size (~0.000044 ADA per byte)
+
+Formula: \`fee = a + b × size\`
+
+## Optimization Strategies
+
+### 1. Minimize Transaction Size
+
+\`\`\`typescript
+// Inefficient: Multiple outputs
+const tx1 = createTx()
+  .sendLovelace(addr1, '1000000')
+  .sendLovelace(addr2, '1000000')
+  .sendLovelace(addr3, '1000000');
+
+// Better: Batch where possible
+const tx2 = createTx()
+  .sendAssets([
+    { address: addr1, lovelace: '1000000' },
+    { address: addr2, lovelace: '1000000' },
+    { address: addr3, lovelace: '1000000' }
+  ]);
+\`\`\`
+
+### 2. UTXO Management
+
+- Consolidate small UTXOs
+- Avoid UTXO fragmentation
+- Use optimal change addresses
+
+### 3. Metadata Optimization
+
+Only include essential metadata:
+
+\`\`\`typescript
+// Avoid large metadata
+const metadata = {
+  // Keep it minimal
+  version: '1.0',
+  timestamp: Date.now()
+};
+\`\`\`
+
+## Batching Transactions
+
+Process multiple operations in a single transaction:
+
+\`\`\`typescript
+const batchTx = await wallet
+  .createTx()
+  .mintAsset(nft1)
+  .mintAsset(nft2)
+  .sendAssets(distribution)
+  .build();
+\`\`\`
+
+## Off-Chain Processing
+
+Move computation off-chain where possible:
+- Calculate complex logic in your backend
+- Use oracles for external data
+- Implement state channels for frequent interactions
+
+## Upcoming Improvements
+
+**Hydra State Channels**: Near-zero fees
+**Mithril**: Faster, cheaper chain sync
+**Input Endorsers**: Better UTXO selection
+
+## Cost Comparison
+
+| Operation | Typical Fee |
+|-----------|-------------|
+| Simple send | 0.17 ADA |
+| Token transfer | 0.20 ADA |
+| NFT mint | 0.25 ADA |
+| Smart contract | 0.30-1.00 ADA |
+
+## Monitoring Fees
+
+Track your application's fee efficiency:
+- Log all transaction costs
+- Analyze fee patterns
+- Optimize high-cost operations
+- Set fee budgets
+
+With proper optimization, Cardano remains one of the most cost-effective blockchain platforms!`,
+      category: 'Development',
+      status: ArticleStatus.DRAFT,
+      featured: false,
+      tagIds: [tags[1].id, tags[0].id],
+    },
+    {
+      title: 'Cardano vs Ethereum: A Technical Comparison',
+      slug: 'cardano-vs-ethereum-comparison',
+      description:
+        'An objective technical comparison between Cardano and Ethereum, covering consensus, smart contracts, and ecosystem differences.',
+      content: `# Cardano vs Ethereum: A Technical Comparison
+
+Both Cardano and Ethereum are leading smart contract platforms, but they take different approaches to solving blockchain challenges.
+
+## Consensus Mechanism
+
+### Ethereum
+- **Previous**: Proof of Work
+- **Current**: Proof of Stake (The Merge)
+- **Validators**: 32 ETH minimum stake
+- **Finality**: ~12-13 minutes
+
+### Cardano
+- **From Start**: Proof of Stake (Ouroboros)
+- **Delegation**: Stake any amount
+- **Finality**: ~15-20 minutes
+- **Energy**: Extremely efficient
+
+## Smart Contract Languages
+
+### Ethereum
+\`\`\`solidity
+// Solidity - imperative style
+contract SimpleStorage {
+    uint256 storedData;
+    
+    function set(uint256 x) public {
+        storedData = x;
+    }
+}
+\`\`\`
+
+### Cardano
+\`\`\`haskell
+-- Plutus - functional style
+validator :: Integer -> () -> ScriptContext -> Bool
+validator datum _ ctx = datum > 0
+\`\`\`
+
+## Transaction Models
+
+**Ethereum**: Account-based
+- Global state
+- Sequential execution
+- Potential race conditions
+
+**Cardano**: EUTXO-based
+- Local state
+- Parallel execution
+- Deterministic fees
+
+## Development Experience
+
+### Ethereum Advantages
+- Mature tooling ecosystem
+- Large developer community
+- Extensive documentation
+- More dApps and protocols
+
+### Cardano Advantages
+- Formal verification support
+- Deterministic execution
+- Lower transaction fees
+- Research-driven approach
+
+## Performance Metrics
+
+| Metric | Ethereum | Cardano |
+|--------|----------|---------|
+| TPS (current) | 15-30 | 250+ |
+| Block time | 12s | 20s |
+| Avg fee | $2-50 | $0.10-0.30 |
+| Finality | 13 min | 15 min |
+
+## Ecosystem Size
+
+**Ethereum**:
+- $200B+ TVL
+- Thousands of dApps
+- Dominant DeFi position
+- Largest NFT market
+
+**Cardano**:
+- $300M+ TVL
+- Growing dApp ecosystem
+- Emerging DeFi protocols
+- Active NFT community
+
+## Future Scaling
+
+**Ethereum**: Rollups + Sharding
+**Cardano**: Hydra + Input Endorsers
+
+## Which to Choose?
+
+**Choose Ethereum for**:
+- Maximum liquidity
+- Extensive tooling
+- Large user base
+- Established protocols
+
+**Choose Cardano for**:
+- Lower fees
+- Formal verification
+- Sustainability
+- Research-backed approach
+
+Both platforms have unique strengths and continue to evolve!`,
+      category: 'Comparison',
+      status: ArticleStatus.DRAFT,
+      featured: false,
+      tagIds: [tags[0].id, tags[1].id, tags[5].id],
+    },
+    {
+      title: 'Building a Token on Cardano: Complete Tutorial',
+      slug: 'building-token-cardano-tutorial',
+      description:
+        'Step-by-step guide to creating your own native token on Cardano, from minting to distribution.',
+      content: `# Building a Token on Cardano: Complete Tutorial
+
+Creating native tokens on Cardano is straightforward and doesn't require smart contracts. This tutorial will guide you through the entire process.
+
+## Why Native Tokens?
+
+Cardano treats custom tokens as first-class citizens:
+- No smart contract needed
+- Same security as ADA
+- Lower fees than ERC-20
+- Built-in metadata support
+
+## Prerequisites
+
+- Cardano wallet with ADA
+- Basic JavaScript/TypeScript knowledge
+- Node.js installed
+
+## Method 1: Using Mesh SDK
+
+\`\`\`typescript
+import { MeshWallet, AssetMetadata } from '@meshsdk/core';
+
+const wallet = new MeshWallet({
+  networkId: 1, // mainnet
+  key: {
+    type: 'mnemonic',
+    words: [...] // your seed phrase
+  }
+});
+
+// Define token metadata
+const metadata: AssetMetadata = {
+  name: 'MyToken',
+  ticker: 'MTK',
+  description: 'My awesome token',
+  decimals: 6,
+  totalSupply: '1000000000000' // 1 million tokens
+};
+
+// Mint the token
+const tx = await wallet.mintAsset({
+  assetName: 'MyToken',
+  quantity: '1000000000000',
+  metadata: metadata
+});
+
+const signed = await wallet.signTx(tx);
+const txHash = await wallet.submitTx(signed);
+console.log(\`Token minted! TxHash: \${txHash}\`);
+\`\`\`
+
+## Method 2: Using Cardano CLI
+
+\`\`\`bash
+# Generate policy keys
+cardano-cli address key-gen \\
+    --verification-key-file policy.vkey \\
+    --signing-key-file policy.skey
+
+# Create policy script
+cat > policy.script <<EOF
+{
+  "type": "all",
+  "scripts": [
+    {
+      "type": "before",
+      "slot": 50000000
+    },
+    {
+      "type": "sig",
+      "keyHash": "$(cardano-cli address key-hash --payment-verification-key-file policy.vkey)"
+    }
+  ]
+}
+EOF
+
+# Build minting transaction
+cardano-cli transaction build \\
+    --tx-in <UTXO> \\
+    --tx-out <YOUR_ADDRESS>+<AMOUNT>+"1000000 <POLICY_ID>.MyToken" \\
+    --mint="1000000 <POLICY_ID>.MyToken" \\
+    --minting-script-file policy.script \\
+    --metadata-json-file metadata.json \\
+    --change-address <YOUR_ADDRESS> \\
+    --out-file matx.raw
+\`\`\`
+
+## Token Metadata
+
+Create a metadata.json file:
+
+\`\`\`json
+{
+  "721": {
+    "<POLICY_ID>": {
+      "MyToken": {
+        "name": "MyToken",
+        "ticker": "MTK",
+        "description": "My awesome token",
+        "decimals": 6,
+        "url": "https://mytoken.io",
+        "logo": "data:image/png;base64,..."
+      }
+    }
+  }
+}
+\`\`\`
+
+## Distribution Strategies
+
+### Airdrop
+\`\`\`typescript
+const recipients = ['addr1...', 'addr2...', 'addr3...'];
+const amountPerWallet = '1000000'; // 1 token
+
+const tx = await wallet.createTx();
+for (const addr of recipients) {
+  tx.sendAssets(addr, [
+    { unit: policyId + tokenName, quantity: amountPerWallet }
+  ]);
+}
+\`\`\`
+
+### Initial DEX Offering (IDO)
+1. Create liquidity pool
+2. Set initial price
+3. Add liquidity
+4. Enable trading
+
+## Best Practices
+
+1. **Test on Testnet First**
+2. **Secure Your Policy Keys**
+3. **Set Realistic Supply**
+4. **Include Complete Metadata**
+5. **Plan Tokenomics Carefully**
+
+## Legal Considerations
+
+- Consult legal experts
+- Understand securities laws
+- Be transparent with community
+- Follow local regulations
+
+## Post-Launch
+
+- List on DEXes
+- Apply for verification
+- Build community
+- Provide utility
+
+Congratulations on creating your Cardano native token!`,
+      category: 'Tutorial',
+      status: ArticleStatus.PUBLISHED,
+      featured: true,
+      tagIds: [tags[1].id, tags[0].id, tags[3].id],
+    },
+  ];
+
+  // Create articles with tags
+  console.log('📝 Creating articles...');
+
+  for (const articleData of articlesData) {
+    const { tagIds, ...data } = articleData;
+
+    await prisma.article.create({
+      data: {
+        ...data,
+        authorId: user.id,
+        publishedAt:
+          data.status === ArticleStatus.PUBLISHED
+            ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
+            : new Date(),
+        tags: {
+          create: tagIds.map((tagId) => ({
+            tag: { connect: { id: tagId } },
+          })),
+        },
+      },
+    });
+  }
+
+  console.log('✅ Created 10 articles');
+  console.log('🎉 Database seeding completed successfully!');
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error('❌ Error during seeding:', e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

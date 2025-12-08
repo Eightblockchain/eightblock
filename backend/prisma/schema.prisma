@@ -8,17 +8,19 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  email     String    @unique
-  password  String
-  name      String?
-  role      Role      @default(WRITER)
-  avatarUrl String?
-  articles  Article[]
-  comments  Comment[]
-  likes     Like[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  walletAddress String    @unique
+  name          String?
+  role          Role      @default(WRITER)
+  avatarUrl     String?
+  bio           String?
+  articles      Article[]
+  comments      Comment[]
+  likes         Like[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([walletAddress])
 }
 
 model Article {
