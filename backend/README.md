@@ -68,7 +68,7 @@ The seed script creates:
 pnpm dev
 ```
 
-Server will start on http://localhost:3001
+Server will start on http://localhost:5000
 
 ## API Endpoints
 
@@ -101,7 +101,7 @@ Returns all articles for the user (including drafts)
 Example:
 
 ```bash
-curl http://localhost:3001/api/articles/wallet/addr1q9pyac4s5jxhhhfr4uqft4pcf830zj0kge24d52rrlljmc5mquh7wnm244uznlqx7xck0ppkyecsftexwxkv33cay4vsqd2jsh
+curl http://localhost:5000/api/articles/wallet/addr1q9pyac4s5jxhhhfr4uqft4pcf830zj0kge24d52rrlljmc5mquh7wnm244uznlqx7xck0ppkyecsftexwxkv33cay4vsqd2jsh
 ```
 
 #### Create Article
@@ -187,13 +187,13 @@ Or test manually with curl:
 
 ```bash
 # Get all published articles
-curl http://localhost:3001/api/articles | jq
+curl http://localhost:5000/api/articles | jq
 
 # Get specific article
-curl http://localhost:3001/api/articles/getting-started-cardano-development | jq
+curl http://localhost:5000/api/articles/getting-started-cardano-development | jq
 
 # Get user's articles (including drafts)
-curl http://localhost:3001/api/articles/wallet/addr1q9pyac4s5jxhhhfr4uqft4pcf830zj0kge24d52rrlljmc5mquh7wnm244uznlqx7xck0ppkyecsftexwxkv33cay4vsqd2jsh | jq
+curl http://localhost:5000/api/articles/wallet/addr1q9pyac4s5jxhhhfr4uqft4pcf830zj0kge24d52rrlljmc5mquh7wnm244uznlqx7xck0ppkyecsftexwxkv33cay4vsqd2jsh | jq
 ```
 
 ## Prisma Studio
@@ -260,7 +260,7 @@ pnpm prisma studio
 | Variable     | Required | Description                          |
 | ------------ | -------- | ------------------------------------ |
 | DATABASE_URL | Yes      | PostgreSQL connection string         |
-| PORT         | No       | Server port (default: 3001)          |
+| PORT         | No       | Server port (default: 5000)          |
 | NODE_ENV     | No       | Environment (development/production) |
 | JWT_SECRET   | Yes      | Secret for JWT tokens                |
 

@@ -49,7 +49,7 @@ Requirements: Node.js 20+, pnpm 9+, Docker Desktop
    This single command will:
    - Start PostgreSQL and Redis in Docker containers
    - Run database migrations automatically
-   - Start the backend API (port 3001)
+   - Start the backend API (port 5000)
    - Start the frontend (port 3000)
 
 4. **Seed the database** (first time only)
@@ -61,8 +61,8 @@ Requirements: Node.js 20+, pnpm 9+, Docker Desktop
 
 5. **Access the app**
    - Frontend: http://localhost:3000
-   - Backend API: http://localhost:3001/api
-   - API Docs: http://localhost:3001/api/docs
+   - Backend API: http://localhost:5000/api
+   - API Docs: http://localhost:5000/api/docs
 
 ### Manual Setup (Without Docker)
 

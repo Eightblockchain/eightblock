@@ -21,7 +21,7 @@ That's it! The app is now running with:
 
 - ✅ PostgreSQL database (port 5432)
 - ✅ Redis caching (port 6379)
-- ✅ Backend API (http://localhost:3001)
+- ✅ Backend API (http://localhost:5000)
 - ✅ Frontend (http://localhost:3000)
 
 ## First Time Setup
@@ -48,7 +48,7 @@ pnpm prisma db seed
 
 1. **Docker Compose starts** PostgreSQL and Redis containers
 2. **Waits 3 seconds** for services to be ready
-3. **Starts Backend** on port 3001
+3. **Starts Backend** on port 5000
 4. **Starts Frontend** on port 3000
 
 All in one command! 🎉

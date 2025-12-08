@@ -127,7 +127,7 @@ JWT_SECRET=your-secret-key-change-in-production
 ### Frontend (`.env.local`)
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
 ```
 
 ## Article Content
@@ -152,7 +152,7 @@ All 10 seeded articles are comprehensive, production-ready content covering:
 ```bash
 cd backend
 pnpm dev
-# Server runs on http://localhost:3001
+# Server runs on http://localhost:5000
 ```
 
 ### Start Frontend
