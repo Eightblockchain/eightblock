@@ -43,7 +43,7 @@ export default function BookmarksPage() {
     }
 
     // Get bookmarked article IDs from localStorage
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarked_articles') || '[]');
 
     if (bookmarks.length === 0) {
       setLoading(false);

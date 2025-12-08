@@ -1,10 +1,11 @@
 import { Card } from '@/components/ui/card';
-import { Eye, Heart, Coins, FileText } from 'lucide-react';
+import { Eye, Heart, Coins, FileText, Users } from 'lucide-react';
 
 interface StatsCardProps {
   articles: Array<any>;
   stats?: {
     views: number;
+    uniqueViews?: number;
     likes: number;
     articles: number;
     drafts: number;
@@ -14,7 +15,9 @@ interface StatsCardProps {
 export function StatsCard({ articles, stats }: StatsCardProps) {
   // Use provided stats or calculate from articles
   const totalViews =
-    stats?.views || articles.reduce((sum, article) => sum + (article.views || 0), 0);
+    stats?.views || articles.reduce((sum, article) => sum + (article.viewCount || 0), 0);
+  const totalUniqueViews =
+    stats?.uniqueViews || articles.reduce((sum, article) => sum + (article.uniqueViews || 0), 0);
   const totalLikes =
     stats?.likes || articles.reduce((sum, article) => sum + (article._count?.likes || 0), 0);
   const publishedCount = stats?.articles || articles.filter((a) => a.status === 'PUBLISHED').length;
@@ -28,6 +31,7 @@ export function StatsCard({ articles, stats }: StatsCardProps) {
       icon: Eye,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
+      subtitle: `${totalUniqueViews.toLocaleString()} unique`,
     },
     {
       label: 'Total Likes',

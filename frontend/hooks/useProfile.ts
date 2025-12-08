@@ -12,7 +12,13 @@ export function useProfile() {
   const [isChecking, setIsChecking] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [allStats, setAllStats] = useState({ published: 0, drafts: 0, totalLikes: 0 });
+  const [allStats, setAllStats] = useState({
+    published: 0,
+    drafts: 0,
+    totalLikes: 0,
+    totalViews: 0,
+    totalUniqueViews: 0,
+  });
 
   useEffect(() => {
     // Wait for wallet to finish attempting reconnection
@@ -74,7 +80,15 @@ export function useProfile() {
               (sum: number, a: any) => sum + (a._count?.likes || 0),
               0
             );
-            setAllStats({ published, drafts, totalLikes });
+            const totalViews = allArticles.reduce(
+              (sum: number, a: any) => sum + (a.viewCount || 0),
+              0
+            );
+            const totalUniqueViews = allArticles.reduce(
+              (sum: number, a: any) => sum + (a.uniqueViews || 0),
+              0
+            );
+            setAllStats({ published, drafts, totalLikes, totalViews, totalUniqueViews });
           }
         } catch (error) {
           console.error('Failed to fetch all stats:', error);
@@ -133,7 +147,8 @@ export function useProfile() {
   }, [currentPage]);
 
   // Calculate stats from all articles (not just current page)
-  const totalViews = allStats.totalLikes; // Using likes as views for now
+  const totalViews = allStats.totalViews;
+  const totalUniqueViews = allStats.totalUniqueViews;
   const totalLikes = allStats.totalLikes;
 
   return {
@@ -148,6 +163,7 @@ export function useProfile() {
     user,
     stats: {
       views: totalViews,
+      uniqueViews: totalUniqueViews,
       likes: totalLikes,
       articles: allStats.published,
       drafts: allStats.drafts,

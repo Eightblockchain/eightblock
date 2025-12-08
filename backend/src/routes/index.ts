@@ -6,6 +6,7 @@ import subscriptionRoutes from '@/routes/subscription-routes';
 import tagRoutes from '@/routes/tag-routes';
 import authRoutes from '@/routes/auth-routes';
 import userRoutes from '@/routes/user-routes';
+import viewRoutes from '@/routes/view-routes';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/articles/:articleId/likes', likeRoutes);
 router.use('/articles', articleRoutes);
 router.use('/tags', tagRoutes);
 router.use('/subscriptions', subscriptionRoutes);
+router.use('/views', viewRoutes);
 
 export default router;

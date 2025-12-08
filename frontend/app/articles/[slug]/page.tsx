@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -16,8 +16,10 @@ import {
   Bookmark,
   Loader2,
   Send,
+  Eye,
 } from 'lucide-react';
 import Link from 'next/link';
+import { PageViewTracker } from '@/lib/view-tracking';
 import { useWallet } from '@/lib/wallet-context';
 import {
   toggleLike,
@@ -47,6 +49,8 @@ interface Article {
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
+  viewCount: number;
+  uniqueViews: number;
   author: {
     id: string;
     walletAddress: string;
@@ -81,6 +85,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
   const { address } = useWallet();
   const queryClient = useQueryClient();
   const toast = useToast?.() || { toast: () => {} };
+  const viewTrackerRef = useRef<PageViewTracker | null>(null);
 
   // Get auth token and userId from localStorage
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -115,6 +120,21 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     queryFn: () => checkUserLike(article!.id, userId!),
     enabled: !!article?.id && !!userId && !!authToken,
   });
+
+  // Initialize view tracking
+  useEffect(() => {
+    if (article?.id && !viewTrackerRef.current) {
+      viewTrackerRef.current = new PageViewTracker(article.id);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (viewTrackerRef.current) {
+        viewTrackerRef.current.track();
+        viewTrackerRef.current = null;
+      }
+    };
+  }, [article?.id]);
 
   // Check if article is bookmarked
   const [bookmarked, setBookmarked] = useState(false);
@@ -383,6 +403,12 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
                 <Clock className="h-4 w-4" />
                 <span>{readingTime} min read</span>
               </div>
+              {article.viewCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Eye className="h-4 w-4" />
+                  <span>{article.viewCount.toLocaleString()} views</span>
+                </div>
+              )}
             </div>
 
             {/* Tags */}

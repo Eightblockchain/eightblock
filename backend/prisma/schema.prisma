@@ -35,11 +35,17 @@ model Article {
   authorId    String
   likes       Like[]
   comments    Comment[]
+  views       ArticleView[]
+  viewCount   Int          @default(0)
+  uniqueViews Int          @default(0)
   publishedAt DateTime     @default(now())
   status      ArticleStatus @default(DRAFT)
   featured    Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+
+  @@index([viewCount])
+  @@index([uniqueViews])
 }
 
 model Comment {
@@ -85,6 +91,30 @@ model TagOnArticle {
   tagId     String
 
   @@id([articleId, tagId])
+}
+
+model ArticleView {
+  id              String   @id @default(cuid())
+  article         Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId       String
+  userId          String?  // Optional - for logged-in users
+  visitorId       String   // Browser fingerprint or session ID
+  ipAddress       String?
+  userAgent       String?
+  referrer        String?
+  country         String?
+  city            String?
+  device          String?  // mobile, desktop, tablet
+  browser         String?
+  os              String?
+  viewedAt        DateTime @default(now())
+  timeOnPage      Int?     // seconds spent on page
+  scrollDepth     Int?     // percentage scrolled
+
+  @@unique([articleId, visitorId, viewedAt])
+  @@index([articleId])
+  @@index([visitorId])
+  @@index([viewedAt])
 }
 
 enum Role {
