@@ -5,7 +5,8 @@ import { ArticleCard } from '@/components/articles/article-card';
 import { useInfiniteArticles } from '@/hooks/useInfiniteArticles';
 import { useFeaturedArticles } from '@/hooks/useFeaturedArticles';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Avatar } from '@/components/ui/avatar';
+import { ArrowUp, ChevronLeft, ChevronRight, X, Heart, MessageCircle } from 'lucide-react';
 import { Hero } from '@/components/hero';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -398,6 +399,11 @@ function ArticleListItem({ article, readingTime }: ArticleListItemProps) {
     year: 'numeric',
   });
 
+  const likesCount = article._count?.likes || 0;
+  const commentsCount = article._count?.comments || 0;
+  const authorName = article.author?.name || 'Anonymous';
+  const authorAvatar = article.author?.avatarUrl || null;
+
   return (
     <div className="flex gap-6 border-b pb-6 last:border-b-0">
       <div className="flex-1">
@@ -407,7 +413,23 @@ function ArticleListItem({ article, readingTime }: ArticleListItemProps) {
         <h3 className="mb-2 text-xl font-bold text-[#080808] hover:underline">
           <a href={`/articles/${article.slug}`}>{article.title}</a>
         </h3>
-        <p className="text-sm text-gray-600">{article.description}</p>
+        <p className="mb-3 text-sm text-gray-600">{article.description}</p>
+
+        {/* Author and Stats */}
+        <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            <Avatar src={authorAvatar} name={authorName} size="xs" />
+            <span className="font-medium text-gray-700">{authorName}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Heart className="h-4 w-4" />
+            <span>{likesCount}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <MessageCircle className="h-4 w-4" />
+            <span>{commentsCount}</span>
+          </div>
+        </div>
       </div>
 
       <ArticleThumbnail image={article.featuredImage} title={article.title} />
