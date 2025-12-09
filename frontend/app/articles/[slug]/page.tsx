@@ -166,8 +166,8 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     }
   };
 
-  // Handle error state
-  if (isError || (!isLoading && !article)) {
+  // Handle error state - only if query is enabled and actually failed
+  if (slug && (isError || (!isLoading && !article))) {
     notFound();
   }
 

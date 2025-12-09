@@ -6,6 +6,7 @@ import { TrendingArticleCard } from '@/components/articles/trending-article-card
 import {
   ArticleCardSkeleton,
   TrendingArticleCardSkeleton,
+  ArticleThumbnailSkeleton,
 } from '@/components/articles/article-card-skeleton';
 import { useInfiniteArticles } from '@/hooks/useInfiniteArticles';
 import { useTrendingArticles } from '@/hooks/useTrendingArticles';

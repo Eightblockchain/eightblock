@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Bookmark, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ProfileBookmarksSkeleton } from '@/components/profile/profile-skeleton';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -92,14 +93,7 @@ export default function BookmarksPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading bookmarks...</p>
-        </div>
-      </div>
-    );
+    return <ProfileBookmarksSkeleton />;
   }
 
   return (
