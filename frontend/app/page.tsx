@@ -2,8 +2,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import { ArticleCard } from '@/components/articles/article-card';
+import { TrendingArticleCard } from '@/components/articles/trending-article-card';
 import { useInfiniteArticles } from '@/hooks/useInfiniteArticles';
-import { useFeaturedArticles } from '@/hooks/useFeaturedArticles';
+import { useTrendingArticles } from '@/hooks/useTrendingArticles';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { ArrowUp, ChevronLeft, ChevronRight, X, Heart, MessageCircle } from 'lucide-react';
@@ -26,12 +27,12 @@ export default function HomePage() {
   // Data fetching hooks
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteArticles(10);
-  const { data: featuredArticles, isLoading: featuredLoading } = useFeaturedArticles();
+  const { data: trendingArticles, isLoading: trendingLoading } = useTrendingArticles({ limit: 6 });
 
   // Custom hooks
   const { showScrollTop, scrollToTop } = useScrollToTop(400);
   const { carouselRef, canScrollLeft, canScrollRight, scrollCarousel } = useCarousel(
-    featuredArticles ?? []
+    trendingArticles ?? []
   );
   const { filteredArticles, allArticles } = useArticleFiltering(data, searchQuery);
 
@@ -79,15 +80,15 @@ export default function HomePage() {
     );
   }
 
-  const featured = featuredArticles ?? [];
+  const trending = trendingArticles ?? [];
 
   return (
     <div className="min-h-screen bg-white">
       <Hero onScrollToArticles={scrollToArticles} />
 
-      {!searchQuery && !featuredLoading && featured.length > 0 && (
-        <FeaturedArticlesSection
-          articles={featured}
+      {!searchQuery && !trendingLoading && trending.length > 0 && (
+        <TrendingArticlesSection
+          articles={trending}
           carouselRef={carouselRef}
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}
@@ -112,9 +113,9 @@ export default function HomePage() {
 }
 
 // ============================================================================
-// Featured Articles Section Component
+// Trending Articles Section Component
 // ============================================================================
-interface FeaturedArticlesSectionProps {
+interface TrendingArticlesSectionProps {
   articles: any[];
   carouselRef: React.RefObject<HTMLDivElement>;
   canScrollLeft: boolean;
@@ -122,22 +123,27 @@ interface FeaturedArticlesSectionProps {
   onScrollCarousel: (direction: 'left' | 'right') => void;
 }
 
-function FeaturedArticlesSection({
+function TrendingArticlesSection({
   articles,
   carouselRef,
   canScrollLeft,
   canScrollRight,
   onScrollCarousel,
-}: FeaturedArticlesSectionProps) {
+}: TrendingArticlesSectionProps) {
   const shouldShowCarousel = articles.length > 3;
 
   return (
     <section className="bg-gray-50 py-16">
       <div className="mx-auto max-w-6xl px-4">
-        <h2 className="mb-8 text-2xl font-bold text-[#080808]">Featured Articles</h2>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-[#080808]">Trending Now</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Most engaging articles based on community reactions
+          </p>
+        </div>
 
         {shouldShowCarousel ? (
-          <FeaturedCarousel
+          <TrendingCarousel
             articles={articles}
             carouselRef={carouselRef}
             canScrollLeft={canScrollLeft}
@@ -145,7 +151,7 @@ function FeaturedArticlesSection({
             onScrollCarousel={onScrollCarousel}
           />
         ) : (
-          <FeaturedGrid articles={articles} />
+          <TrendingGrid articles={articles} />
         )}
       </div>
     </section>
@@ -153,9 +159,9 @@ function FeaturedArticlesSection({
 }
 
 // ============================================================================
-// Featured Carousel Component
+// Trending Carousel Component
 // ============================================================================
-interface FeaturedCarouselProps {
+interface TrendingCarouselProps {
   articles: any[];
   carouselRef: React.RefObject<HTMLDivElement>;
   canScrollLeft: boolean;
@@ -163,13 +169,13 @@ interface FeaturedCarouselProps {
   onScrollCarousel: (direction: 'left' | 'right') => void;
 }
 
-function FeaturedCarousel({
+function TrendingCarousel({
   articles,
   carouselRef,
   canScrollLeft,
   canScrollRight,
   onScrollCarousel,
-}: FeaturedCarouselProps) {
+}: TrendingCarouselProps) {
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     const carousel = carouselRef.current;
     if (!carousel) return;
@@ -221,19 +227,14 @@ function FeaturedCarousel({
         className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {articles.map((article) => (
+        {articles.map((article, index) => (
           <div
             key={article.slug}
             className="flex-none w-full md:w-[calc(33.333%-1rem)] snap-start"
             draggable="true"
             onDragStart={handleDragStart}
           >
-            <ArticleCard
-              post={{
-                ...article,
-                readingTime: Math.ceil(article.content.split(' ').length / 200),
-              }}
-            />
+            <TrendingArticleCard article={article} rank={index + 1} showEngagement={true} />
           </div>
         ))}
       </div>
@@ -242,18 +243,17 @@ function FeaturedCarousel({
 }
 
 // ============================================================================
-// Featured Grid Component
+// Trending Grid Component
 // ============================================================================
-function FeaturedGrid({ articles }: { articles: any[] }) {
+function TrendingGrid({ articles }: { articles: any[] }) {
   return (
     <div className="grid gap-8 md:grid-cols-3">
-      {articles.map((article) => (
-        <ArticleCard
+      {articles.map((article, index) => (
+        <TrendingArticleCard
           key={article.slug}
-          post={{
-            ...article,
-            readingTime: Math.ceil(article.content.split(' ').length / 200),
-          }}
+          article={article}
+          rank={index + 1}
+          showEngagement={true}
         />
       ))}
     </div>
@@ -442,7 +442,7 @@ function ArticleListItem({ article, readingTime }: ArticleListItemProps) {
 // ============================================================================
 function ArticleThumbnail({ image, title }: { image?: string; title: string }) {
   return (
-    <div className="h-32 w-48 flex-shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-blue-400 to-purple-500">
+    <div className="h-32 w-48 flex-shrink-0 overflow-hidden rounded-[2px] relative">
       {image ? (
         <Image
           src={image}
@@ -453,7 +453,14 @@ function ArticleThumbnail({ image, title }: { image?: string; title: string }) {
           unoptimized
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center" />
+        <div className="h-full w-full bg-gradient-to-br from-[#080808] via-gray-900 to-black relative">
+          <div className="absolute inset-0 flex items-center justify-center p-3">
+            <span className="text-sm font-semibold text-white text-center leading-tight line-clamp-3">
+              {title}
+            </span>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+        </div>
       )}
     </div>
   );

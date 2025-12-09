@@ -29,7 +29,7 @@ export function ArticleCard({ post }: { post: Post | Article }) {
     <Link href={`/articles/${post.slug}`} className="group">
       <Card className="overflow-hidden border-none shadow-none transition-transform hover:scale-[1.02]">
         {/* Article Image */}
-        <div className="aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-blue-400 to-purple-500">
+        <div className="aspect-video w-full overflow-hidden rounded-lg relative">
           {featuredImage ? (
             <Image
               src={featuredImage}
@@ -44,8 +44,13 @@ export function ArticleCard({ post }: { post: Post | Article }) {
               }}
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
-              {/* Placeholder gradient */}
+            <div className="h-full w-full bg-gradient-to-br from-[#080808] via-gray-900 to-black relative">
+              <div className="absolute inset-0 flex items-center justify-center p-6">
+                <h3 className="text-lg md:text-xl font-bold text-white text-center leading-tight line-clamp-3">
+                  {post.title}
+                </h3>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             </div>
           )}
         </div>
