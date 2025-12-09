@@ -12,6 +12,7 @@ export interface Article {
   category: string;
   status: string;
   featured: boolean;
+  featuredImage?: string;
   publishedAt: string;
   createdAt: string;
   updatedAt: string;

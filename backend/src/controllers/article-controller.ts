@@ -28,7 +28,21 @@ export async function listArticles(req: Request, res: Response) {
         where: {
           status: 'PUBLISHED',
         },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          content: true,
+          category: true,
+          featuredImage: true,
+          status: true,
+          featured: true,
+          publishedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          viewCount: true,
+          uniqueViews: true,
           tags: { include: { tag: true } },
           author: {
             select: {
@@ -99,7 +113,21 @@ export async function getArticlesByWallet(req: Request, res: Response) {
         where: {
           authorId: user.id,
         },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          content: true,
+          category: true,
+          featuredImage: true,
+          status: true,
+          featured: true,
+          publishedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          viewCount: true,
+          uniqueViews: true,
           tags: { include: { tag: true } },
           author: {
             select: {

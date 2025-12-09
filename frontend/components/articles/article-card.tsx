@@ -2,16 +2,52 @@ import Link from 'next/link';
 import { Post } from 'contentlayer/generated';
 import { Card } from '@/components/ui/card';
 import { Avatar } from '@/components/ui/avatar';
+import Image from 'next/image';
+import { Article } from '@/hooks/useInfiniteArticles';
 
-export function ArticleCard({ post }: { post: Post }) {
+export function ArticleCard({ post }: { post: Post | Article }) {
+  // Check if this is an Article from the API (has _count field) vs contentlayer Post
+  const isArticle = '_count' in post;
+  const readingTime =
+    'readingTime' in post
+      ? post.readingTime
+      : Math.ceil((post.content?.split(' ').length || 0) / 200);
+
+  const featuredImage = isArticle ? (post as Article).featuredImage : null;
+
+  // Debug logging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('ArticleCard:', {
+      title: post.title,
+      isArticle,
+      featuredImage,
+      hasCount: '_count' in post,
+    });
+  }
+
   return (
     <Link href={`/articles/${post.slug}`} className="group">
       <Card className="overflow-hidden border-none shadow-none transition-transform hover:scale-[1.02]">
-        {/* Image Placeholder */}
+        {/* Article Image */}
         <div className="aspect-video w-full overflow-hidden rounded-lg bg-gradient-to-br from-blue-400 to-purple-500">
-          <div className="flex h-full items-center justify-center">
-            {/* Placeholder - in production, use actual article images */}
-          </div>
+          {featuredImage ? (
+            <Image
+              src={featuredImage}
+              alt={post.title}
+              width={800}
+              height={450}
+              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              unoptimized
+              onError={(e) => {
+                console.error('Image failed to load:', featuredImage);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              {/* Placeholder gradient */}
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -37,7 +73,7 @@ export function ArticleCard({ post }: { post: Post }) {
                 month: 'short',
                 year: 'numeric',
               })}{' '}
-              · {post.readingTime} min read
+              · {readingTime} min read
             </span>
           </div>
         </div>

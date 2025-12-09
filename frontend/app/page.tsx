@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Hero } from '@/components/hero';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function HomePage() {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
@@ -279,7 +280,20 @@ export default function HomePage() {
                       <p className="text-sm text-gray-600">{article.description}</p>
                     </div>
                     <div className="h-32 w-48 flex-shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-blue-400 to-purple-500">
-                      {/* Image placeholder */}
+                      {article.featuredImage ? (
+                        <Image
+                          src={article.featuredImage}
+                          alt={article.title}
+                          width={192}
+                          height={128}
+                          className="h-full w-full object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          {/* Gradient placeholder */}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
