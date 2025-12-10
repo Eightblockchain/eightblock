@@ -33,8 +33,8 @@ export function SiteHeader() {
   return (
     <>
       <header
-        className={`bg-white/80 backdrop-blur pt-6 transition-all duration-200 ${
-          isSticky ? 'fixed top-0 left-0 right-0 z-50 pt-0 shadow-md' : ''
+        className={`bg-white/80 backdrop-blur pt-6 transition-all duration-200 z-50 ${
+          isSticky ? 'fixed top-0 left-0 right-0 pt-0 shadow-md' : ''
         }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
