@@ -3,6 +3,11 @@
 import React, { useEffect, useRef } from 'react';
 import { ArticleCard } from '@/components/articles/article-card';
 import { TrendingArticleCard } from '@/components/articles/trending-article-card';
+import {
+  ArticleCardSkeleton,
+  TrendingArticleCardSkeleton,
+  ArticleThumbnailSkeleton,
+} from '@/components/articles/article-card-skeleton';
 import { useInfiniteArticles } from '@/hooks/useInfiniteArticles';
 import { useTrendingArticles } from '@/hooks/useTrendingArticles';
 import { Button } from '@/components/ui/button';
@@ -59,18 +64,6 @@ export default function HomePage() {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
-          <p className="mt-4 text-gray-600">Loading articles...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Error state
   if (isError) {
     return (
@@ -86,9 +79,11 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
       <Hero onScrollToArticles={scrollToArticles} />
 
-      {!searchQuery && !trendingLoading && trending.length > 0 && (
+      {/* Trending Section - Show skeleton while loading */}
+      {!searchQuery && (
         <TrendingArticlesSection
           articles={trending}
+          isLoading={trendingLoading}
           carouselRef={carouselRef}
           canScrollLeft={canScrollLeft}
           canScrollRight={canScrollRight}
@@ -101,6 +96,7 @@ export default function HomePage() {
         articles={filteredArticles}
         allArticles={allArticles}
         searchQuery={searchQuery}
+        isLoading={isLoading}
         onClearSearch={clearSearch}
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
@@ -117,6 +113,7 @@ export default function HomePage() {
 // ============================================================================
 interface TrendingArticlesSectionProps {
   articles: any[];
+  isLoading: boolean;
   carouselRef: React.RefObject<HTMLDivElement>;
   canScrollLeft: boolean;
   canScrollRight: boolean;
@@ -125,6 +122,7 @@ interface TrendingArticlesSectionProps {
 
 function TrendingArticlesSection({
   articles,
+  isLoading,
   carouselRef,
   canScrollLeft,
   canScrollRight,
@@ -142,17 +140,33 @@ function TrendingArticlesSection({
           </p>
         </div>
 
-        {shouldShowCarousel ? (
-          <TrendingCarousel
-            articles={articles}
-            carouselRef={carouselRef}
-            canScrollLeft={canScrollLeft}
-            canScrollRight={canScrollRight}
-            onScrollCarousel={onScrollCarousel}
-          />
-        ) : (
-          <TrendingGrid articles={articles} />
-        )}
+        {isLoading ? (
+          shouldShowCarousel ? (
+            <TrendingCarousel
+              articles={[]}
+              isLoading={true}
+              carouselRef={carouselRef}
+              canScrollLeft={canScrollLeft}
+              canScrollRight={canScrollRight}
+              onScrollCarousel={onScrollCarousel}
+            />
+          ) : (
+            <TrendingGrid articles={[]} isLoading={true} />
+          )
+        ) : articles.length > 0 ? (
+          shouldShowCarousel ? (
+            <TrendingCarousel
+              articles={articles}
+              isLoading={false}
+              carouselRef={carouselRef}
+              canScrollLeft={canScrollLeft}
+              canScrollRight={canScrollRight}
+              onScrollCarousel={onScrollCarousel}
+            />
+          ) : (
+            <TrendingGrid articles={articles} isLoading={false} />
+          )
+        ) : null}
       </div>
     </section>
   );
@@ -163,6 +177,7 @@ function TrendingArticlesSection({
 // ============================================================================
 interface TrendingCarouselProps {
   articles: any[];
+  isLoading: boolean;
   carouselRef: React.RefObject<HTMLDivElement>;
   canScrollLeft: boolean;
   canScrollRight: boolean;
@@ -171,6 +186,7 @@ interface TrendingCarouselProps {
 
 function TrendingCarousel({
   articles,
+  isLoading,
   carouselRef,
   canScrollLeft,
   canScrollRight,
@@ -200,7 +216,7 @@ function TrendingCarousel({
 
   return (
     <div className="relative">
-      {canScrollLeft && (
+      {!isLoading && canScrollLeft && (
         <Button
           variant="outline"
           size="icon"
@@ -211,7 +227,7 @@ function TrendingCarousel({
         </Button>
       )}
 
-      {canScrollRight && (
+      {!isLoading && canScrollRight && (
         <Button
           variant="outline"
           size="icon"
@@ -227,16 +243,22 @@ function TrendingCarousel({
         className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {articles.map((article, index) => (
-          <div
-            key={article.slug}
-            className="flex-none w-full md:w-[calc(33.333%-1rem)] snap-start"
-            draggable="true"
-            onDragStart={handleDragStart}
-          >
-            <TrendingArticleCard article={article} rank={index + 1} showEngagement={true} />
-          </div>
-        ))}
+        {isLoading
+          ? [...Array(4)].map((_, index) => (
+              <div key={index} className="flex-none w-full md:w-[calc(33.333%-1rem)] snap-start">
+                <TrendingArticleCardSkeleton />
+              </div>
+            ))
+          : articles.map((article, index) => (
+              <div
+                key={article.slug}
+                className="flex-none w-full md:w-[calc(33.333%-1rem)] snap-start"
+                draggable="true"
+                onDragStart={handleDragStart}
+              >
+                <TrendingArticleCard article={article} rank={index + 1} showEngagement={true} />
+              </div>
+            ))}
       </div>
     </div>
   );
@@ -245,17 +267,19 @@ function TrendingCarousel({
 // ============================================================================
 // Trending Grid Component
 // ============================================================================
-function TrendingGrid({ articles }: { articles: any[] }) {
+function TrendingGrid({ articles, isLoading }: { articles: any[]; isLoading: boolean }) {
   return (
     <div className="grid gap-8 md:grid-cols-3">
-      {articles.map((article, index) => (
-        <TrendingArticleCard
-          key={article.slug}
-          article={article}
-          rank={index + 1}
-          showEngagement={true}
-        />
-      ))}
+      {isLoading
+        ? [...Array(3)].map((_, index) => <TrendingArticleCardSkeleton key={index} />)
+        : articles.map((article, index) => (
+            <TrendingArticleCard
+              key={article.slug}
+              article={article}
+              rank={index + 1}
+              showEngagement={true}
+            />
+          ))}
     </div>
   );
 }
@@ -267,6 +291,7 @@ interface ExploreArticlesSectionProps {
   articles: any[];
   allArticles: any[];
   searchQuery: string;
+  isLoading: boolean;
   onClearSearch: () => void;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
@@ -279,6 +304,7 @@ const ExploreArticlesSection = React.forwardRef<HTMLDivElement, ExploreArticlesS
       articles,
       allArticles,
       searchQuery,
+      isLoading,
       onClearSearch,
       hasNextPage,
       isFetchingNextPage,
@@ -293,9 +319,13 @@ const ExploreArticlesSection = React.forwardRef<HTMLDivElement, ExploreArticlesS
         <div className="mx-auto max-w-6xl px-4">
           <SectionHeader searchQuery={searchQuery} onClearSearch={onClearSearch} />
 
-          {searchQuery && <SearchResultsInfo count={articles.length} query={searchQuery} />}
+          {searchQuery && !isLoading && (
+            <SearchResultsInfo count={articles.length} query={searchQuery} />
+          )}
 
-          {!hasArticles ? (
+          {isLoading ? (
+            <ArticlesListSkeleton />
+          ) : !hasArticles ? (
             <EmptyState searchQuery={searchQuery} />
           ) : (
             <>
@@ -362,6 +392,19 @@ function EmptyState({ searchQuery }: { searchQuery: string }) {
     <p className="text-center text-gray-600">
       {searchQuery ? `No articles found matching "${searchQuery}".` : 'No articles found.'}
     </p>
+  );
+}
+
+// ============================================================================
+// Articles List Skeleton Component
+// ============================================================================
+function ArticlesListSkeleton() {
+  return (
+    <div className="space-y-6">
+      {[...Array(5)].map((_, index) => (
+        <ArticleThumbnailSkeleton key={index} />
+      ))}
+    </div>
   );
 }
 

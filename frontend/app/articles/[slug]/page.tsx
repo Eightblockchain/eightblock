@@ -14,6 +14,13 @@ import { ArticleContent } from '@/components/articles/article-content';
 import { ArticleEngagement } from '@/components/articles/article-engagement';
 import { ArticleAuthor } from '@/components/articles/article-author';
 import { CommentsSection } from '@/components/articles/comments-section';
+import {
+  ArticleHeaderSkeleton,
+  ArticleContentSkeleton,
+  ArticleEngagementSkeleton,
+  ArticleAuthorSkeleton,
+  CommentsSectionSkeleton,
+} from '@/components/articles/article-skeleton';
 import { useArticleInteractions } from '@/hooks/useArticleInteractions';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -95,11 +102,6 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     retry: false,
   });
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Article Page Debug:', { slug, isLoading, isError, error, article });
-  }, [slug, isLoading, isError, error, article]);
-
   const isPublished = article?.status === 'PUBLISHED';
   const isOwner = article?.author.id === userId;
 
@@ -164,23 +166,13 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     }
   };
 
-  if (!slug || isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent mx-auto" />
-          <p className="mt-4 text-gray-600">Loading article...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isError || !article) {
+  // Handle error state - only if query is enabled and actually failed
+  if (slug && (isError || (!isLoading && !article))) {
     notFound();
   }
 
-  // Draft access control
-  if (article.status === 'DRAFT' && !isOwner) {
+  // Handle draft access control - only if article is loaded
+  if (article && article.status === 'DRAFT' && !isOwner) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center max-w-md px-4">
@@ -201,56 +193,84 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
     );
   }
 
-  const readingTime = Math.ceil(article.content.split(' ').length / 200);
-  const likesCount =
-    (article._count?.likes || 0) +
-    (userLiked && !likeMutation.isPending ? 0 : likeMutation.isPending && !userLiked ? 1 : 0);
+  // Calculate derived data only if article is available
+  const readingTime = article ? Math.ceil(article.content.split(' ').length / 200) : 0;
+  const likesCount = article
+    ? (article._count?.likes || 0) +
+      (userLiked && !likeMutation.isPending ? 0 : likeMutation.isPending && !userLiked ? 1 : 0)
+    : 0;
 
   return (
     <div className="min-h-screen bg-white">
-      <ArticleHeader
-        article={article}
-        readingTime={readingTime}
-        isOwner={isOwner}
-        onBack={() => router.back()}
-        onEdit={() => router.push(`/articles/${article.slug}/edit`)}
-        onPublish={handlePublish}
-      />
+      {/* Article Header - Show skeleton while loading */}
+      {!article || isLoading ? (
+        <ArticleHeaderSkeleton />
+      ) : (
+        <ArticleHeader
+          article={article}
+          readingTime={readingTime}
+          isOwner={isOwner}
+          onBack={() => router.back()}
+          onEdit={() => router.push(`/articles/${article.slug}/edit`)}
+          onPublish={handlePublish}
+        />
+      )}
 
-      <ArticleContent content={article.content} />
+      {/* Article Content - Show skeleton while loading */}
+      {!article || isLoading ? (
+        <ArticleContentSkeleton />
+      ) : (
+        <ArticleContent content={article.content} />
+      )}
 
+      {/* Engagement and Comments - Only for published articles */}
       {isPublished && (
         <>
-          <ArticleEngagement
-            likesCount={likesCount}
-            commentsCount={comments.length}
-            userLiked={userLiked}
-            bookmarked={bookmarked}
-            isLiking={likeMutation.isPending}
-            onLike={handleLike}
-            onComment={() => {
-              const commentsSection = document.getElementById('comments');
-              commentsSection?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            onShare={() => handleShare(article.title, article.description)}
-            onBookmark={handleBookmark}
-          />
+          {/* Article Engagement - Show skeleton while loading */}
+          {!article || isLoading ? (
+            <ArticleEngagementSkeleton />
+          ) : (
+            <ArticleEngagement
+              likesCount={likesCount}
+              commentsCount={comments.length}
+              userLiked={userLiked}
+              bookmarked={bookmarked}
+              isLiking={likeMutation.isPending}
+              onLike={handleLike}
+              onComment={() => {
+                const commentsSection = document.getElementById('comments');
+                commentsSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              onShare={() => handleShare(article.title, article.description)}
+              onBookmark={handleBookmark}
+            />
+          )}
 
-          <ArticleAuthor author={article.author} />
+          {/* Article Author - Show skeleton while loading */}
+          {!article || isLoading ? (
+            <ArticleAuthorSkeleton />
+          ) : (
+            <ArticleAuthor author={article.author} />
+          )}
 
-          <CommentsSection
-            comments={comments}
-            isAuthenticated={!!address}
-            currentUserId={userId}
-            isPostingComment={commentMutation.isPending}
-            isUpdatingComment={updateCommentMutation.isPending}
-            isDeletingComment={deleteCommentMutation.isPending}
-            onPostComment={(content) => commentMutation.mutate(content)}
-            onUpdateComment={(commentId, content) =>
-              updateCommentMutation.mutate({ commentId, content })
-            }
-            onDeleteComment={(commentId) => deleteCommentMutation.mutate(commentId)}
-          />
+          {/* Comments Section - Show skeleton while loading */}
+          {!article || isLoading ? (
+            <CommentsSectionSkeleton />
+          ) : (
+            <CommentsSection
+              comments={comments}
+              isAuthenticated={!!address}
+              currentUserId={userId}
+              isPostingComment={commentMutation.isPending}
+              isUpdatingComment={updateCommentMutation.isPending}
+              isDeletingComment={deleteCommentMutation.isPending}
+              onPostComment={(content) => commentMutation.mutate(content)}
+              onUpdateComment={(commentId, content) =>
+                updateCommentMutation.mutate({ commentId, content })
+              }
+              onDeleteComment={(commentId) => deleteCommentMutation.mutate(commentId)}
+            />
+          )}
         </>
       )}
 

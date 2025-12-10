@@ -16,6 +16,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { ArticleCard } from '@/components/profile/ArticleCard';
 import { EmptyState } from '@/components/profile/EmptyState';
 import { LoadingState } from '@/components/profile/LoadingState';
+import { ProfileArticlesSkeleton } from '@/components/profile/profile-skeleton';
 
 export default function MyArticlesPage() {
   const {
@@ -60,7 +61,7 @@ export default function MyArticlesPage() {
 
       {/* Articles Section */}
       {loading ? (
-        <p className="text-gray-600">Loading articles...</p>
+        <ProfileArticlesSkeleton />
       ) : (
         <>
           <div className="space-y-4">

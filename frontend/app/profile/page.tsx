@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { WalletCard } from '@/components/profile/WalletCard';
 import { StatsCard } from '@/components/profile/StatsCard';
 import { LoadingState } from '@/components/profile/LoadingState';
+import { ProfilePageSkeleton } from '@/components/profile/profile-skeleton';
 import Image from 'next/image';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -287,7 +288,7 @@ export default function ProfilePage() {
   };
 
   if (loading || connecting) {
-    return <LoadingState />;
+    return <ProfilePageSkeleton />;
   }
 
   if (!connected || !address || !profile) {
