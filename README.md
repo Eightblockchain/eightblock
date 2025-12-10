@@ -1,6 +1,6 @@
 # eightblock
 
-Open-source blockchain and Cardano education hub featuring a collaborative blog, contributor-friendly processes, and a modern Jamstack + API architecture. This repository contains both the public-facing Next.js site and the Express + Prisma backend that powers content workflows.
+Open-source platform for the Cardano community featuring a collaborative blog, educational resources, contributor-friendly processes, and a modern Jamstack + API architecture. This repository contains both the public-facing Next.js site and the Express + Prisma backend that powers content workflows.
 
 ## Features
 

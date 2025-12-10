@@ -1,6 +1,7 @@
 export const siteConfig = {
   name: 'eightblock',
-  description: 'Open-source Cardano and blockchain education hub.',
+  description:
+    'Open-source platform for the Cardano community - education, collaboration, and knowledge sharing.',
   url: 'https://eightblock.dev',
   ogImage: 'https://eightblock.dev/og.png',
   links: {

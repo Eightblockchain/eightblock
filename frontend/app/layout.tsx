@@ -18,7 +18,7 @@ const lato = Lato({
 export const metadata: Metadata = {
   title: {
     template: '%s | eightblock',
-    default: `${siteConfig.name} - Cardano education`,
+    default: `${siteConfig.name} - Cardano Community Hub`,
   },
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.url),
