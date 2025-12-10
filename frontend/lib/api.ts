@@ -1,12 +1,23 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 
 export async function fetcher(path: string, init?: RequestInit) {
-  const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    ...init,
-  });
-  if (!res.ok) throw new Error('API error');
-  return res.json();
+  try {
+    const res = await fetch(`${API_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+      ...init,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`API error (${res.status}):`, errorText);
+      throw new Error(`API error: ${res.status} - ${errorText}`);
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
 }
 
 /**

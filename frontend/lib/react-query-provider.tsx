@@ -12,8 +12,9 @@ export function ReactQueryProvider({ children }: { children: React.ReactNode }) 
           queries: {
             staleTime: 60 * 1000, // 1 minute
             gcTime: 5 * 60 * 1000, // 5 minutes (previously cacheTime)
-            refetchOnWindowFocus: false,
-            retry: 1,
+            refetchOnWindowFocus: true, // Refetch when window regains focus
+            retry: 3, // Retry failed requests 3 times
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
           },
         },
       })
