@@ -120,7 +120,8 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
                 </div>
                 <AlertDialogDescription className="text-base">
                   Are you sure you want to delete{' '}
-                  <span className="font-semibold text-gray-700">"{article.title}"</span>?
+                  <span className="font-semibold text-gray-700">&ldquo;{article.title}&rdquo;</span>
+                  ?
                   <br />
                   <br />
                   This action cannot be undone. The article and all associated data will be

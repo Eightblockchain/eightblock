@@ -65,6 +65,7 @@ export default function ProfilePage() {
       fetchBalance();
       fetchStats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, connecting, address, router]);
 
   const fetchProfile = async () => {

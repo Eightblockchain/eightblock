@@ -68,7 +68,7 @@ async function fetchArticle(slug: string): Promise<Article> {
   return response.json();
 }
 
-export default function ArticlePage({ params }: { params: { slug: string } }) {
+export default function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const [slug, setSlug] = useState<string>('');
   const router = useRouter();
   const { address } = useWallet();

@@ -4,6 +4,16 @@ import { withContentlayer } from 'next-contentlayer';
 const config = {
   reactStrictMode: true,
 
+  // ESLint configuration for build
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+
+  // TypeScript configuration for build
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',

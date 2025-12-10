@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, Suspense } from 'react';
 import { ArticleCard } from '@/components/articles/article-card';
 import { TrendingArticleCard } from '@/components/articles/trending-article-card';
 import {
@@ -20,7 +20,7 @@ import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { useCarousel } from '@/hooks/useCarousel';
 import { useArticleFiltering } from '@/hooks/useArticleFiltering';
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
@@ -379,7 +379,7 @@ function SectionHeader({
 function SearchResultsInfo({ count, query }: { count: number; query: string }) {
   return (
     <p className="mb-6 text-sm text-gray-600">
-      Found {count} article{count !== 1 ? 's' : ''} matching "{query}"
+      Found {count} article{count !== 1 ? 's' : ''} matching &ldquo;{query}&rdquo;
     </p>
   );
 }
@@ -528,7 +528,9 @@ const LoadingIndicator = React.forwardRef<HTMLDivElement, LoadingIndicatorProps>
             <span className="text-gray-600">Loading more...</span>
           </div>
         )}
-        {!hasNextPage && hasArticles && <p className="text-gray-500">You've reached the end!</p>}
+        {!hasNextPage && hasArticles && (
+          <p className="text-gray-500">You&apos;ve reached the end!</p>
+        )}
       </div>
     );
   }
@@ -547,5 +549,15 @@ function ScrollToTopButton({ onClick }: { onClick: () => void }) {
     >
       <ArrowUp className="h-5 w-5" />
     </Button>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}
+    >
+      <HomePageContent />
+    </Suspense>
   );
 }

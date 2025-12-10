@@ -37,10 +37,10 @@ async function searchArticles(query: string) {
 
       return { article, score };
     })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
+    .filter(({ score }: { score: number }) => score > 0)
+    .sort((a: any, b: any) => b.score - a.score)
     .slice(0, 5)
-    .map(({ article }) => article);
+    .map(({ article }: { article: any }) => article);
 }
 
 export default function SearchComponent() {
@@ -130,12 +130,12 @@ export default function SearchComponent() {
                       onClick={closeSearch}
                       className="block p-3 text-center text-sm font-medium text-blue-600 hover:bg-gray-50"
                     >
-                      See all results for "{query}"
+                      See all results for &ldquo;{query}&rdquo;
                     </Link>
                   </div>
                 ) : (
                   <div className="p-4 text-center text-sm text-gray-500">
-                    No articles found for "{query}"
+                    No articles found for &ldquo;{query}&rdquo;
                   </div>
                 )}
               </div>

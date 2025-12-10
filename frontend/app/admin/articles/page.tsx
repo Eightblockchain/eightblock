@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/lib/wallet-context';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ export default function ArticlesPage() {
     } else if (!connected) {
       router.push('/');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, address, router]);
 
   const fetchArticles = async () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/lib/wallet-context';
 import { Button } from '@/components/ui/button';
@@ -35,12 +35,13 @@ interface Article {
   };
 }
 
-export default function EditArticlePage({ params }: { params: { slug: string } }) {
+export default function EditArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug: slugParam } = use(params);
   const router = useRouter();
   const { connected, address } = useWallet();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [slug, setSlug] = useState<string>('');
+  const [slug, setSlug] = useState<string>(slugParam);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
