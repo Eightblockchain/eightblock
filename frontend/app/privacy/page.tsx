@@ -282,7 +282,7 @@ export default function PrivacyPolicyPage() {
               <li>
                 <strong>GitHub:</strong>{' '}
                 <a
-                  href="https://github.com/Mechack08/eightblock/issues"
+                  href="https://github.com/Eightblockchain/eightblock/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
@@ -291,7 +291,7 @@ export default function PrivacyPolicyPage() {
                 </a>
               </li>
               <li>
-                <strong>Email:</strong> privacy@eightblock.io (if available)
+                <strong>Email:</strong> info@eightblock.dev
               </li>
             </ul>
           </section>

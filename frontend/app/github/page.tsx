@@ -42,7 +42,7 @@ export default function GitHubRepositoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const REPO_OWNER = 'Mechack08';
+  const REPO_OWNER = 'Eightblockchain';
   const REPO_NAME = 'eightblock';
   const REPO_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}`;
 
@@ -155,7 +155,7 @@ export default function GitHubRepositoryPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <Star className="h-5 w-5 text-yellow-500" />
+                  <Star className="h-5 w-5 text-[#080808] dark:text-yellow-500" />
                   <div>
                     <p className="text-2xl font-bold">{repo.stargazers_count}</p>
                     <p className="text-sm text-muted-foreground">Stars</p>
@@ -163,7 +163,7 @@ export default function GitHubRepositoryPage() {
                 </div>
 
                 <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <GitFork className="h-5 w-5 text-blue-500" />
+                  <GitFork className="h-5 w-5 text-[#080808] dark:text-primary" />
                   <div>
                     <p className="text-2xl font-bold">{repo.forks_count}</p>
                     <p className="text-sm text-muted-foreground">Forks</p>
@@ -171,7 +171,7 @@ export default function GitHubRepositoryPage() {
                 </div>
 
                 <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <Eye className="h-5 w-5 text-green-500" />
+                  <Eye className="h-5 w-5 text-[#080808] dark:text-primary" />
                   <div>
                     <p className="text-2xl font-bold">{repo.watchers_count}</p>
                     <p className="text-sm text-muted-foreground">Watchers</p>
@@ -179,7 +179,7 @@ export default function GitHubRepositoryPage() {
                 </div>
 
                 <div className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg">
-                  <AlertCircle className="h-5 w-5 text-orange-500" />
+                  <AlertCircle className="h-5 w-5 text-[#080808] dark:text-primary" />
                   <div>
                     <p className="text-2xl font-bold">{repo.open_issues_count}</p>
                     <p className="text-sm text-muted-foreground">Open Issues</p>
@@ -215,7 +215,7 @@ export default function GitHubRepositoryPage() {
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4">
                 <Link href={REPO_URL} target="_blank" rel="noopener noreferrer">
-                  <Button className="gap-2">
+                  <Button className="gap-2 bg-[#080808] hover:bg-[#080808]/90 dark:bg-primary dark:hover:bg-primary/90">
                     <Github className="h-5 w-5" />
                     View on GitHub
                     <ExternalLink className="h-4 w-4" />
@@ -241,7 +241,7 @@ export default function GitHubRepositoryPage() {
             {/* Quick Links Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <Card className="p-6 hover:shadow-lg transition-shadow">
-                <GitPullRequest className="h-8 w-8 text-primary mb-4" />
+                <GitPullRequest className="h-8 w-8 text-[#080808] dark:text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2">Contribute</h3>
                 <p className="text-muted-foreground mb-4">
                   Read our contribution guidelines to learn how you can help improve EightBlock.
@@ -258,7 +258,7 @@ export default function GitHubRepositoryPage() {
               </Card>
 
               <Card className="p-6 hover:shadow-lg transition-shadow">
-                <Users className="h-8 w-8 text-primary mb-4" />
+                <Users className="h-8 w-8 text-[#080808] dark:text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2">Contributors</h3>
                 <p className="text-muted-foreground mb-4">
                   Meet the amazing people who have contributed to making EightBlock better.
@@ -273,7 +273,7 @@ export default function GitHubRepositoryPage() {
               </Card>
 
               <Card className="p-6 hover:shadow-lg transition-shadow">
-                <BookOpen className="h-8 w-8 text-primary mb-4" />
+                <BookOpen className="h-8 w-8 text-[#080808] dark:text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2">Documentation</h3>
                 <p className="text-muted-foreground mb-4">
                   Explore detailed documentation on setup, architecture, and API usage.
@@ -290,7 +290,7 @@ export default function GitHubRepositoryPage() {
               </Card>
 
               <Card className="p-6 hover:shadow-lg transition-shadow">
-                <Code className="h-8 w-8 text-primary mb-4" />
+                <Code className="h-8 w-8 text-[#080808] dark:text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2">Code of Conduct</h3>
                 <p className="text-muted-foreground mb-4">
                   Our commitment to fostering an inclusive and welcoming community.
@@ -308,7 +308,7 @@ export default function GitHubRepositoryPage() {
             </div>
 
             {/* Getting Started Section */}
-            <Card className="p-8 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+            <Card className="p-8 bg-gradient-to-br from-[#080808]/5 to-[#080808]/10 dark:from-primary/5 dark:to-primary/10 border-[#080808]/20 dark:border-primary/20">
               <h2 className="text-2xl font-bold mb-4">Getting Started</h2>
               <p className="text-muted-foreground mb-6">
                 Clone the repository and start contributing in minutes:

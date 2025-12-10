@@ -293,7 +293,7 @@ export default function TermsOfServicePage() {
               <li>
                 <strong>GitHub Issues:</strong>{' '}
                 <a
-                  href="https://github.com/Mechack08/eightblock/issues"
+                  href="https://github.com/Eightblockchain/eightblock/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
@@ -302,7 +302,7 @@ export default function TermsOfServicePage() {
                 </a>
               </li>
               <li>
-                <strong>Email:</strong> legal@eightblock.io (if available)
+                <strong>Email:</strong> info@eightblock.dev
               </li>
             </ul>
           </section>

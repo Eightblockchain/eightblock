@@ -37,7 +37,7 @@ export function SiteFooter() {
           {/* Right side - Social Icons */}
           <div className="flex gap-3">
             <a
-              href="https://github.com/Mechack08/eightblock"
+              href="https://github.com/Eightblockchain/eightblock"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-[#080808] dark:bg-foreground p-2 text-white dark:text-background transition-transform hover:scale-110"

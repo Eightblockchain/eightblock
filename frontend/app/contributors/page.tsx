@@ -27,7 +27,7 @@ export default function ContributorsPage() {
         setError(null);
 
         const response = await fetch(
-          'https://api.github.com/repos/Mechack08/eightblock/contributors?per_page=100',
+          'https://api.github.com/repos/Eightblockchain/eightblock/contributors?per_page=100',
           {
             headers: {
               Accept: 'application/vnd.github.v3+json',
@@ -94,7 +94,7 @@ export default function ContributorsPage() {
           <Card className="p-8 text-center bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900">
             <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
             <Link
-              href="https://github.com/Mechack08/eightblock/graphs/contributors"
+              href="https://github.com/Eightblockchain/eightblock/graphs/contributors"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-primary hover:underline"
@@ -113,7 +113,7 @@ export default function ContributorsPage() {
                 and counting
               </p>
               <Link
-                href="https://github.com/Mechack08/eightblock"
+                href="https://github.com/Eightblockchain/eightblock"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
@@ -143,10 +143,10 @@ export default function ContributorsPage() {
                           alt={`${contributor.login}'s avatar`}
                           width={96}
                           height={96}
-                          className="rounded-full border-4 border-border group-hover:border-primary transition-colors duration-200"
+                          className="rounded-full border-4 border-border group-hover:border-[#080808] dark:group-hover:border-primary transition-colors duration-200"
                           unoptimized
                         />
-                        <div className="absolute -bottom-2 -right-2 bg-primary text-primary-foreground rounded-full h-8 w-8 flex items-center justify-center text-xs font-bold border-2 border-background">
+                        <div className="absolute -bottom-2 -right-2 bg-[#080808] dark:bg-primary text-white dark:text-primary-foreground rounded-full h-8 w-8 flex items-center justify-center text-xs font-bold border-2 border-background">
                           {contributor.contributions}
                         </div>
                       </div>
@@ -179,17 +179,17 @@ export default function ContributorsPage() {
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link
-                  href="https://github.com/Mechack08/eightblock/blob/main/CONTRIBUTING.md"
+                  href="https://github.com/Eightblockchain/eightblock/blob/main/CONTRIBUTING.md"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-semibold"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#080808] dark:bg-primary text-white dark:text-primary-foreground rounded-md hover:bg-[#080808]/90 dark:hover:bg-primary/90 transition-colors font-semibold"
                 >
                   <Github className="h-5 w-5" />
                   Contribution Guide
                   <ExternalLink className="h-4 w-4" />
                 </Link>
                 <Link
-                  href="https://github.com/Mechack08/eightblock/issues"
+                  href="https://github.com/Eightblockchain/eightblock/issues"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors font-semibold"
@@ -209,7 +209,7 @@ export default function ContributorsPage() {
               the data.
             </p>
             <Link
-              href="https://github.com/Mechack08/eightblock"
+              href="https://github.com/Eightblockchain/eightblock"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-primary hover:underline"
