@@ -70,11 +70,8 @@ export default function ProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!response.ok) throw new Error('Failed to fetch profile');
@@ -190,15 +187,12 @@ export default function ProfilePage() {
 
     setUploading(true);
     try {
-      const token = localStorage.getItem('authToken');
       const formData = new FormData();
       formData.append('avatar', selectedFile);
 
       const response = await fetch(`${API_URL}/users/me/avatar`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
         body: formData,
       });
 
@@ -249,13 +243,12 @@ export default function ProfilePage() {
     setSaving(true);
 
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/users/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 

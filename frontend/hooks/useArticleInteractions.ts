@@ -20,7 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 interface UseArticleInteractionsProps {
   articleId: string;
   userId: string | null;
-  authToken: string | null;
   articleSlug: string;
   isPublished: boolean;
 }
@@ -28,7 +27,6 @@ interface UseArticleInteractionsProps {
 export function useArticleInteractions({
   articleId,
   userId,
-  authToken,
   articleSlug,
   isPublished,
 }: UseArticleInteractionsProps) {
@@ -40,7 +38,7 @@ export function useArticleInteractions({
   const { data: userLiked = false } = useQuery({
     queryKey: ['article-like', articleId, userId],
     queryFn: () => checkUserLike(articleId, userId!),
-    enabled: !!articleId && !!userId && !!authToken && isPublished,
+    enabled: !!articleId && !!userId && isPublished,
   });
 
   // Check if article is bookmarked
@@ -60,10 +58,8 @@ export function useArticleInteractions({
   // Like mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
-      if (!userId || !authToken) throw new Error('Not authenticated');
-      return userLiked
-        ? removeLike(articleId, userId, authToken)
-        : toggleLike(articleId, userId, authToken);
+      if (!userId) throw new Error('Not authenticated');
+      return userLiked ? removeLike(articleId, userId) : toggleLike(articleId, userId);
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['article-like', articleId, userId] });
@@ -101,8 +97,8 @@ export function useArticleInteractions({
   // Comment mutation
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
-      if (!userId || !authToken) throw new Error('Not authenticated');
-      return createComment(articleId, content, userId, authToken);
+      if (!userId) throw new Error('Not authenticated');
+      return createComment(articleId, content, userId);
     },
     onSuccess: () => {
       // Invalidate article-specific queries
@@ -131,8 +127,8 @@ export function useArticleInteractions({
   // Update comment mutation
   const updateCommentMutation = useMutation({
     mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
-      if (!authToken) throw new Error('Not authenticated');
-      return updateComment(articleId, commentId, content, authToken);
+      if (!userId) throw new Error('Not authenticated');
+      return updateComment(articleId, commentId, content);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['article-comments', articleId] });
@@ -153,8 +149,8 @@ export function useArticleInteractions({
   // Delete comment mutation
   const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
-      if (!authToken) throw new Error('Not authenticated');
-      return deleteComment(articleId, commentId, authToken);
+      if (!userId) throw new Error('Not authenticated');
+      return deleteComment(articleId, commentId);
     },
     onSuccess: () => {
       // Invalidate article-specific queries
@@ -182,7 +178,7 @@ export function useArticleInteractions({
 
   // Handlers
   const handleLike = () => {
-    if (!userId || !authToken) {
+    if (!userId) {
       toast.toast?.({
         title: 'Authentication required',
         description: 'Please connect your wallet to like this article',

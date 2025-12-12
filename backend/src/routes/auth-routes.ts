@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { walletAuth, requestNonce } from '@/controllers/auth-controller';
+import { logout, revokeAllSessions } from '@/controllers/logout-controller';
 import { validateBody } from '@/middleware/validate';
 import { authLimiter, nonceLimiter } from '@/middleware/rate-limit';
+import { requireTrustedOrigin } from '@/middleware/origin-check';
 
 const router = Router();
 
@@ -28,9 +30,27 @@ const walletAuthSchema = z.object({
 });
 
 // Step 1: Request authentication nonce (rate limited)
-router.post('/wallet/nonce', nonceLimiter, validateBody(requestNonceSchema), requestNonce);
+router.post(
+  '/wallet/nonce',
+  requireTrustedOrigin,
+  nonceLimiter,
+  validateBody(requestNonceSchema),
+  requestNonce
+);
 
 // Step 2: Authenticate with signature (strict rate limiting)
-router.post('/wallet', authLimiter, validateBody(walletAuthSchema), walletAuth);
+router.post(
+  '/wallet',
+  requireTrustedOrigin,
+  authLimiter,
+  validateBody(walletAuthSchema),
+  walletAuth
+);
+
+// Logout endpoint - revoke current session
+router.post('/logout', logout);
+
+// Revoke all sessions for current user
+router.post('/revoke-all', revokeAllSessions);
 
 export default router;

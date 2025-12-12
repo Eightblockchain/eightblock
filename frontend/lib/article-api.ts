@@ -13,12 +13,12 @@ export interface Comment {
 }
 
 // Like/Unlike Article
-export async function toggleLike(articleId: string, userId: string, token: string) {
+export async function toggleLike(articleId: string, userId: string) {
   const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ userId }),
   });
@@ -31,12 +31,12 @@ export async function toggleLike(articleId: string, userId: string, token: strin
   return response.json();
 }
 
-export async function removeLike(articleId: string, userId: string, token: string) {
+export async function removeLike(articleId: string, userId: string) {
   const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
     method: 'DELETE',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ userId }),
   });
@@ -74,14 +74,13 @@ export async function fetchComments(articleId: string): Promise<Comment[]> {
 export async function createComment(
   articleId: string,
   content: string,
-  userId: string,
-  token: string
+  userId: string
 ): Promise<Comment> {
   const response = await fetch(`${API_URL}/articles/${articleId}/comments`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ body: content, authorId: userId }),
   });
@@ -97,14 +96,13 @@ export async function createComment(
 export async function updateComment(
   articleId: string,
   commentId: string,
-  content: string,
-  token: string
+  content: string
 ): Promise<Comment> {
   const response = await fetch(`${API_URL}/articles/${articleId}/comments/${commentId}`, {
     method: 'PUT',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ body: content }),
   });
@@ -117,16 +115,10 @@ export async function updateComment(
   return response.json();
 }
 
-export async function deleteComment(
-  articleId: string,
-  commentId: string,
-  token: string
-): Promise<void> {
+export async function deleteComment(articleId: string, commentId: string): Promise<void> {
   const response = await fetch(`${API_URL}/articles/${articleId}/comments/${commentId}`, {
     method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: 'include',
   });
 
   if (!response.ok) {

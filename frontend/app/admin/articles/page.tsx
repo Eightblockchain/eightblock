@@ -69,12 +69,9 @@ export default function ArticlesPage() {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/articles/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {

@@ -2,8 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { BrowserWallet } from '@meshsdk/core';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { fetcher } from '@/lib/api';
 
 interface WalletContextType {
   connected: boolean;
@@ -25,6 +24,23 @@ const WalletContext = createContext<WalletContextType>({
   availableWallets: [],
 });
 
+const getCardanoWalletApi = (walletName?: string) => {
+  if (typeof window === 'undefined' || !walletName) return undefined;
+  return (window as any).cardano?.[walletName.toLowerCase()];
+};
+
+async function isWalletExtensionEnabled(walletName: string) {
+  try {
+    const cardanoWallet = getCardanoWalletApi(walletName);
+    if (cardanoWallet?.isEnabled) {
+      return await cardanoWallet.isEnabled();
+    }
+  } catch (error) {
+    console.warn('isEnabled check failed:', error);
+  }
+  return false;
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -41,121 +57,115 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setAvailableWallets(wallets);
   }, []);
 
-  const connect = useCallback(async (walletName?: string) => {
-    setConnecting(true);
-    try {
-      // Get list of available wallets
-      const installedWallets = BrowserWallet.getInstalledWallets();
+  const hydrateWalletSession = useCallback(async (walletName: string) => {
+    const browserWallet = await BrowserWallet.enable(walletName);
+    const walletAddress = (await browserWallet.getChangeAddress()).toLowerCase();
+    setWallet(browserWallet);
+    setAddress(walletAddress);
+    setConnected(true);
+    return { browserWallet, walletAddress };
+  }, []);
 
-      if (installedWallets.length === 0) {
-        alert('No Cardano wallet found. Please install a wallet extension (Nami, Eternl, etc.)');
-        setConnecting(false);
-        return;
-      }
-
-      // Connect to the first available wallet
-      const selectedWalletName = installedWallets[0].name;
-      const browserWallet = await BrowserWallet.enable(selectedWalletName);
-      const walletAddress = (await browserWallet.getChangeAddress()).toLowerCase();
-
-      // Secure authentication with CIP-30 direct API
+  const connect = useCallback(
+    async (walletName?: string) => {
+      setConnecting(true);
       try {
-        // Step 1: Request nonce from backend
-        const nonceResponse = await fetch(`${API_URL}/auth/wallet/nonce`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ walletAddress }),
-        });
+        // Get list of available wallets
+        const installedWallets = BrowserWallet.getInstalledWallets();
 
-        if (!nonceResponse.ok) {
-          const error = await nonceResponse.json();
-          throw new Error(error.error || 'Failed to get authentication challenge');
+        if (installedWallets.length === 0) {
+          alert('No Cardano wallet found. Please install a wallet extension (Nami, Eternl, etc.)');
+          setConnecting(false);
+          return;
         }
 
-        const { nonce } = await nonceResponse.json();
-
-        // Step 2: Sign nonce using raw CIP-30 API (not MeshSDK's broken signData)
-        // Access the wallet's CIP-30 API directly
-        const cardanoWallet = (window as any).cardano[selectedWalletName.toLowerCase()];
+        // Connect to the first available wallet
+        const selectedWalletName = walletName ?? installedWallets[0].name;
+        const cardanoWallet = getCardanoWalletApi(selectedWalletName);
         if (!cardanoWallet) {
           throw new Error('Wallet API not available');
         }
 
-        const api = await cardanoWallet.enable();
+        const { browserWallet, walletAddress } = await hydrateWalletSession(selectedWalletName);
 
-        // Convert nonce to hex bytes for signing
-        const encoder = new TextEncoder();
-        const nonceBytes = encoder.encode(nonce);
-        const nonceHex = Array.from(nonceBytes)
-          .map((b) => b.toString(16).padStart(2, '0'))
-          .join('');
+        // Secure authentication with CIP-30 direct API
+        try {
+          // Step 1: Request nonce from backend
+          const { nonce } = await fetcher('/auth/wallet/nonce', {
+            method: 'POST',
+            body: JSON.stringify({ walletAddress }),
+          });
 
-        // Sign the nonce with CIP-30 signData
-        const signedData = await api.signData(walletAddress, nonceHex);
+          // Step 2: Sign nonce using raw CIP-30 API (not MeshSDK's broken signData)
+          // Access the wallet's CIP-30 API directly
+          const api = await cardanoWallet.enable();
 
-        // Step 3: Send signature to backend for verification
-        const authResponse = await fetch(`${API_URL}/auth/wallet`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            walletAddress,
-            nonce,
-            signature: signedData.signature,
-            key: signedData.key,
-          }),
-        });
+          // CIP-30 signData requires the hex-encoded wallet address
+          const signingAddress = await api.getChangeAddress();
 
-        if (!authResponse.ok) {
-          const error = await authResponse.json();
-          throw new Error(error.error || 'Authentication failed');
+          // Sign the backend-provided nonce (already hex) directly
+          const signedData = await api.signData(signingAddress, nonce);
+
+          // Step 3: Send signature to backend for verification
+          const data = await fetcher('/auth/wallet', {
+            method: 'POST',
+            body: JSON.stringify({
+              walletAddress,
+              nonce,
+              signature: signedData.signature,
+              key: signedData.key,
+            }),
+          });
+
+          // Store only user ID (token is in httpOnly cookie)
+          localStorage.setItem('userId', data.user.id);
+
+          console.log('Wallet authenticated successfully:', data.user);
+        } catch (authError) {
+          console.error('Failed to authenticate with backend:', authError);
+          alert(
+            `Authentication failed: ${authError instanceof Error ? authError.message : 'Unknown error'}`
+          );
+          throw authError;
         }
 
-        const data = await authResponse.json();
-
-        // Store authentication token and user ID
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('userId', data.user.id);
-
-        console.log('Wallet authenticated successfully:', data.user);
-      } catch (authError) {
-        console.error('Failed to authenticate with backend:', authError);
-        alert(
-          `Authentication failed: ${authError instanceof Error ? authError.message : 'Unknown error'}`
-        );
-        throw authError;
+        setWallet(browserWallet);
+        setAddress(walletAddress);
+        setConnected(true);
+        localStorage.setItem('walletConnected', 'true');
+        localStorage.setItem('walletName', selectedWalletName);
+      } catch (error) {
+        console.error('Failed to connect wallet:', error);
+        setConnected(false);
+        setAddress(null);
+        setWallet(null);
+        // Clear localStorage on connection failure
+        localStorage.removeItem('walletConnected');
+        localStorage.removeItem('walletName');
+        localStorage.removeItem('userId');
+      } finally {
+        setConnecting(false);
       }
+    },
+    [hydrateWalletSession]
+  );
 
-      setWallet(browserWallet);
-      setAddress(walletAddress);
-      setConnected(true);
-      localStorage.setItem('walletConnected', 'true');
-      localStorage.setItem('walletName', selectedWalletName);
+  const disconnect = useCallback(async () => {
+    try {
+      // Call backend logout to revoke token
+      await fetcher('/auth/logout', {
+        method: 'POST',
+      });
     } catch (error) {
-      console.error('Failed to connect wallet:', error);
-      setConnected(false);
-      setAddress(null);
-      setWallet(null);
-      // Clear localStorage on connection failure
-      localStorage.removeItem('walletConnected');
-      localStorage.removeItem('walletName');
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userId');
-    } finally {
-      setConnecting(false);
+      console.error('Logout error:', error);
+      // Continue with local cleanup even if logout fails
     }
-  }, []);
 
-  const disconnect = useCallback(() => {
     setWallet(null);
     setAddress(null);
     setConnected(false);
     localStorage.removeItem('walletConnected');
     localStorage.removeItem('walletName');
-    localStorage.removeItem('authToken');
     localStorage.removeItem('userId');
   }, []);
 
@@ -163,11 +173,50 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const wasConnected = localStorage.getItem('walletConnected');
     if (wasConnected === 'true') {
-      connect();
+      let cancelled = false;
+      const attemptReconnect = async () => {
+        if (wasConnected !== 'true') {
+          setInitializing(false);
+          return;
+        }
+
+        const storedWalletName = localStorage.getItem('walletName');
+        if (!storedWalletName) {
+          setInitializing(false);
+          return;
+        }
+
+        const stillEnabled = await isWalletExtensionEnabled(storedWalletName);
+        if (stillEnabled) {
+          try {
+            setConnecting(true);
+            await hydrateWalletSession(storedWalletName);
+          } catch (error) {
+            console.error('Failed to resume wallet session:', error);
+          } finally {
+            if (!cancelled) {
+              setConnecting(false);
+              setInitializing(false);
+            }
+          }
+          return;
+        }
+
+        await connect(storedWalletName);
+        if (!cancelled) {
+          setInitializing(false);
+        }
+      };
+
+      attemptReconnect();
+
+      return () => {
+        cancelled = true;
+      };
     } else {
       setInitializing(false);
     }
-  }, [connect]);
+  }, [connect, hydrateWalletSession]);
 
   // Mark initialization complete after connection attempt
   useEffect(() => {

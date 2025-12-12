@@ -76,13 +76,10 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
   const toast = useToast?.() || { toast: () => {} };
   const viewTrackerRef = useRef<PageViewTracker | null>(null);
 
-  const [authToken, setAuthToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
     const id = localStorage.getItem('userId');
-    setAuthToken(token);
     setUserId(id);
   }, [address]);
 
@@ -120,7 +117,6 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
   } = useArticleInteractions({
     articleId: article?.id || '',
     userId,
-    authToken,
     articleSlug: slug,
     isPublished,
   });
@@ -141,15 +137,15 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
 
   // Publish article handler
   const handlePublish = async () => {
-    if (!article || !authToken) return;
+    if (!article || !isOwner) return;
 
     try {
       const response = await fetch(`${API_URL}/articles/${article.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
         },
+        credentials: 'include',
         body: JSON.stringify({ status: 'PUBLISHED' }),
       });
 

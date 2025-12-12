@@ -155,6 +155,17 @@ VALUES ('article-id', 'user-id', 'Great article!');
 - Role-based access control (WRITER, ADMIN)
 - CORS enabled for frontend origin
 
+### 🛡️ Verifying Wallet Ownership (CIP-30 + CIP-8)
+
+1. **Nonce challenge** – Backend issues a 32-byte hex nonce through `POST /api/auth/wallet/nonce`. Nonces expire after five minutes and are single-use.
+2. **Direct wallet signing** – Frontend calls the raw CIP-30 `signData` method with the wallet's change address (hex-encoded) and the nonce. Yoroi/Nami return a CBOR-encoded COSE_Sign1 signature plus a COSE_Key.
+3. **CBOR decoding** – Backend decodes both structures via the `cbor` package. The payload (array index `2`) must match the lowercase nonce; the signature bytes live at index `3`.
+4. **Sig_structure hashing** – Per CIP-8, we rebuild the Sig_structure `["Signature1", protected, external_aad (empty), payload]` and CBOR-encode it. The encoded bytes are the exact message Ed25519 signs.
+5. **Public key extraction** – The COSE_Key is a map where label `-2` stores the 32-byte Ed25519 public key. We reject the request if that buffer is missing or the wrong length.
+6. **Ed25519 verification** – Using `@noble/curves/ed25519`, we verify the signature against the Sig_structure bytes and extracted public key. Any mismatch logs `[Security] ✗ Invalid signature` and returns `401`.
+
+These steps harden the flow against replay attacks and malformed wallets: only holders who can produce a valid COSE signature for our nonce gain a JWT.
+
 ## ✨ User Experience
 
 - **Automatic auth** - No manual login required

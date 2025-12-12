@@ -30,18 +30,15 @@ export default function LoginBtn() {
 
   const fetchUserProfile = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
       const response = await fetch(`${API_URL}/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
         setUserProfile({ name: data.name, avatarUrl: data.avatarUrl });
+      } else if (response.status === 401) {
+        setUserProfile(null);
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);

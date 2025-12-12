@@ -2,7 +2,8 @@ import type { Request, Response } from 'express';
 import { prisma } from '@/prisma/client';
 import { signToken } from '@/utils/jwt';
 import { generateNonce, verifyAndConsumeNonce } from '@/utils/nonce';
-import { verifyCardanoSignature } from '@/utils/signature';
+import { CSRF_COOKIE_NAME, csrfCookieOptions, generateCsrfToken } from '@/utils/csrf';
+import { verifyCardanoSignature, verifyPublicKeyMatchesAddress } from '@/utils/signature';
 
 // Step 1: Request a nonce for wallet authentication
 export async function requestNonce(req: Request, res: Response) {
@@ -18,7 +19,7 @@ export async function requestNonce(req: Request, res: Response) {
   }
 
   try {
-    const nonce = generateNonce(walletAddress);
+    const nonce = await generateNonce(walletAddress);
 
     // Return just the nonce - wallet will sign it directly
     return res.json({
@@ -48,18 +49,32 @@ export async function walletAuth(req: Request, res: Response) {
 
   try {
     // Verify the nonce is valid and not expired
-    const isNonceValid = verifyAndConsumeNonce(walletAddress, nonce);
+    const isNonceValid = await verifyAndConsumeNonce(walletAddress, nonce);
     if (!isNonceValid) {
       return res.status(401).json({
-        error: 'Invalid or expired nonce. Please request a new authentication challenge.',
+        error: 'Authentication failed',
       });
     }
 
     // Verify the signature (validates cryptographic proof of wallet ownership)
-    const isSignatureValid = await verifyCardanoSignature(walletAddress, nonce, signature, key);
-    if (!isSignatureValid) {
+    const signatureResult = await verifyCardanoSignature(walletAddress, nonce, signature, key);
+    if (!signatureResult.valid) {
       return res.status(401).json({
-        error: 'Invalid signature. Wallet ownership verification failed.',
+        error: 'Authentication failed',
+      });
+    }
+
+    // Verify public key actually belongs to the claimed wallet address
+    // This extracts and compares payment key hashes, working with any address type
+    const publicKeyMatches = await verifyPublicKeyMatchesAddress(
+      signatureResult.publicKey,
+      walletAddress
+    );
+
+    if (!publicKeyMatches) {
+      console.warn('[Security] Public key does not match claimed wallet address');
+      return res.status(401).json({
+        error: 'Authentication failed',
       });
     }
 
@@ -88,8 +103,20 @@ export async function walletAuth(req: Request, res: Response) {
       walletAddress: user.walletAddress,
     });
 
+    // Set token in httpOnly cookie (XSS protection)
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: isProduction, // HTTPS only in production
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    });
+
+    // Rotate CSRF token so the client has a fresh value for future mutations
+    res.cookie(CSRF_COOKIE_NAME, generateCsrfToken(), csrfCookieOptions);
+
     return res.json({
-      token,
       user: {
         id: user.id,
         walletAddress: user.walletAddress,

@@ -76,15 +76,12 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
       setUploading(true);
       try {
-        const token = localStorage.getItem('authToken');
         const formData = new FormData();
         formData.append('image', file);
 
         const response = await fetch(`${API_URL}/upload/article-image`, {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include',
           body: formData,
         });
 

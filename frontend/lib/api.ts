@@ -1,9 +1,29 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 
+const CSRF_COOKIE_NAME = 'csrf_token';
+
+function getBrowserCsrfToken() {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+
+  const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
 export async function fetcher(path: string, init?: RequestInit) {
   try {
+    const headers = new Headers(init?.headers ?? {});
+    headers.set('Content-Type', headers.get('Content-Type') ?? 'application/json');
+
+    const csrfToken = getBrowserCsrfToken();
+    if (csrfToken) {
+      headers.set('X-CSRF-Token', csrfToken);
+    }
+
     const res = await fetch(`${API_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+      credentials: 'include',
+      headers,
       ...init,
     });
 
@@ -109,12 +129,11 @@ export async function updateArticle(
  * Delete article
  */
 export async function deleteArticle(id: string) {
-  const token = localStorage.getItem('authToken');
   const res = await fetch(`${API_URL}/articles/${id}`, {
     method: 'DELETE',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
   });
 

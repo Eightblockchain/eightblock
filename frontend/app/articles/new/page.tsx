@@ -89,15 +89,12 @@ export default function NewArticlePage() {
 
     setUploading(true);
     try {
-      const token = localStorage.getItem('authToken');
       const uploadFormData = new FormData();
       uploadFormData.append('image', featuredImageFile);
 
       const response = await fetch(`${API_URL}/upload/article-image`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: 'include',
         body: uploadFormData,
       });
 
@@ -129,13 +126,12 @@ export default function NewArticlePage() {
   // Handle image deletion from rich text editor
   const handleImageDelete = async (imageUrl: string) => {
     try {
-      const token = localStorage.getItem('authToken');
       await fetch(`${API_URL}/upload/article-image`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({ imageUrl }),
       });
     } catch (error) {
@@ -175,7 +171,6 @@ export default function NewArticlePage() {
         }
       }
 
-      const token = localStorage.getItem('authToken');
       const tagsArray = formData.tags
         .split(',')
         .map((tag) => tag.trim())
@@ -185,8 +180,8 @@ export default function NewArticlePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           title: formData.title,
           slug: formData.slug,
