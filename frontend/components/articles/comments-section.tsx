@@ -106,7 +106,7 @@ export function CommentsSection({
             {/* Comment Input */}
             <form
               onSubmit={handleCommentSubmit}
-              className="rounded-lg border border-gray-200 bg-white p-4"
+              className="rounded-[2px] border-2 border-gray-200 bg-white p-6 shadow-sm"
             >
               <textarea
                 value={commentText}
@@ -156,7 +156,7 @@ export function CommentsSection({
                   return (
                     <div
                       key={comment.id}
-                      className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow"
+                      className="rounded-[2px] border border-gray-200 bg-white p-5 hover:shadow-md hover:border-primary-200 transition-all"
                     >
                       <div className="flex items-start gap-3">
                         <Avatar

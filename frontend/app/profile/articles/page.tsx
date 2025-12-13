@@ -51,7 +51,7 @@ export default function MyArticlesPage() {
             <p className="mt-2 text-gray-600">Manage your published and draft articles</p>
           </div>
           <Link href="/articles/new">
-            <Button className="bg-[#080808] text-white hover:bg-gray-800">
+            <Button variant="default">
               <Edit className="h-4 w-4 mr-2" />
               New Article
             </Button>

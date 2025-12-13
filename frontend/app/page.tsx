@@ -132,11 +132,16 @@ function TrendingArticlesSection({
   const shouldShowCarousel = articles.length > 3;
 
   return (
-    <section className="bg-gray-50 py-16">
+    <section className="bg-gradient-to-b from-white via-gray-50 to-white py-16">
       <div className="mx-auto max-w-6xl px-4">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#080808]">Trending Now</h2>
-          <p className="mt-1 text-sm text-gray-600">
+        <div className="mb-8 border-l-4 border-secondary pl-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-3xl font-bold text-foreground">Trending Now</h2>
+            <span className="inline-flex items-center px-2 py-1 bg-secondary text-black text-xs font-bold rounded-full">
+              HOT
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
             Most engaging articles based on community reactions
           </p>
         </div>
@@ -360,10 +365,17 @@ function SectionHeader({
   onClearSearch: () => void;
 }) {
   return (
-    <div className="mb-8 flex items-center justify-between">
-      <h2 className="text-2xl font-bold text-[#080808]">
-        {searchQuery ? 'Search Results' : 'Explore Articles'}
-      </h2>
+    <div className="mb-8 flex items-center justify-between border-l-4 border-primary pl-4">
+      <div>
+        <h2 className="text-3xl font-bold text-foreground">
+          {searchQuery ? 'Search Results' : 'Explore Articles'}
+        </h2>
+        {!searchQuery && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Discover the latest from our community
+          </p>
+        )}
+      </div>
       {searchQuery && (
         <Button variant="outline" onClick={onClearSearch} className="flex items-center gap-2">
           <X className="h-4 w-4" />
@@ -379,9 +391,12 @@ function SectionHeader({
 // ============================================================================
 function SearchResultsInfo({ count, query }: { count: number; query: string }) {
   return (
-    <p className="mb-6 text-sm text-gray-600">
-      Found {count} article{count !== 1 ? 's' : ''} matching &ldquo;{query}&rdquo;
-    </p>
+    <div className="mb-6 inline-flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-full border border-primary-200">
+      <span className="text-sm font-semibold text-primary">
+        {count} result{count !== 1 ? 's' : ''}
+      </span>
+      <span className="text-sm text-muted-foreground">for &ldquo;{query}&rdquo;</span>
+    </div>
   );
 }
 
@@ -390,9 +405,16 @@ function SearchResultsInfo({ count, query }: { count: number; query: string }) {
 // ============================================================================
 function EmptyState({ searchQuery }: { searchQuery: string }) {
   return (
-    <p className="text-center text-gray-600">
-      {searchQuery ? `No articles found matching "${searchQuery}".` : 'No articles found.'}
-    </p>
+    <div className="text-center py-12 rounded-[2px] border-2 border-dashed border-gray-300 bg-gray-50">
+      <p className="text-lg font-semibold text-foreground mb-2">
+        {searchQuery ? 'No results found' : 'No articles available'}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {searchQuery
+          ? `Try adjusting your search for "${searchQuery}"`
+          : 'Check back soon for new content'}
+      </p>
+    </div>
   );
 }
 
@@ -451,10 +473,15 @@ function ArticleListItem({ article, readingTime }: ArticleListItemProps) {
   return (
     <div className="flex gap-6 border-b pb-6 last:border-b-0">
       <div className="flex-1">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-          {article.category} · {formattedDate} · {readingTime} min read
-        </p>
-        <h3 className="mb-2 text-xl font-bold text-[#080808]">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="inline-block px-2 py-1 text-xs font-semibold uppercase tracking-wider text-white bg-primary rounded-full">
+            {article.category}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {formattedDate} · {readingTime} min read
+          </span>
+        </div>
+        <h3 className="mb-2 text-xl font-bold text-foreground">
           <Link href={`/articles/${article.slug}`} className="hover:underline">
             {article.title}
           </Link>
@@ -526,13 +553,17 @@ const LoadingIndicator = React.forwardRef<HTMLDivElement, LoadingIndicatorProps>
     return (
       <div ref={ref} className="mt-8 text-center">
         {isFetchingNextPage && (
-          <div className="inline-flex items-center gap-2">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-            <span className="text-gray-600">Loading more...</span>
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-primary-50 rounded-full">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="text-sm font-medium text-primary">Loading more articles...</span>
           </div>
         )}
         {!hasNextPage && hasArticles && (
-          <p className="text-gray-500">You&apos;ve reached the end!</p>
+          <div className="inline-flex items-center px-6 py-3 bg-secondary-50 rounded-full">
+            <p className="text-sm font-medium text-secondary-700">
+              You&apos;ve reached the end! 🎉
+            </p>
+          </div>
         )}
       </div>
     );
@@ -548,7 +579,7 @@ function ScrollToTopButton({ onClick }: { onClick: () => void }) {
     <Button
       onClick={onClick}
       size="icon"
-      className="fixed bottom-8 right-8 z-50 h-12 w-12 rounded-full bg-[#080808] shadow-lg hover:bg-gray-800 transition-all duration-300"
+      className="fixed bottom-8 right-8 z-50 h-12 w-12 rounded-full bg-secondary text-black shadow-lg hover:bg-secondary-600 transition-all duration-300 hover:scale-110"
     >
       <ArrowUp className="h-5 w-5" />
     </Button>

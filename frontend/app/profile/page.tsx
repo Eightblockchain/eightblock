@@ -524,11 +524,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button
-              type="submit"
-              disabled={saving || uploading}
-              className="bg-[#080808] hover:bg-gray-800 text-white"
-            >
+            <Button type="submit" disabled={saving || uploading} variant="default">
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

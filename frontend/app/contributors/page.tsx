@@ -70,7 +70,7 @@ export default function ContributorsPage() {
                   href={githubService.getFileUrl('CONTRIBUTING.md')}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#080808] dark:bg-primary text-white dark:text-primary-foreground rounded-md hover:bg-[#080808]/90 dark:hover:bg-primary/90 transition-colors font-semibold"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-[2px] hover:bg-primary-600 transition-all shadow-sm hover:shadow-md active:scale-95 font-semibold"
                 >
                   <Github className="h-5 w-5" />
                   Contribution Guide

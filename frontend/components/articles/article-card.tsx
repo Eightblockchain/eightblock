@@ -26,17 +26,17 @@ export function ArticleCard({ post }: { post: Post | Article }) {
   }
 
   return (
-    <Link href={`/articles/${post.slug}`} className="group">
-      <Card className="overflow-hidden border-none shadow-none transition-transform hover:scale-[1.02]">
+    <Link href={`/articles/${post.slug}`} className="group block">
+      <Card className="overflow-hidden border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
         {/* Article Image */}
-        <div className="aspect-video w-full overflow-hidden rounded-lg relative">
+        <div className="aspect-video w-full overflow-hidden rounded-[2px] relative">
           {featuredImage ? (
             <Image
               src={featuredImage}
               alt={post.title}
               width={800}
               height={450}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
               unoptimized
               onError={(e) => {
                 console.error('Image failed to load:', featuredImage);
@@ -44,25 +44,31 @@ export function ArticleCard({ post }: { post: Post | Article }) {
               }}
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-[#080808] via-gray-900 to-black relative">
+            <div className="h-full w-full bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 relative">
               <div className="absolute inset-0 flex items-center justify-center p-6">
                 <h3 className="text-lg md:text-xl font-bold text-white text-center leading-tight line-clamp-3">
                   {post.title}
                 </h3>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
             </div>
           )}
         </div>
 
         {/* Content */}
-        <div className="mt-4 space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
-            {post.category}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-block px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white bg-primary rounded-full shadow-sm">
+              {post.category}
+            </span>
+          </div>
+          <h3 className="text-xl font-bold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">
+            {post.title}
+          </h3>
+          <p className="line-clamp-2 text-sm text-muted-foreground leading-relaxed">
+            {post.description}
           </p>
-          <h3 className="text-xl font-bold text-[#080808] group-hover:underline">{post.title}</h3>
-          <p className="line-clamp-2 text-sm text-gray-600">{post.description}</p>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
             <Avatar
               src={typeof post.author === 'object' ? post.author?.avatarUrl : null}
               name={typeof post.author === 'object' ? post.author?.name : post.author}

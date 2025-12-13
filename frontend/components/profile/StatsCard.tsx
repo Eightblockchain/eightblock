@@ -52,7 +52,7 @@ export function StatsCard({ articles, stats }: StatsCardProps) {
       label: 'Rewards Earned',
       value: 'Soon',
       icon: Coins,
-      color: 'text-[#080808]',
+      color: 'text-foreground',
       bgColor: 'bg-gray-100',
       subtitle: 'Coming in V2',
     },
@@ -67,7 +67,7 @@ export function StatsCard({ articles, stats }: StatsCardProps) {
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-[#080808]">{stat.value}</p>
+                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
                 {stat.subtitle && <p className="text-xs text-gray-400 mt-1">{stat.subtitle}</p>}
               </div>
               <div className={`p-2 rounded-lg ${stat.bgColor}`}>

@@ -31,7 +31,7 @@ export function PublicProfileStats({ stats, isLoading }: PublicProfileStatsProps
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[...Array(4)].map((_, idx) => (
-          <Skeleton key={idx} className="h-32 rounded-2xl" />
+          <Skeleton key={idx} className="h-32 rounded-[2px]" />
         ))}
       </div>
     );
@@ -42,28 +42,28 @@ export function PublicProfileStats({ stats, isLoading }: PublicProfileStatsProps
       label: 'Articles published',
       value: stats.articles,
       icon: FileText,
-      accent: 'bg-white text-[#080808]',
+      accent: 'bg-primary text-white',
       description: 'Stories live on EightBlock',
     },
     {
       label: 'Total views',
       value: stats.views,
       icon: Eye,
-      accent: 'bg-blue-50 text-blue-600',
+      accent: 'bg-secondary text-black',
       description: `${numberFormatter.format(stats.uniqueViews)} unique readers`,
     },
     {
       label: 'Total likes',
       value: stats.likes,
       icon: Heart,
-      accent: 'bg-red-50 text-red-600',
+      accent: 'bg-primary-700 text-white',
       description: 'Organic appreciation',
     },
     {
       label: 'Community reach',
       value: stats.uniqueViews,
       icon: Users,
-      accent: 'bg-purple-50 text-purple-600',
+      accent: 'bg-secondary-600 text-black',
       description: 'Reach across the network',
     },
   ];
@@ -75,18 +75,20 @@ export function PublicProfileStats({ stats, isLoading }: PublicProfileStatsProps
         return (
           <div
             key={stat.label}
-            className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+            className="rounded-[2px] border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
           >
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-gray-500">{stat.label}</p>
-                <p className="mt-2 text-3xl font-bold text-[#080808]">
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+                  {stat.label}
+                </p>
+                <p className="mt-3 text-3xl font-bold text-foreground">
                   {numberFormatter.format(stat.value)}
                 </p>
-                <p className="mt-1 text-xs text-gray-500">{stat.description}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{stat.description}</p>
               </div>
-              <div className={`rounded-xl p-3 ${stat.accent}`}>
-                <Icon className="h-5 w-5" />
+              <div className={`rounded-[2px] p-3 shadow-sm ${stat.accent}`}>
+                <Icon className="h-6 w-6" />
               </div>
             </div>
           </div>

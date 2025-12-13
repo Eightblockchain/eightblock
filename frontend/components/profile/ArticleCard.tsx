@@ -71,7 +71,7 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
               className={
                 article.status === 'PUBLISHED'
                   ? 'bg-green-500 hover:bg-green-600 text-white'
-                  : 'border-[#080808] text-[#080808]'
+                  : 'border-primary text-primary'
               }
             >
               {article.status}
@@ -84,7 +84,7 @@ export function ArticleCard({ article, onDelete }: ArticleCardProps) {
               </span>
             )}
           </div>
-          <h3 className="text-xl font-bold text-[#080808] mb-2">{article.title}</h3>
+          <h3 className="text-xl font-bold text-foreground mb-2">{article.title}</h3>
           <p className="text-gray-600 mb-3">{article.description}</p>
           <Badge variant="outline" className="text-xs">
             {article.category}

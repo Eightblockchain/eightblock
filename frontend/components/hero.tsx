@@ -17,27 +17,23 @@ export function Hero({ onScrollToArticles }: HeroProps) {
   }
 
   return (
-    <section className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 py-20 text-center">
-      <h1 className="max-w-2xl select-none text-5xl font-bold leading-tight tracking-tight text-[#080808] sm:text-6xl">
-        Open Knowledge for the Cardano Community
+    <section className="mx-auto flex max-w-5xl flex-col items-center gap-8 px-4 py-24 text-center">
+      <div className="inline-block px-4 py-2 bg-primary-50 text-primary font-semibold text-xs uppercase tracking-wider rounded-[2px] border border-primary-200">
+        Cardano Community Platform
+      </div>
+      <h1 className="max-w-3xl select-none text-5xl font-bold leading-tight tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+        Open Knowledge for the <span className="text-primary">Cardano Community</span>
       </h1>
-      <p className="max-w-xl select-none text-base text-gray-600">
+      <p className="max-w-2xl select-none text-lg text-muted-foreground leading-relaxed">
         A collaborative platform for the Cardano community, focusing on open-source culture,
         education, and community collaboration. All content is community-driven and open for
         contribution.
       </p>
-      <div className="mt-2 flex flex-col justify-center gap-4 sm:flex-row">
-        <Button
-          onClick={onScrollToArticles}
-          className="bg-[#080808] px-8 py-6 text-base hover:bg-[#080808]/90"
-        >
+      <div className="mt-4 flex flex-col justify-center gap-4 sm:flex-row">
+        <Button onClick={onScrollToArticles} size="lg" className="px-8 shadow-lg hover:shadow-xl">
           Read Articles
         </Button>
-        <Button
-          variant="outline"
-          asChild
-          className="border-[#080808] px-8 py-6 text-base text-[#080808] hover:bg-gray-50"
-        >
+        <Button variant="outline" asChild size="lg" className="px-8">
           <Link href="https://github.com/Eightblockchain/eightblock" target="_blank">
             Contribute on GitHub
           </Link>

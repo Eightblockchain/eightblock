@@ -193,7 +193,8 @@ export default function LoginBtn() {
       <div className="relative">
         <Button
           onClick={() => setShowProfileMenu(!showProfileMenu)}
-          className="bg-[#080808] px-4 text-base hover:bg-[#080808]/90 rounded-[2px] flex items-center gap-2"
+          variant="default"
+          className="px-4 text-base flex items-center gap-2"
         >
           <Avatar
             key={userProfile?.avatarUrl ?? address ?? 'wallet-avatar'}
@@ -245,19 +246,17 @@ export default function LoginBtn() {
                 Bookmarks
               </Link>
               <div className="border-t border-gray-200 my-1"></div>
-              {availableWallets.length > 1 && (
-                <button
-                  onClick={async () => {
-                    setShowProfileMenu(false);
-                    await handleDisconnect();
-                    setWalletPickerOpen(true);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                >
-                  <Wallet className="h-4 w-4" />
-                  Switch Wallet
-                </button>
-              )}
+              <button
+                onClick={async () => {
+                  setShowProfileMenu(false);
+                  await handleDisconnect();
+                  setWalletPickerOpen(true);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+              >
+                <Wallet className="h-4 w-4" />
+                Switch Wallet
+              </button>
               <button
                 onClick={async () => {
                   setShowProfileMenu(false);
@@ -282,7 +281,8 @@ export default function LoginBtn() {
       <Button
         onClick={handleConnectClick}
         disabled={connecting}
-        className="bg-[#080808] px-8 text-base hover:bg-[#080808]/90 rounded-[2px]"
+        variant="default"
+        className="px-8 text-base"
       >
         {connecting ? 'Connecting...' : 'Connect Wallet'}
       </Button>

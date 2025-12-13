@@ -31,7 +31,7 @@ export function TrendingArticleCard({
       <Card className="relative overflow-hidden border-none shadow-none transition-all hover:shadow-lg hover:scale-[1.02] rounded-[2px]">
         {/* Trending Badge */}
         {rank && rank <= 3 && (
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-[#080808] px-3 py-1 text-xs font-bold text-white shadow-lg">
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-bold text-black shadow-lg">
             <TrendingUp className="h-3 w-3" />#{rank}
           </div>
         )}
@@ -51,23 +51,23 @@ export function TrendingArticleCard({
               }}
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-[#080808] via-gray-900 to-black relative">
+            <div className="h-full w-full bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 relative">
               <div className="absolute inset-0 flex items-center justify-center p-6">
                 <h3 className="text-lg md:text-xl font-bold text-white text-center leading-tight line-clamp-3">
                   {article.title}
                 </h3>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-secondary/40 to-transparent"></div>
             </div>
           )}
         </div>
 
         {/* Content */}
         <div className="mt-4 space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+          <span className="inline-block px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white bg-primary rounded-full shadow-sm">
             {article.category}
-          </p>
-          <h3 className="text-xl font-bold text-[#080808] group-hover:underline line-clamp-2">
+          </span>
+          <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
             {article.title}
           </h3>
           <p className="line-clamp-2 text-sm text-gray-600">{article.description}</p>

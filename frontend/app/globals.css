@@ -6,10 +6,12 @@
 
 :root {
   --background: 0 0% 100%;
-  --foreground: 222 47% 11%;
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 215 20% 65%;
+  --foreground: 0 0% 5%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 196 100% 45%;
+  --primary: 196 100% 45%;
+  --secondary: 45 100% 52%;
 }
 
 html,

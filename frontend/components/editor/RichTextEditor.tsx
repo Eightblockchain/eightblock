@@ -163,7 +163,7 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+    <div className="border-2 border-gray-200 rounded-[2px] overflow-hidden bg-white shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
       {editable && <EditorToolbar editor={editor} />}
       <div className={`px-4 py-3 ${editable ? 'min-h-[${minHeight}]' : ''}`}>
         <EditorContent editor={editor} />

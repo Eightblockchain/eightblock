@@ -60,23 +60,25 @@ export default function PublicProfilePage() {
         onCopyWallet={copyWalletAddress}
       />
 
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
+      <section className="space-y-6">
+        <div className="flex items-center justify-between border-l-4 border-primary pl-4">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-gray-500">Metrics</p>
-            <h2 className="text-2xl font-bold text-[#080808]">Impact snapshot</h2>
+            <p className="text-xs uppercase tracking-[0.2em] font-semibold text-primary">Metrics</p>
+            <h2 className="text-3xl font-bold text-foreground mt-1">Impact snapshot</h2>
           </div>
         </div>
         <PublicProfileStats stats={stats} isLoading={isLoading} />
       </section>
 
       <section className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <p className="text-sm uppercase tracking-[0.3em] text-gray-500">Library</p>
-          <h2 className="text-2xl font-bold text-[#080808]">
+        <div className="flex flex-col gap-2 border-l-4 border-secondary pl-4">
+          <p className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary-700">
+            Library
+          </p>
+          <h2 className="text-3xl font-bold text-foreground">
             Published articles ({stats?.articles ?? articles.length})
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground leading-relaxed">
             Explore {profile?.name || 'this creator'}'s published work across the EightBlock
             network.
           </p>

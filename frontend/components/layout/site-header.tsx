@@ -33,12 +33,15 @@ export function SiteHeader() {
   return (
     <>
       <header
-        className={`bg-white/80 backdrop-blur pt-6 transition-all duration-200 z-50 ${
-          isSticky ? 'fixed top-0 left-0 right-0 pt-0 shadow-md' : ''
+        className={`bg-white/95 backdrop-blur-md border-b border-gray-200 pt-6 transition-all duration-300 z-50 ${
+          isSticky ? 'fixed top-0 left-0 right-0 pt-0 shadow-sm' : 'border-transparent'
         }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Link href="/" className="text-lg font-bold text-primary">
+          <Link
+            href="/"
+            className="text-lg font-bold text-primary hover:opacity-80 transition-opacity"
+          >
             <Image src="/logo.svg" alt="eightblock logo" width={150} height={40} priority />
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex">

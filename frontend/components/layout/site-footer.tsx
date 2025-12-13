@@ -7,29 +7,17 @@ export function SiteFooter() {
       <div className="mx-auto max-w-6xl px-4 py-8">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           {/* Left side - Links */}
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-muted-foreground">
-            <Link
-              href="/privacy"
-              className="hover:text-[#080808] dark:hover:text-foreground transition-colors"
-            >
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <Link href="/privacy" className="hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link
-              href="/terms"
-              className="hover:text-[#080808] dark:hover:text-foreground transition-colors"
-            >
+            <Link href="/terms" className="hover:text-primary transition-colors">
               Terms of Service
             </Link>
-            <Link
-              href="/contributors"
-              className="hover:text-[#080808] dark:hover:text-foreground transition-colors"
-            >
+            <Link href="/contributors" className="hover:text-primary transition-colors">
               Contributors
             </Link>
-            <Link
-              href="/github"
-              className="hover:text-[#080808] dark:hover:text-foreground transition-colors"
-            >
+            <Link href="/github" className="hover:text-primary transition-colors">
               GitHub Repository
             </Link>
           </div>
@@ -40,7 +28,7 @@ export function SiteFooter() {
               href="https://github.com/Eightblockchain/eightblock"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full bg-[#080808] dark:bg-foreground p-2 text-white dark:text-background transition-transform hover:scale-110"
+              className="rounded-full bg-primary p-2.5 text-white shadow-md transition-all hover:bg-primary-600 hover:scale-110"
               aria-label="GitHub"
             >
               <Github className="h-5 w-5" />
@@ -49,7 +37,7 @@ export function SiteFooter() {
               href="https://twitter.com/eightblock"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full bg-[#080808] dark:bg-foreground p-2 text-white dark:text-background transition-transform hover:scale-110"
+              className="rounded-full bg-primary p-2.5 text-white shadow-md transition-all hover:bg-primary-600 hover:scale-110"
               aria-label="Twitter"
             >
               <Twitter className="h-5 w-5" />
@@ -58,7 +46,7 @@ export function SiteFooter() {
               href="https://linkedin.com/company/eightblock"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full bg-[#080808] dark:bg-foreground p-2 text-white dark:text-background transition-transform hover:scale-110"
+              className="rounded-full bg-primary p-2.5 text-white shadow-md transition-all hover:bg-primary-600 hover:scale-110"
               aria-label="LinkedIn"
             >
               <Linkedin className="h-5 w-5" />
@@ -67,9 +55,21 @@ export function SiteFooter() {
         </div>
 
         {/* Copyright */}
-        <div className="mt-6 text-center text-sm text-gray-600 dark:text-muted-foreground">
-          © {new Date().getFullYear()} eightblock. Built by the Cardano community. Open source
-          under MIT License.
+        <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()}{' '}
+            <span className="font-semibold text-foreground">eightblock</span>
+            {' • '}Built with ❤️ by the Cardano community
+            {' • '}Open source under{' '}
+            <a
+              href="https://github.com/Eightblockchain/eightblock/blob/main/LICENSE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium"
+            >
+              MPL-2.0
+            </a>
+          </p>
         </div>
       </div>
     </footer>

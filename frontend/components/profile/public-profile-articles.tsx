@@ -27,7 +27,7 @@ export function PublicProfileArticles({
     return (
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {[...Array(4)].map((_, idx) => (
-          <Skeleton key={idx} className="h-72 rounded-3xl" />
+          <Skeleton key={idx} className="h-72 rounded-[2px]" />
         ))}
       </div>
     );
@@ -35,9 +35,9 @@ export function PublicProfileArticles({
 
   if (!articles.length) {
     return (
-      <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center">
-        <p className="text-lg font-semibold text-[#080808]">No published work yet</p>
-        <p className="mt-2 text-gray-500">
+      <div className="rounded-[2px] border-2 border-dashed border-primary-200 bg-primary-50/30 p-12 text-center">
+        <p className="text-lg font-semibold text-foreground">No published work yet</p>
+        <p className="mt-2 text-muted-foreground">
           Once this creator publishes articles, they will appear here.
         </p>
       </div>

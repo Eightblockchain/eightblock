@@ -48,7 +48,7 @@ export function Avatar({ src, name, size = 'md', className = '' }: AvatarProps) 
           />
         </div>
       ) : (
-        <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+        <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-primary via-secondary/20 to-primary-700 text-white font-semibold">
           {name ? initial : <User className={iconSizes[size]} />}
         </div>
       )}
