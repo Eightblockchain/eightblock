@@ -1,77 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@/lib/wallet-context';
 import { ArticleCard } from '@/components/articles/article-card';
 import { Button } from '@/components/ui/button';
-import { Bookmark, ArrowLeft } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ProfileBookmarksSkeleton } from '@/components/profile/profile-skeleton';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
-interface Article {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  content: string;
-  category: string;
-  publishedAt: string;
-  author: {
-    name: string | null;
-    walletAddress: string;
-  };
-  tags: Array<{
-    tag: {
-      id: string;
-      name: string;
-    };
-  }>;
-}
+import { fetchBookmarkedArticles, ArticleSummary } from '@/lib/article-api';
 
 export default function BookmarksPage() {
   const { address } = useWallet();
-  const router = useRouter();
-  const [bookmarkedArticles, setBookmarkedArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!address) {
-      setLoading(false);
-      return;
-    }
-
-    // Get bookmarked article IDs from localStorage
-    const bookmarks = JSON.parse(localStorage.getItem('bookmarked_articles') || '[]');
-
-    if (bookmarks.length === 0) {
-      setLoading(false);
-      return;
-    }
-
-    // Fetch all bookmarked articles
-    const fetchBookmarkedArticles = async () => {
-      try {
-        const response = await fetch(`${API_URL}/articles?limit=100`);
-        if (!response.ok) throw new Error('Failed to fetch articles');
-
-        const data = await response.json();
-        const bookmarked = data.articles.filter((article: Article) =>
-          bookmarks.includes(article.id)
-        );
-
-        setBookmarkedArticles(bookmarked);
-      } catch (error) {
-        console.error('Error fetching bookmarked articles:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBookmarkedArticles();
-  }, [address]);
+  const shouldFetch = Boolean(address);
+  const {
+    data: bookmarkedArticles = [],
+    isFetching,
+    isError,
+    error,
+  } = useQuery<ArticleSummary[]>({
+    queryKey: ['bookmarks'],
+    queryFn: fetchBookmarkedArticles,
+    enabled: shouldFetch,
+  });
+  const loading = shouldFetch && isFetching;
 
   if (!address) {
     return (
@@ -94,6 +45,18 @@ export default function BookmarksPage() {
 
   if (loading) {
     return <ProfileBookmarksSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="mx-auto max-w-4xl px-4 py-12 text-center">
+          <p className="text-red-600">
+            {(error as Error)?.message || 'Failed to load your bookmarks. Please try again.'}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

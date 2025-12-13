@@ -78,7 +78,13 @@ export async function getUserByWallet(walletAddress: string) {
 /**
  * Create or update user
  */
-export async function upsertUser(data: { walletAddress: string; name?: string }) {
+export async function upsertUser(data: {
+  walletAddress: string;
+  name?: string;
+  bio?: string;
+  avatarUrl?: string | null;
+  email?: string | null;
+}) {
   return fetcher('/users', {
     method: 'POST',
     body: JSON.stringify(data),

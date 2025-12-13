@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2, User, Save, Upload, X } from 'lucide-react';
+import { Loader2, User, Save, Upload, X, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { WalletCard } from '@/components/profile/WalletCard';
 import { StatsCard } from '@/components/profile/StatsCard';
@@ -24,6 +24,7 @@ interface UserProfile {
   name: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  email: string | null;
   role: string;
 }
 
@@ -52,6 +53,7 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState({
     name: '',
     bio: '',
+    email: '',
   });
 
   useEffect(() => {
@@ -81,6 +83,7 @@ export default function ProfilePage() {
       setFormData({
         name: data.name || '',
         bio: data.bio || '',
+        email: data.email || '',
       });
       // Set avatar preview from server
       if (data.avatarUrl) {
@@ -257,6 +260,12 @@ export default function ProfilePage() {
       const updated = await response.json();
       setProfile(updated);
 
+      setFormData({
+        name: updated.name || '',
+        bio: updated.bio || '',
+        email: updated.email || '',
+      });
+
       toast.toast?.({
         title: 'Profile updated!',
         description: 'Your profile has been successfully updated.',
@@ -307,6 +316,25 @@ export default function ProfilePage() {
         />
       </div>
 
+      <div className="mb-8">
+        <Card className="p-4 flex items-start gap-4 border border-dashed border-gray-200">
+          <div className="p-2 bg-blue-50 rounded-full">
+            <Mail className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Contact Email (optional)</p>
+            {profile.email ? (
+              <p className="text-lg font-semibold text-[#080808]">{profile.email}</p>
+            ) : (
+              <p className="text-lg font-semibold text-gray-400">No email added yet</p>
+            )}
+            <p className="text-sm text-gray-500 mt-1">
+              Add an email so we can reach out when new communication features launch.
+            </p>
+          </div>
+        </Card>
+      </div>
+
       {/* Stats Section */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-[#080808] mb-4">Your Stats</h2>
@@ -334,6 +362,24 @@ export default function ProfilePage() {
               disabled={saving}
             />
             <p className="text-sm text-gray-500">This is how your name will appear to others</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">
+              Email Address <span className="text-gray-500">(optional)</span>
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={saving}
+            />
+            <p className="text-sm text-gray-500">
+              We&apos;ll use this for upcoming notifications or newsletters. Leave blank if you
+              prefer not to share it yet.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -466,6 +512,7 @@ export default function ProfilePage() {
                 setFormData({
                   name: profile.name || '',
                   bio: profile.bio || '',
+                  email: profile.email || '',
                 });
                 handleRemoveAvatar();
               }}

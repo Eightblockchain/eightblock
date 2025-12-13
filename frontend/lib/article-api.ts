@@ -12,6 +12,29 @@ export interface Comment {
   };
 }
 
+export interface ArticleSummary {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string;
+  category: string;
+  featuredImage?: string | null;
+  publishedAt: string;
+  author: {
+    id?: string;
+    walletAddress: string;
+    name: string | null;
+    avatarUrl: string | null;
+  };
+  tags: Array<{
+    tag: {
+      id: string;
+      name: string;
+    };
+  }>;
+}
+
 // Like/Unlike Article
 export async function toggleLike(articleId: string, userId: string) {
   const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
@@ -127,29 +150,81 @@ export async function deleteComment(articleId: string, commentId: string): Promi
   }
 }
 
-// Bookmarks (using localStorage for now, can be replaced with API)
-export function getBookmarks(): string[] {
-  if (typeof window === 'undefined') return [];
-  const saved = localStorage.getItem('bookmarked_articles');
-  return saved ? JSON.parse(saved) : [];
+// Bookmarks API
+export async function fetchBookmarkIds(): Promise<string[]> {
+  const response = await fetch(`${API_URL}/bookmarks/ids`, {
+    credentials: 'include',
+  });
+
+  if (response.status === 401) {
+    return [];
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch bookmark ids' }));
+    throw new Error(error.error || 'Failed to fetch bookmark ids');
+  }
+
+  const data = await response.json();
+  return data.articleIds || [];
 }
 
-export function addBookmark(articleId: string): void {
-  const bookmarks = getBookmarks();
-  if (!bookmarks.includes(articleId)) {
-    bookmarks.push(articleId);
-    localStorage.setItem('bookmarked_articles', JSON.stringify(bookmarks));
+export async function fetchBookmarkedArticles(): Promise<ArticleSummary[]> {
+  const response = await fetch(`${API_URL}/bookmarks`, {
+    credentials: 'include',
+  });
+
+  if (response.status === 401) {
+    return [];
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to fetch bookmarks' }));
+    throw new Error(error.error || 'Failed to fetch bookmarks');
+  }
+
+  const data = await response.json();
+  return (data.bookmarks || []).map((bookmark: { article: ArticleSummary }) => bookmark.article);
+}
+
+export async function createBookmark(articleId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/bookmarks`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ articleId }),
+  });
+
+  if (response.status === 401) {
+    throw new Error('Authentication required');
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to add bookmark' }));
+    throw new Error(error.error || 'Failed to add bookmark');
   }
 }
 
-export function removeBookmark(articleId: string): void {
-  const bookmarks = getBookmarks();
-  const filtered = bookmarks.filter((id) => id !== articleId);
-  localStorage.setItem('bookmarked_articles', JSON.stringify(filtered));
-}
+export async function deleteBookmark(articleId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/bookmarks/${articleId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
 
-export function isBookmarked(articleId: string): boolean {
-  return getBookmarks().includes(articleId);
+  if (response.status === 401) {
+    throw new Error('Authentication required');
+  }
+
+  if (response.status === 404) {
+    return;
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to remove bookmark' }));
+    throw new Error(error.error || 'Failed to remove bookmark');
+  }
 }
 
 // Share functionality

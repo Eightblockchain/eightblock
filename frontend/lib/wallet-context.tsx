@@ -41,6 +41,13 @@ async function isWalletExtensionEnabled(walletName: string) {
   return false;
 }
 
+function clearWalletStorage() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('walletConnected');
+  localStorage.removeItem('walletName');
+  localStorage.removeItem('userId');
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -139,10 +146,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setConnected(false);
         setAddress(null);
         setWallet(null);
-        // Clear localStorage on connection failure
-        localStorage.removeItem('walletConnected');
-        localStorage.removeItem('walletName');
-        localStorage.removeItem('userId');
+        clearWalletStorage();
       } finally {
         setConnecting(false);
       }
@@ -151,6 +155,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   );
 
   const disconnect = useCallback(async () => {
+    clearWalletStorage();
     try {
       // Call backend logout to revoke token
       await fetcher('/auth/logout', {
@@ -164,9 +169,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setWallet(null);
     setAddress(null);
     setConnected(false);
-    localStorage.removeItem('walletConnected');
-    localStorage.removeItem('walletName');
-    localStorage.removeItem('userId');
   }, []);
 
   // Auto-reconnect on mount if previously connected

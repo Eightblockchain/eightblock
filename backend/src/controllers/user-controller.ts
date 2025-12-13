@@ -5,6 +5,14 @@ import { optimizeImage, deleteImage, getExtensionForFormat } from '@/utils/image
 import path from 'path';
 import fs from 'fs';
 
+function normalizeEmailInput(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed.toLowerCase();
+}
+
 /**
  * Get user by wallet address
  */
@@ -40,7 +48,8 @@ export async function getUserByWallet(req: Request, res: Response) {
  * Create or update user (upsert)
  */
 export async function upsertUser(req: Request, res: Response) {
-  const { walletAddress, name, bio, avatarUrl } = req.body;
+  const { walletAddress, name, bio, avatarUrl, email } = req.body;
+  const normalizedEmail = normalizeEmailInput(email);
 
   if (!walletAddress) {
     return res.status(400).json({ error: 'Wallet address is required' });
@@ -53,12 +62,14 @@ export async function upsertUser(req: Request, res: Response) {
         ...(name && { name }),
         ...(bio !== undefined && { bio }),
         ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(normalizedEmail !== undefined && { email: normalizedEmail }),
       },
       create: {
         walletAddress,
         name: name || null,
         bio: bio || null,
         avatarUrl: avatarUrl || null,
+        email: normalizedEmail ?? null,
       },
       include: {
         _count: {
@@ -83,7 +94,8 @@ export async function upsertUser(req: Request, res: Response) {
  */
 export async function updateUser(req: Request, res: Response) {
   const { walletAddress } = req.params;
-  const { name, bio, avatarUrl } = req.body;
+  const { name, bio, avatarUrl, email } = req.body;
+  const normalizedEmail = normalizeEmailInput(email);
 
   try {
     const user = await prisma.user.update({
@@ -92,6 +104,7 @@ export async function updateUser(req: Request, res: Response) {
         ...(name !== undefined && { name }),
         ...(bio !== undefined && { bio }),
         ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(normalizedEmail !== undefined && { email: normalizedEmail }),
       },
       include: {
         _count: {
@@ -151,7 +164,8 @@ export async function getMyProfile(req: Request, res: Response) {
  */
 export async function updateMyProfile(req: Request, res: Response) {
   const userId = req.user?.userId;
-  const { name, bio, avatarUrl } = req.body;
+  const { name, bio, avatarUrl, email } = req.body;
+  const normalizedEmail = normalizeEmailInput(email);
 
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -164,6 +178,7 @@ export async function updateMyProfile(req: Request, res: Response) {
         ...(name !== undefined && { name }),
         ...(bio !== undefined && { bio }),
         ...(avatarUrl !== undefined && { avatarUrl }),
+        ...(normalizedEmail !== undefined && { email: normalizedEmail }),
       },
       include: {
         _count: {
