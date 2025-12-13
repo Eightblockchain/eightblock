@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '@/prisma/client';
 import { UAParser } from 'ua-parser-js';
+import { cache } from '@/utils/cache';
 
 // Track article view with analytics
 export async function trackView(req: Request, res: Response) {
@@ -211,26 +212,49 @@ export async function getTrendingArticles(req: Request, res: Response) {
   const { limit = 10, period = '7d' } = req.query;
 
   try {
+    // Try cache first (cached for 15 minutes)
+    const cacheKey = `${cache.trendingKey()}:${limit}:${period}`;
+    const cached = await cache.get<any[]>(cacheKey);
+
+    if (cached) {
+      return res.json(cached);
+    }
+
     const days = parseInt(period.toString().replace('d', '')) || 7;
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    // Get articles with view counts in period
+    // Get articles with view counts in period - optimized fields
     const articles = await prisma.article.findMany({
       where: {
         status: 'PUBLISHED',
         publishedAt: { lte: new Date() },
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        featuredImage: true,
+        publishedAt: true,
+        viewCount: true,
+        uniqueViews: true,
         author: {
           select: {
             id: true,
             name: true,
             walletAddress: true,
+            avatarUrl: true,
           },
         },
         tags: {
-          include: {
-            tag: true,
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              },
+            },
           },
         },
         _count: {
@@ -250,6 +274,9 @@ export async function getTrendingArticles(req: Request, res: Response) {
       },
       take: parseInt(limit.toString()),
     });
+
+    // Cache for 15 minutes
+    await cache.set(cacheKey, articles, 900);
 
     return res.json(articles);
   } catch (error) {

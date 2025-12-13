@@ -50,6 +50,13 @@ model Article {
 
   @@index([viewCount])
   @@index([uniqueViews])
+  @@index([authorId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([featured])
+  @@index([createdAt])
+  @@index([status, publishedAt])
+  @@index([authorId, status])
 }
 
 model Comment {
@@ -61,6 +68,11 @@ model Comment {
   authorId  String
   status    CommentStatus @default(PENDING)
   createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([status])
 }
 
 model Like {
@@ -72,6 +84,9 @@ model Like {
   createdAt DateTime @default(now())
 
   @@unique([articleId, userId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([articleId, createdAt])
 }
 
 model Bookmark {
@@ -83,6 +98,8 @@ model Bookmark {
   createdAt DateTime @default(now())
 
   @@unique([userId, articleId])
+  @@index([userId, createdAt])
+  @@index([articleId])
 }
 
 model Subscription {

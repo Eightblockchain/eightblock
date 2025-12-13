@@ -1,9 +1,12 @@
 import rateLimit from 'express-rate-limit';
 import type { Request } from 'express';
 
+// IPv6-compatible key generator
 const walletKey = (req: Request) => {
   const wallet = typeof req.body?.walletAddress === 'string' ? req.body.walletAddress : 'unknown';
-  return `${req.ip}:${wallet}`;
+  // Use the default IP handling from express-rate-limit which properly handles IPv6
+  const ip = req.ip || 'unknown';
+  return `${ip}:${wallet}`;
 };
 
 // General API rate limiter: 100 requests per 15 minutes
@@ -23,7 +26,7 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful auth attempts
-  keyGenerator: walletKey,
+  keyGenerator: (req) => walletKey(req),
 });
 
 // Rate limiter for nonce requests: 10 per 5 minutes
@@ -33,5 +36,5 @@ export const nonceLimiter = rateLimit({
   message: 'Too many nonce requests, please wait before trying again.',
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: walletKey,
+  keyGenerator: (req) => walletKey(req),
 });

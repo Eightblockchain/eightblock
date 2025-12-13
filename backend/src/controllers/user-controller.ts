@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '@/prisma/client';
 import { logger } from '@/utils/logger';
+import { cache } from '@/utils/cache';
 import { optimizeImage, deleteImage, getExtensionForFormat } from '@/utils/image-optimizer';
 import path from 'path';
 import fs from 'fs';
@@ -20,9 +21,24 @@ export async function getUserByWallet(req: Request, res: Response) {
   const { walletAddress } = req.params;
 
   try {
+    // Try cache first
+    const cacheKey = cache.userProfileKey(walletAddress);
+    const cached = await cache.get<any>(cacheKey);
+
+    if (cached) {
+      return res.json(cached);
+    }
+
     const user = await prisma.user.findUnique({
       where: { walletAddress },
-      include: {
+      select: {
+        id: true,
+        walletAddress: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        email: true,
+        createdAt: true,
         _count: {
           select: {
             articles: true,
@@ -36,6 +52,9 @@ export async function getUserByWallet(req: Request, res: Response) {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    // Cache for 5 minutes
+    await cache.set(cacheKey, user, 300);
 
     return res.json(user);
   } catch (error) {
