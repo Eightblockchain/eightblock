@@ -13,21 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import {
   fetchUserArticles,
   deleteArticle as deleteArticleService,
+  type Article,
 } from '@/lib/services/user-service';
-
-interface Article {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  status: 'DRAFT' | 'PUBLISHED';
-  createdAt: string;
-  updatedAt: string;
-  _count: {
-    likes: number;
-    comments: number;
-  };
-}
 
 export default function ArticlesPage() {
   const router = useRouter();
@@ -179,16 +166,14 @@ export default function ArticlesPage() {
                         {article.status}
                       </Badge>
                     </div>
-                    {article.excerpt && (
-                      <p className="text-gray-600 mb-3 line-clamp-2">{article.excerpt}</p>
+                    {article.description && (
+                      <p className="text-gray-600 mb-3 line-clamp-2">{article.description}</p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {new Date(article.createdAt).toLocaleDateString()}
+                        {new Date(article.publishedAt).toLocaleDateString()}
                       </span>
-                      <span>{article._count.likes} likes</span>
-                      <span>{article._count.comments} comments</span>
                     </div>
                   </div>
 

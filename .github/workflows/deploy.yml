@@ -1,0 +1,84 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            echo "🚀 Starting deployment..."
+
+            cd /var/www/eightblock
+
+            # Pull latest code
+            echo "📥 Pulling latest code..."
+            git pull origin main
+
+            # Backend updates
+            echo "🔧 Updating backend..."
+            cd backend
+            pnpm install --prod
+            npx prisma generate
+            npx prisma migrate deploy
+
+            # Frontend updates
+            echo "🎨 Building frontend..."
+            cd ../frontend
+            pnpm install
+            pnpm build
+
+            # Restart applications
+            echo "♻️  Restarting services..."
+            pm2 restart ecosystem.config.js
+
+            # Wait for services to start
+            sleep 5
+
+            # Health checks
+            echo "🏥 Running health checks..."
+            if curl -f http://localhost:5000/health > /dev/null 2>&1; then
+              echo "✅ Backend is healthy"
+            else
+              echo "⚠️  Backend health check failed"
+              exit 1
+            fi
+
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "✅ Frontend is healthy"
+            else
+              echo "⚠️  Frontend health check failed"
+              exit 1
+            fi
+
+            # Clear Nginx cache
+            sudo nginx -s reload
+
+            echo "✅ Deployment completed successfully!"
+
+      - name: Send deployment notification
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment successful"
+          else
+            echo "❌ Deployment failed"
+          fi

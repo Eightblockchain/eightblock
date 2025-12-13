@@ -97,13 +97,15 @@ export function useArticleInteractions({
     isFetchingNextPage: isFetchingMoreComments,
   } = useInfiniteQuery({
     queryKey: ['article-comments', articleId],
-    queryFn: ({ pageParam }) => fetchComments(articleId, pageParam),
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    queryFn: ({ pageParam = undefined }) =>
+      fetchComments(articleId, pageParam as string | undefined),
+    getNextPageParam: (lastPage: any) => lastPage.nextCursor ?? undefined,
+    initialPageParam: undefined,
     enabled: !!articleId && isPublished,
   });
 
-  const comments = commentPages?.pages.flatMap((page) => page.comments) ?? [];
-  const totalComments = commentPages?.pages[0]?.totalCount ?? 0;
+  const comments = commentPages?.pages.flatMap((page: any) => page.comments) ?? [];
+  const totalComments = (commentPages?.pages[0] as any)?.totalCount ?? 0;
 
   const loadMoreComments = () => {
     if (hasMoreComments && !isFetchingMoreComments) {
