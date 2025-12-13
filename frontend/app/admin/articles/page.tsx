@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/lib/wallet-context';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Edit, Trash2, Eye, Calendar, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye, Calendar, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import {
+  fetchUserArticles,
+  deleteArticle as deleteArticleService,
+} from '@/lib/services/user-service';
 
 interface Article {
   id: string;
@@ -30,73 +33,62 @@ export default function ArticlesPage() {
   const router = useRouter();
   const { connected, address } = useWallet();
   const { toast } = useToast();
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'ALL' | 'PUBLISHED' | 'DRAFT'>('ALL');
 
+  // Redirect if not connected
   useEffect(() => {
-    if (connected && address) {
-      fetchArticles();
-    } else if (!connected) {
+    if (!connected) {
       router.push('/');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, address, router]);
+  }, [connected, router]);
 
-  const fetchArticles = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/articles/wallet/${address}?page=1&limit=100`);
-      if (response.ok) {
-        const data = await response.json();
-        setArticles(data.articles || []);
-      }
-    } catch (error) {
-      console.error('Error fetching articles:', error);
+  // Fetch user articles using React Query
+  const {
+    data: articlesData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['user-articles', address],
+    queryFn: () => fetchUserArticles(address!, 1, 100),
+    enabled: connected && !!address,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+
+  // Delete article mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteArticleService,
+    onSuccess: () => {
+      toast({
+        title: 'Article deleted',
+        description: 'The article has been removed',
+      });
+      // Invalidate and refetch articles
+      queryClient.invalidateQueries({ queryKey: ['user-articles', address] });
+    },
+    onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: 'Failed to load articles',
+        description: error.message || 'Failed to delete article',
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  const deleteArticle = async (id: string, title: string) => {
+  const handleDeleteArticle = (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) {
       return;
     }
-
-    try {
-      const response = await fetch(`${API_URL}/articles/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Article deleted',
-          description: 'The article has been removed',
-        });
-        fetchArticles();
-      } else {
-        throw new Error('Failed to delete');
-      }
-    } catch (error) {
-      console.error('Error deleting article:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete article',
-        variant: 'destructive',
-      });
-    }
+    deleteMutation.mutate(id);
   };
 
-  const filteredArticles = articles.filter((article) => {
-    if (filter === 'ALL') return true;
-    return article.status === filter;
-  });
+  const articles = articlesData?.articles || [];
+
+  const filteredArticles = useMemo(() => {
+    if (filter === 'ALL') return articles;
+    return articles.filter((article) => article.status === filter);
+  }, [articles, filter]);
 
   if (!connected) {
     return null;
@@ -140,10 +132,23 @@ export default function ArticlesPage() {
         </div>
 
         {/* Articles List */}
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center items-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
+        ) : isError ? (
+          <Card className="p-12 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load articles</h3>
+            <p className="text-gray-600 mb-4">{(error as Error)?.message || 'An error occurred'}</p>
+            <Button
+              onClick={() =>
+                queryClient.invalidateQueries({ queryKey: ['user-articles', address] })
+              }
+            >
+              Try Again
+            </Button>
+          </Card>
         ) : filteredArticles.length === 0 ? (
           <Card className="p-12 text-center">
             <PlusCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -201,7 +206,8 @@ export default function ArticlesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => deleteArticle(article.id, article.title)}
+                      onClick={() => handleDeleteArticle(article.id, article.title)}
+                      disabled={deleteMutation.isPending}
                     >
                       <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>

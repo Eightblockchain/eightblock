@@ -226,7 +226,7 @@ function TrendingCarousel({
         <Button
           variant="outline"
           size="icon"
-          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-lg hover:bg-gray-50"
+          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-lg hover:bg-gray-50 text-gray-900 hover:text-gray-900"
           onClick={() => onScrollCarousel('left')}
         >
           <ChevronLeft className="h-5 w-5" />
@@ -237,7 +237,7 @@ function TrendingCarousel({
         <Button
           variant="outline"
           size="icon"
-          className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-lg hover:bg-gray-50"
+          className="absolute right-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white shadow-lg hover:bg-gray-50 text-gray-900 hover:text-gray-900"
           onClick={() => onScrollCarousel('right')}
         >
           <ChevronRight className="h-5 w-5" />
