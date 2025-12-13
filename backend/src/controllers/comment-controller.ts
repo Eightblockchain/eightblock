@@ -4,30 +4,54 @@ import { cacheDelPattern } from '@/utils/redis';
 
 export async function listComments(req: Request, res: Response) {
   const { articleId } = req.params;
-  const comments = await prisma.comment.findMany({
-    where: { articleId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          walletAddress: true,
-          avatarUrl: true,
+  const limitParam = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+  const cursorParam = Array.isArray(req.query.cursor) ? req.query.cursor[0] : req.query.cursor;
+  const limit = Math.min(Math.max(parseInt(limitParam ?? '5', 10) || 5, 1), 20);
+  const cursor = cursorParam || undefined;
+
+  const [commentResults, totalCount] = await Promise.all([
+    prisma.comment.findMany({
+      where: { articleId },
+      orderBy: { createdAt: 'desc' },
+      take: limit + 1,
+      skip: cursor ? 1 : undefined,
+      cursor: cursor ? { id: cursor } : undefined,
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            walletAddress: true,
+            avatarUrl: true,
+          },
         },
       },
-    },
-  });
-  return res.json(comments);
+    }),
+    prisma.comment.count({ where: { articleId } }),
+  ]);
+
+  let nextCursor: string | null = null;
+  let comments = commentResults;
+
+  if (comments.length > limit) {
+    comments = comments.slice(0, limit);
+    nextCursor = comments[comments.length - 1]?.id ?? null;
+  }
+
+  return res.json({ comments, nextCursor, totalCount });
 }
 
 export async function createComment(req: Request, res: Response) {
   const { articleId } = req.params;
-  const { body, authorId } = req.body;
-  const finalAuthorId = authorId ?? req.user?.userId;
-  if (!finalAuthorId) return res.status(401).json({ error: 'Author required' });
+  const { body } = req.body;
+  const userId = req.user?.userId;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const comment = await prisma.comment.create({
-    data: { body, articleId, authorId: finalAuthorId },
+    data: { body, articleId, authorId: userId },
     include: {
       author: {
         select: {

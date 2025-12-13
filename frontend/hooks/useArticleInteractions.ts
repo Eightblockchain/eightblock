@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import {
   toggleLike,
   removeLike,
@@ -36,7 +36,7 @@ export function useArticleInteractions({
   // Check if user liked the article
   const { data: userLiked = false } = useQuery({
     queryKey: ['article-like', articleId, userId],
-    queryFn: () => checkUserLike(articleId, userId!),
+    queryFn: () => checkUserLike(articleId),
     enabled: !!articleId && !!userId && isPublished,
   });
 
@@ -89,18 +89,33 @@ export function useArticleInteractions({
     },
   });
 
-  // Fetch comments
-  const { data: comments = [] } = useQuery({
+  // Fetch comments with manual infinite loading
+  const {
+    data: commentPages,
+    fetchNextPage: fetchNextCommentsPage,
+    hasNextPage: hasMoreComments = false,
+    isFetchingNextPage: isFetchingMoreComments,
+  } = useInfiniteQuery({
     queryKey: ['article-comments', articleId],
-    queryFn: () => fetchComments(articleId),
+    queryFn: ({ pageParam }) => fetchComments(articleId, pageParam),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: !!articleId && isPublished,
   });
+
+  const comments = commentPages?.pages.flatMap((page) => page.comments) ?? [];
+  const totalComments = commentPages?.pages[0]?.totalCount ?? 0;
+
+  const loadMoreComments = () => {
+    if (hasMoreComments && !isFetchingMoreComments) {
+      fetchNextCommentsPage();
+    }
+  };
 
   // Like mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Not authenticated');
-      return userLiked ? removeLike(articleId, userId) : toggleLike(articleId, userId);
+      return userLiked ? removeLike(articleId) : toggleLike(articleId);
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['article-like', articleId, userId] });
@@ -139,7 +154,7 @@ export function useArticleInteractions({
   const commentMutation = useMutation({
     mutationFn: async (content: string) => {
       if (!userId) throw new Error('Not authenticated');
-      return createComment(articleId, content, userId);
+      return createComment(articleId, content);
     },
     onSuccess: () => {
       // Invalidate article-specific queries
@@ -262,6 +277,9 @@ export function useArticleInteractions({
     userLiked,
     bookmarked,
     comments,
+    totalComments,
+    hasMoreComments,
+    isFetchingMoreComments,
     // Mutations
     likeMutation,
     commentMutation,
@@ -271,5 +289,6 @@ export function useArticleInteractions({
     handleLike,
     handleBookmark,
     handleShare,
+    loadMoreComments,
   };
 }

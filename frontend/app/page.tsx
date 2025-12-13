@@ -16,6 +16,7 @@ import { ArrowUp, ChevronLeft, ChevronRight, X, Heart, MessageCircle } from 'luc
 import { Hero } from '@/components/hero';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useScrollToTop } from '@/hooks/useScrollToTop';
 import { useCarousel } from '@/hooks/useCarousel';
 import { useArticleFiltering } from '@/hooks/useArticleFiltering';
@@ -453,8 +454,10 @@ function ArticleListItem({ article, readingTime }: ArticleListItemProps) {
         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
           {article.category} · {formattedDate} · {readingTime} min read
         </p>
-        <h3 className="mb-2 text-xl font-bold text-[#080808] hover:underline">
-          <a href={`/articles/${article.slug}`}>{article.title}</a>
+        <h3 className="mb-2 text-xl font-bold text-[#080808]">
+          <Link href={`/articles/${article.slug}`} className="hover:underline">
+            {article.title}
+          </Link>
         </h3>
         <p className="mb-3 text-sm text-gray-600">{article.description}</p>
 

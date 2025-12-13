@@ -18,6 +18,9 @@ import type { Comment } from '@/lib/article-api';
 
 interface CommentsSectionProps {
   comments: Comment[];
+  totalComments: number;
+  hasMoreComments: boolean;
+  isLoadingMoreComments: boolean;
   isAuthenticated: boolean;
   currentUserId: string | null;
   isPostingComment: boolean;
@@ -26,10 +29,14 @@ interface CommentsSectionProps {
   onPostComment: (content: string) => void;
   onUpdateComment: (commentId: string, content: string) => void;
   onDeleteComment: (commentId: string) => void;
+  onLoadMoreComments: () => void;
 }
 
 export function CommentsSection({
   comments,
+  totalComments,
+  hasMoreComments,
+  isLoadingMoreComments,
   isAuthenticated,
   currentUserId,
   isPostingComment,
@@ -38,6 +45,7 @@ export function CommentsSection({
   onPostComment,
   onUpdateComment,
   onDeleteComment,
+  onLoadMoreComments,
 }: CommentsSectionProps) {
   const [commentText, setCommentText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -85,7 +93,7 @@ export function CommentsSection({
   return (
     <div id="comments" className="bg-white">
       <div className="mx-auto max-w-4xl px-4 py-12">
-        <h3 className="mb-6 text-2xl font-bold text-gray-900">Comments ({comments.length})</h3>
+        <h3 className="mb-6 text-2xl font-bold text-gray-900">Comments ({totalComments})</h3>
 
         {!isAuthenticated ? (
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
@@ -135,7 +143,7 @@ export function CommentsSection({
             </form>
 
             {/* Comments List */}
-            {comments.length === 0 ? (
+            {totalComments === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 No comments yet. Be the first to share your thoughts!
               </div>
@@ -246,6 +254,25 @@ export function CommentsSection({
                     </div>
                   );
                 })}
+                {hasMoreComments && (
+                  <div className="pt-2 text-center">
+                    <Button
+                      variant="outline"
+                      onClick={onLoadMoreComments}
+                      disabled={isLoadingMoreComments}
+                      className="inline-flex items-center gap-2"
+                    >
+                      {isLoadingMoreComments ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading more...
+                        </>
+                      ) : (
+                        'Load more comments'
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>

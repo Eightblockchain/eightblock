@@ -4,14 +4,13 @@ import { cacheDelPattern } from '@/utils/redis';
 
 export async function upsertLike(req: Request, res: Response) {
   const { articleId } = req.params;
-  const { userId } = req.body;
-  const finalUserId = userId ?? req.user?.userId;
-  if (!finalUserId) return res.status(401).json({ error: 'User required' });
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
   const like = await prisma.like.upsert({
-    where: { articleId_userId: { articleId, userId: finalUserId } },
+    where: { articleId_userId: { articleId, userId } },
     update: {},
-    create: { articleId, userId: finalUserId },
+    create: { articleId, userId },
   });
 
   // Invalidate article list cache for real-time updates
@@ -22,11 +21,10 @@ export async function upsertLike(req: Request, res: Response) {
 
 export async function removeLike(req: Request, res: Response) {
   const { articleId } = req.params;
-  const { userId } = req.body;
-  const finalUserId = userId ?? req.user?.userId;
-  if (!finalUserId) return res.status(401).json({ error: 'User required' });
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ error: 'Authentication required' });
 
-  await prisma.like.delete({ where: { articleId_userId: { articleId, userId: finalUserId } } });
+  await prisma.like.delete({ where: { articleId_userId: { articleId, userId } } });
 
   // Invalidate article list cache for real-time updates
   await cacheDelPattern('articles:page:*');
@@ -36,12 +34,11 @@ export async function removeLike(req: Request, res: Response) {
 
 export async function checkUserLike(req: Request, res: Response) {
   const { articleId } = req.params;
-  const { userId } = req.query;
-  const finalUserId = (userId as string) ?? req.user?.userId;
-  if (!finalUserId) return res.json({ liked: false });
+  const userId = req.user?.userId;
+  if (!userId) return res.json({ liked: false });
 
   const like = await prisma.like.findUnique({
-    where: { articleId_userId: { articleId, userId: finalUserId } },
+    where: { articleId_userId: { articleId, userId } },
   });
   return res.json({ liked: !!like });
 }
