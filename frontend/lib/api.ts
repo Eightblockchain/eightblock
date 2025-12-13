@@ -75,6 +75,70 @@ export async function getUserByWallet(walletAddress: string) {
   return fetcher(`/users/${walletAddress}`);
 }
 
+export interface PublicProfileStats {
+  articles: number;
+  views: number;
+  uniqueViews: number;
+  likes: number;
+}
+
+export interface PublicProfileArticle {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string;
+  category: string;
+  featuredImage?: string | null;
+  status: 'PUBLISHED';
+  featured: boolean;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  viewCount: number;
+  uniqueViews: number;
+  author: {
+    id: string;
+    walletAddress: string;
+    name: string | null;
+    avatarUrl: string | null;
+  };
+  _count: {
+    likes: number;
+    comments: number;
+  };
+  tags: Array<{ tag: { id: string; name: string; slug: string } }>;
+}
+
+export interface PublicProfileResponse {
+  profile: {
+    id: string;
+    walletAddress: string;
+    name: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+    joinedAt: string;
+    stats: PublicProfileStats;
+  };
+  articles: PublicProfileArticle[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+export async function getPublicProfile(
+  walletAddress: string,
+  page: number = 1,
+  limit: number = 6
+): Promise<PublicProfileResponse> {
+  const search = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return fetcher(`/users/public/${walletAddress}?${search.toString()}`);
+}
+
 /**
  * Create or update user
  */

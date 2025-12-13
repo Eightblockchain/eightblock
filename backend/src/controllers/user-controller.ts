@@ -278,3 +278,115 @@ export async function uploadAvatar(req: Request, res: Response) {
     return res.status(500).json({ error: 'Failed to upload avatar' });
   }
 }
+
+/**
+ * Public profile for sharing (published articles only, no sensitive fields)
+ */
+export async function getPublicProfile(req: Request, res: Response) {
+  const { walletAddress } = req.params;
+  const page = Math.max(parseInt(req.query.page as string, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit as string, 10) || 6, 1), 24);
+  const skip = (page - 1) * limit;
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { walletAddress },
+      select: {
+        id: true,
+        walletAddress: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        createdAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const articleWhere = {
+      authorId: user.id,
+      status: 'PUBLISHED' as const,
+    };
+
+    const [articles, totalPublished, aggregateStats, likesCount] = await Promise.all([
+      prisma.article.findMany({
+        where: articleWhere,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          content: true,
+          category: true,
+          featuredImage: true,
+          status: true,
+          featured: true,
+          publishedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          viewCount: true,
+          uniqueViews: true,
+          tags: { include: { tag: true } },
+          author: {
+            select: {
+              id: true,
+              walletAddress: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          _count: { select: { likes: true, comments: true } },
+        },
+        orderBy: { publishedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.article.count({ where: articleWhere }),
+      prisma.article.aggregate({
+        where: articleWhere,
+        _sum: {
+          viewCount: true,
+          uniqueViews: true,
+        },
+      }),
+      prisma.like.count({
+        where: {
+          article: {
+            authorId: user.id,
+            status: 'PUBLISHED',
+          },
+        },
+      }),
+    ]);
+
+    return res.json({
+      profile: {
+        id: user.id,
+        walletAddress: user.walletAddress,
+        name: user.name,
+        bio: user.bio,
+        avatarUrl: user.avatarUrl,
+        joinedAt: user.createdAt,
+        stats: {
+          articles: totalPublished,
+          views: aggregateStats._sum.viewCount ?? 0,
+          uniqueViews: aggregateStats._sum.uniqueViews ?? 0,
+          likes: likesCount,
+        },
+      },
+      articles,
+      pagination: {
+        page,
+        limit,
+        total: totalPublished,
+        totalPages: Math.max(Math.ceil(totalPublished / limit), 1),
+        hasMore: page * limit < totalPublished,
+      },
+    });
+  } catch (error) {
+    logger.error(`getPublicProfile: ${(error as Error).message}`);
+    return res.status(500).json({ error: 'Failed to fetch public profile' });
+  }
+}

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2, User, Save, Upload, X, Mail } from 'lucide-react';
+import { Loader2, User, Save, Upload, X, Mail, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { WalletCard } from '@/components/profile/WalletCard';
 import { StatsCard } from '@/components/profile/StatsCard';
@@ -290,6 +290,37 @@ export default function ProfilePage() {
     }
   };
 
+  const handleShareProfile = async () => {
+    if (!address) return;
+    const shareUrl = `${window.location.origin}/profile/${address}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: profile?.name ? `${profile.name} · EightBlock` : 'EightBlock Creator',
+          text: 'Discover my work on EightBlock',
+          url: shareUrl,
+        });
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.toast?.({
+          title: 'Profile link copied',
+          description: 'Public profile URL copied to your clipboard.',
+        });
+        return;
+      }
+      throw new Error('Clipboard unavailable');
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') return;
+      toast.toast?.({
+        title: 'Unable to share profile',
+        description: 'Copy the link manually if native sharing is unavailable.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading || connecting) {
     return <ProfilePageSkeleton />;
   }
@@ -301,9 +332,14 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-[#080808]">My Profile</h1>
-        <p className="mt-2 text-gray-600">Manage your profile information and settings</p>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-[#080808]">My Profile</h1>
+          <p className="mt-2 text-gray-600">Manage your profile information and settings</p>
+        </div>
+        <Button variant="outline" className="gap-2 self-start" onClick={handleShareProfile}>
+          <Share2 className="h-4 w-4" /> Share public profile
+        </Button>
       </div>
 
       {/* Wallet Info */}

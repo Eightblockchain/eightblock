@@ -7,6 +7,7 @@ import {
   getMyProfile,
   updateMyProfile,
   uploadAvatar,
+  getPublicProfile,
 } from '@/controllers/user-controller';
 import { validateBody } from '@/middleware/validate';
 import { requireAuth } from '@/middleware/auth';
@@ -43,6 +44,7 @@ const updateUserSchema = z.object({
 router.get('/me', requireAuth, getMyProfile);
 router.put('/me', requireAuth, validateBody(updateUserSchema), updateMyProfile);
 router.post('/me/avatar', requireAuth, upload.single('avatar'), uploadAvatar);
+router.get('/public/:walletAddress', getPublicProfile);
 router.get('/:walletAddress', getUserByWallet);
 router.post('/', validateBody(upsertUserSchema), upsertUser);
 router.put('/:walletAddress', validateBody(updateUserSchema), updateUser);
