@@ -79,7 +79,7 @@ export default function PublicProfilePage() {
             Published articles ({stats?.articles ?? articles.length})
           </h2>
           <p className="text-muted-foreground leading-relaxed">
-            Explore {profile?.name || 'this creator'}'s published work across the EightBlock
+            Explore {profile?.name || 'this creator'}&apos;s published work across the EightBlock
             network.
           </p>
         </div>

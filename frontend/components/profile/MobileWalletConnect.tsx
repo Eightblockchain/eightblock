@@ -101,8 +101,8 @@ export function MobileWalletConnect({ onClose }: MobileWalletConnectProps) {
           <p className="text-sm font-medium text-amber-900">Mobile Wallet Limitation</p>
           <p className="text-xs text-amber-700 leading-relaxed">
             Mobile wallets on phones are app-based and cannot directly connect to websites like
-            desktop browser extensions. You'll need to use the in-app browser within your wallet
-            app.
+            desktop browser extensions. You&apos;ll need to use the in-app browser within your
+            wallet app.
           </p>
         </div>
       </div>
@@ -160,7 +160,7 @@ export function MobileWalletConnect({ onClose }: MobileWalletConnectProps) {
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">Connect Wallet</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Click "Connect Wallet" - it will automatically detect your wallet
+                Click &quot;Connect Wallet&quot; - it will automatically detect your wallet
               </p>
             </div>
           </div>
