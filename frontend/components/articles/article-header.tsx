@@ -49,8 +49,8 @@ export function ArticleHeader({
   });
 
   return (
-    <div className="border-b bg-gray-50">
-      <div className="mx-auto max-w-4xl px-4 py-6">
+    <div className="border-b border-gray-200 bg-gradient-to-b from-white to-gray-50">
+      <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="flex items-center justify-between mb-4">
           <Button variant="ghost" onClick={onBack} className="-ml-2">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -63,11 +63,7 @@ export function ArticleHeader({
                 <Edit2 className="mr-2 h-4 w-4" />
                 Edit
               </Button>
-              <Button
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={onPublish}
-              >
+              <Button variant="default" size="sm" onClick={onPublish}>
                 <Check className="mr-2 h-4 w-4" />
                 Publish Now
               </Button>
@@ -79,18 +75,22 @@ export function ArticleHeader({
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{article.category}</Badge>
             {article.status === 'DRAFT' && (
-              <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Draft</Badge>
+              <Badge className="bg-secondary-100 text-secondary-800 hover:bg-secondary-100 border border-secondary-300">
+                Draft
+              </Badge>
             )}
             {article.featured && (
-              <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Featured</Badge>
+              <Badge className="bg-primary-100 text-primary-800 hover:bg-primary-100 border border-primary-300">
+                Featured
+              </Badge>
             )}
           </div>
 
-          <h1 className="text-4xl font-bold leading-tight text-gray-900 md:text-5xl">
+          <h1 className="text-4xl font-bold leading-tight text-foreground md:text-5xl">
             {article.title}
           </h1>
 
-          <p className="text-xl text-gray-600">{article.description}</p>
+          <p className="text-xl text-muted-foreground leading-relaxed">{article.description}</p>
 
           {article.featuredImage ? (
             <div className="relative w-full rounded-[2px] overflow-hidden">
@@ -105,13 +105,13 @@ export function ArticleHeader({
               />
             </div>
           ) : (
-            <div className="relative w-full aspect-[1200/630] rounded-[2px] overflow-hidden bg-gradient-to-br from-[#080808] via-gray-900 to-black">
+            <div className="relative w-full aspect-[1200/630] rounded-[2px] overflow-hidden bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500">
               <div className="absolute inset-0 flex items-center justify-center p-12">
                 <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center leading-tight">
                   {article.title}
                 </h2>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-secondary/40 to-transparent"></div>
             </div>
           )}
 

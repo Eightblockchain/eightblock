@@ -14,7 +14,6 @@ const router = Router({ mergeParams: true });
 
 const createSchema = z.object({
   body: z.string().min(3),
-  authorId: z.string().min(1),
 });
 
 const updateSchema = z.object({
@@ -24,7 +23,7 @@ const updateSchema = z.object({
 const moderateSchema = z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED']) });
 
 router.get('/', listComments);
-router.post('/', validateBody(createSchema), createComment);
+router.post('/', requireAuth, validateBody(createSchema), createComment);
 router.put('/:commentId', requireAuth, validateBody(updateSchema), updateComment);
 router.delete('/:commentId', requireAuth, deleteComment);
 router.patch('/:commentId/moderate', requireAuth, validateBody(moderateSchema), moderateComment);

@@ -59,7 +59,7 @@ export function SearchInput({ value, onChange, onClose, inputRef }: SearchInputP
         type="button"
         onClick={handleCloseClick}
         onMouseDown={(e) => e.preventDefault()}
-        className="absolute right-4 text-[#080808] hover:bg-gray-100 rounded-full p-1 transition-colors"
+        className="absolute right-4 text-foreground hover:bg-primary-50 rounded-full p-1 transition-colors"
         aria-label="Close search"
       >
         <X className="w-5 h-5" />

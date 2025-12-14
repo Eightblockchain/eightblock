@@ -27,7 +27,7 @@ export const ContributorCard = ({ contributor }: ContributorCardProps) => {
               className="rounded-full border-4 border-border group-hover:border-[#080808] dark:group-hover:border-primary transition-colors duration-200"
               unoptimized
             />
-            <div className="absolute -bottom-2 -right-2 bg-[#080808] dark:bg-primary text-white dark:text-primary-foreground rounded-full h-8 w-8 flex items-center justify-center text-xs font-bold border-2 border-background">
+            <div className="absolute -bottom-2 -right-2 bg-secondary text-black rounded-full h-8 w-8 flex items-center justify-center text-xs font-bold border-2 border-white shadow-md">
               {contributor.contributions}
             </div>
           </div>

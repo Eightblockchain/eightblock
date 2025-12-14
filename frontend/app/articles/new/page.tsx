@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { TagInput } from '@/components/editor/TagInput';
 import { ArrowLeft, Save, Eye, Loader2, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -256,11 +257,7 @@ export default function NewArticlePage() {
                 )}
                 Save Draft
               </Button>
-              <Button
-                onClick={() => handleSubmit('PUBLISHED')}
-                disabled={saving}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
+              <Button onClick={() => handleSubmit('PUBLISHED')} disabled={saving}>
                 {saving ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
@@ -330,15 +327,10 @@ export default function NewArticlePage() {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="tags">Tags</Label>
-                  <Input
-                    id="tags"
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                    placeholder="cardano, blockchain, web3 (comma-separated)"
-                  />
-                </div>
+                <TagInput
+                  value={formData.tags}
+                  onChange={(tags) => setFormData({ ...formData, tags })}
+                />
 
                 <div>
                   <Label>Featured Image</Label>
@@ -392,13 +384,16 @@ export default function NewArticlePage() {
 
             {/* Rich Text Editor */}
             <div>
-              <Label className="mb-2 block">Content *</Label>
+              <Label className="mb-2 block text-base font-semibold">Content *</Label>
+              <p className="text-sm text-gray-500 mb-3">
+                Write your article content below using the rich text editor
+              </p>
               <RichTextEditor
                 content={formData.content}
                 onChange={(content) => setFormData({ ...formData, content })}
                 onImageDelete={handleImageDelete}
                 placeholder="Start writing your article..."
-                minHeight="500px"
+                minHeight="700px"
               />
             </div>
           </div>

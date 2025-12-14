@@ -12,6 +12,12 @@ export interface Comment {
   };
 }
 
+export interface PaginatedCommentsResponse {
+  comments: Comment[];
+  nextCursor: string | null;
+  totalCount: number;
+}
+
 export interface ArticleSummary {
   id: string;
   title: string;
@@ -36,14 +42,10 @@ export interface ArticleSummary {
 }
 
 // Like/Unlike Article
-export async function toggleLike(articleId: string, userId: string) {
+export async function toggleLike(articleId: string) {
   const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ userId }),
   });
 
   if (!response.ok) {
@@ -54,14 +56,10 @@ export async function toggleLike(articleId: string, userId: string) {
   return response.json();
 }
 
-export async function removeLike(articleId: string, userId: string) {
+export async function removeLike(articleId: string) {
   const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
     method: 'DELETE',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ userId }),
   });
 
   if (!response.ok) {
@@ -74,9 +72,11 @@ export async function removeLike(articleId: string, userId: string) {
 }
 
 // Check if user liked article
-export async function checkUserLike(articleId: string, userId: string): Promise<boolean> {
+export async function checkUserLike(articleId: string): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/articles/${articleId}/likes?userId=${userId}`);
+    const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
+      credentials: 'include',
+    });
     if (!response.ok) return false;
     const data = await response.json();
     return data.liked || false;
@@ -86,26 +86,34 @@ export async function checkUserLike(articleId: string, userId: string): Promise<
 }
 
 // Comments
-export async function fetchComments(articleId: string): Promise<Comment[]> {
-  const response = await fetch(`${API_URL}/articles/${articleId}/comments`);
+export async function fetchComments(
+  articleId: string,
+  cursor?: string,
+  limit = 5
+): Promise<PaginatedCommentsResponse> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) {
+    params.set('cursor', cursor);
+  }
+
+  const url = `${API_URL}/articles/${articleId}/comments?${params.toString()}`;
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch comments');
   }
   return response.json();
 }
 
-export async function createComment(
-  articleId: string,
-  content: string,
-  userId: string
-): Promise<Comment> {
+export async function createComment(articleId: string, content: string): Promise<Comment> {
   const response = await fetch(`${API_URL}/articles/${articleId}/comments`, {
     method: 'POST',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ body: content, authorId: userId }),
+    body: JSON.stringify({ body: content }),
   });
 
   if (!response.ok) {

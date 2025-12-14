@@ -14,7 +14,10 @@ import {
   FileText,
   PlusCircle,
   Loader2,
+  Smartphone,
 } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { MobileWalletConnect } from './MobileWalletConnect';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -22,6 +25,8 @@ export default function LoginBtn() {
   const { connected, connecting, address, connect, disconnect, availableWallets } = useWallet();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [walletPickerOpen, setWalletPickerOpen] = useState(false);
+  const [mobileGuideOpen, setMobileGuideOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [pendingWallet, setPendingWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{
     name: string | null;
@@ -30,6 +35,22 @@ export default function LoginBtn() {
   const [profileLoading, setProfileLoading] = useState(false);
   const profileRequestRef = useRef<AbortController | null>(null);
   const skipEffectFetchRef = useRef(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+        userAgent
+      );
+      const isSmallScreen = window.innerWidth < 768;
+      setIsMobile(isMobileDevice && isSmallScreen);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
@@ -132,6 +153,12 @@ export default function LoginBtn() {
   }, [connected]);
 
   const handleConnectClick = () => {
+    // If on mobile with no wallets detected, show mobile guide
+    if (isMobile && availableWallets.length === 0) {
+      setMobileGuideOpen(true);
+      return;
+    }
+
     if (availableWallets.length === 0) {
       setWalletPickerOpen(true);
       return;
@@ -193,7 +220,8 @@ export default function LoginBtn() {
       <div className="relative">
         <Button
           onClick={() => setShowProfileMenu(!showProfileMenu)}
-          className="bg-[#080808] px-4 text-base hover:bg-[#080808]/90 rounded-[2px] flex items-center gap-2"
+          variant="default"
+          className="px-4 text-base flex items-center gap-2"
         >
           <Avatar
             key={userProfile?.avatarUrl ?? address ?? 'wallet-avatar'}
@@ -245,19 +273,17 @@ export default function LoginBtn() {
                 Bookmarks
               </Link>
               <div className="border-t border-gray-200 my-1"></div>
-              {availableWallets.length > 1 && (
-                <button
-                  onClick={async () => {
-                    setShowProfileMenu(false);
-                    await handleDisconnect();
-                    setWalletPickerOpen(true);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                >
-                  <Wallet className="h-4 w-4" />
-                  Switch Wallet
-                </button>
-              )}
+              <button
+                onClick={async () => {
+                  setShowProfileMenu(false);
+                  await handleDisconnect();
+                  setWalletPickerOpen(true);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+              >
+                <Wallet className="h-4 w-4" />
+                Switch Wallet
+              </button>
               <button
                 onClick={async () => {
                   setShowProfileMenu(false);
@@ -278,15 +304,35 @@ export default function LoginBtn() {
   }
 
   return (
-    <div className="relative">
-      <Button
-        onClick={handleConnectClick}
-        disabled={connecting}
-        className="bg-[#080808] px-8 text-base hover:bg-[#080808]/90 rounded-[2px]"
-      >
-        {connecting ? 'Connecting...' : 'Connect Wallet'}
-      </Button>
-      {walletPicker}
-    </div>
+    <>
+      <div className="relative">
+        <Button
+          onClick={handleConnectClick}
+          disabled={connecting}
+          variant="default"
+          className="px-4 sm:px-8 text-sm sm:text-base"
+        >
+          {isMobile && availableWallets.length === 0 ? (
+            <>
+              <Smartphone className="h-4 w-4 mr-2" />
+              Mobile Wallet
+            </>
+          ) : (
+            <>{connecting ? 'Connecting...' : 'Connect Wallet'}</>
+          )}
+        </Button>
+        {walletPicker}
+      </div>
+
+      {/* Mobile Wallet Guide Sheet */}
+      <Sheet open={mobileGuideOpen} onOpenChange={setMobileGuideOpen}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Connect on Mobile</SheetTitle>
+          </SheetHeader>
+          <MobileWalletConnect onClose={() => setMobileGuideOpen(false)} />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

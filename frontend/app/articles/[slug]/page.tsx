@@ -107,6 +107,9 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
     userLiked,
     bookmarked,
     comments,
+    totalComments,
+    hasMoreComments,
+    isFetchingMoreComments,
     likeMutation,
     commentMutation,
     updateCommentMutation,
@@ -114,6 +117,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
     handleLike,
     handleBookmark,
     handleShare,
+    loadMoreComments,
   } = useArticleInteractions({
     articleId: article?.id || '',
     userId,
@@ -228,7 +232,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           ) : (
             <ArticleEngagement
               likesCount={likesCount}
-              commentsCount={comments.length}
+              commentsCount={totalComments}
               userLiked={userLiked}
               bookmarked={bookmarked}
               isLiking={likeMutation.isPending}
@@ -255,6 +259,9 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
           ) : (
             <CommentsSection
               comments={comments}
+              totalComments={totalComments}
+              hasMoreComments={hasMoreComments ?? false}
+              isLoadingMoreComments={isFetchingMoreComments}
               isAuthenticated={!!address}
               currentUserId={userId}
               isPostingComment={commentMutation.isPending}
@@ -265,6 +272,7 @@ export default function ArticlePage({ params }: { params: Promise<{ slug: string
                 updateCommentMutation.mutate({ commentId, content })
               }
               onDeleteComment={(commentId) => deleteCommentMutation.mutate(commentId)}
+              onLoadMoreComments={loadMoreComments}
             />
           )}
         </>

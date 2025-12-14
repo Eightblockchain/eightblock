@@ -7,7 +7,7 @@ export const RepositoryActions = () => {
   return (
     <div className="flex flex-wrap gap-4 mt-6">
       <Link href={githubService.getRepositoryUrl()} target="_blank" rel="noopener noreferrer">
-        <Button className="gap-2 bg-[#080808] hover:bg-[#080808]/90 dark:bg-primary dark:hover:bg-primary/90">
+        <Button variant="default" className="gap-2">
           <Github className="h-5 w-5" />
           View on GitHub
           <ExternalLink className="h-4 w-4" />

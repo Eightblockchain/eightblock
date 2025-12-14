@@ -17,30 +17,25 @@ export function Hero({ onScrollToArticles }: HeroProps) {
   }
 
   return (
-    <section className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 py-20 text-center">
-      <h1 className="max-w-2xl select-none text-5xl font-bold leading-tight tracking-tight text-[#080808] sm:text-6xl">
-        Open Knowledge for the Cardano Community
+    <section className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:gap-8 px-4 sm:px-6 py-16 sm:py-20 lg:py-24 text-center">
+      <div className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-50 text-primary font-semibold text-[10px] sm:text-xs uppercase tracking-wider rounded-[2px] border border-primary-200">
+        Cardano Community Platform
+      </div>
+      <h1 className="max-w-3xl select-none text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight tracking-tight text-foreground px-2">
+        Open Knowledge for the <span className="text-primary">Cardano Community</span>
       </h1>
-      <p className="max-w-xl select-none text-base text-gray-600">
+      <p className="max-w-2xl select-none text-sm sm:text-base lg:text-lg text-muted-foreground leading-relaxed px-4">
         A collaborative platform for the Cardano community, focusing on open-source culture,
         education, and community collaboration. All content is community-driven and open for
         contribution.
       </p>
-      <div className="mt-2 flex flex-col justify-center gap-4 sm:flex-row">
+      <div className="mt-2 sm:mt-4 flex justify-center px-4 sm:px-0">
         <Button
           onClick={onScrollToArticles}
-          className="bg-[#080808] px-8 py-6 text-base hover:bg-[#080808]/90"
+          size="lg"
+          className="w-full sm:w-auto px-6 sm:px-8 shadow-lg hover:shadow-xl"
         >
           Read Articles
-        </Button>
-        <Button
-          variant="outline"
-          asChild
-          className="border-[#080808] px-8 py-6 text-base text-[#080808] hover:bg-gray-50"
-        >
-          <Link href="https://github.com/Eightblockchain/eightblock" target="_blank">
-            Contribute on GitHub
-          </Link>
         </Button>
       </div>
     </section>

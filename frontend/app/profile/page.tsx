@@ -1,53 +1,40 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/lib/wallet-context';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2, User, Save, Upload, X, Mail } from 'lucide-react';
+import { Loader2, User, Save, Upload, X, Mail, Share2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { WalletCard } from '@/components/profile/WalletCard';
 import { StatsCard } from '@/components/profile/StatsCard';
 import { LoadingState } from '@/components/profile/LoadingState';
 import { ProfilePageSkeleton } from '@/components/profile/profile-skeleton';
 import Image from 'next/image';
+import {
+  fetchCurrentUserProfile,
+  updateUserProfile,
+  uploadAvatar,
+  fetchUserArticles,
+} from '@/lib/services/user-service';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
-interface UserProfile {
-  id: string;
-  walletAddress: string;
-  name: string | null;
-  bio: string | null;
-  avatarUrl: string | null;
-  email: string | null;
-  role: string;
-}
 
 export default function ProfilePage() {
   const { connected, connecting, address, wallet } = useWallet();
   const router = useRouter();
   const toast = useToast?.() || { toast: () => {} };
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [stats, setStats] = useState({
-    views: 0,
-    uniqueViews: 0,
-    likes: 0,
-    articles: 0,
-    drafts: 0,
-  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -56,99 +43,146 @@ export default function ProfilePage() {
     email: '',
   });
 
+  // Redirect if not connected
   useEffect(() => {
     if (!connecting && !connected) {
       router.push('/');
-      return;
+    }
+  }, [connecting, connected, router]);
+
+  // Fetch user profile using React Query
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    isError: profileError,
+  } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: fetchCurrentUserProfile,
+    enabled: connected,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch user articles for stats
+  const { data: articlesData } = useQuery({
+    queryKey: ['user-articles', address],
+    queryFn: () => fetchUserArticles(address!, 1, 1000),
+    enabled: connected && !!address,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Calculate stats from articles
+  const stats = useMemo(() => {
+    if (!articlesData?.articles) {
+      return { views: 0, uniqueViews: 0, likes: 0, articles: 0, drafts: 0 };
     }
 
-    if (connected && address) {
-      fetchProfile();
-      fetchBalance();
-      fetchStats();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected, connecting, address, router]);
+    const allArticles = articlesData.articles;
+    const published = allArticles.filter((a: any) => a.status === 'PUBLISHED').length;
+    const drafts = allArticles.filter((a: any) => a.status === 'DRAFT').length;
+    const totalLikes = allArticles.reduce((sum: number, a: any) => sum + (a._count?.likes || 0), 0);
+    const totalViews = allArticles.reduce((sum: number, a: any) => sum + (a.viewCount || 0), 0);
+    const totalUniqueViews = allArticles.reduce(
+      (sum: number, a: any) => sum + (a.uniqueViews || 0),
+      0
+    );
 
-  const fetchProfile = async () => {
-    try {
-      const response = await fetch(`${API_URL}/users/me`, {
-        credentials: 'include',
-      });
+    return {
+      views: totalViews,
+      uniqueViews: totalUniqueViews,
+      likes: totalLikes,
+      articles: published,
+      drafts,
+    };
+  }, [articlesData]);
 
-      if (!response.ok) throw new Error('Failed to fetch profile');
-
-      const data = await response.json();
-      setProfile(data);
+  // Initialize form data when profile loads
+  useEffect(() => {
+    if (profile) {
       setFormData({
-        name: data.name || '',
-        bio: data.bio || '',
-        email: data.email || '',
+        name: profile.name || '',
+        bio: profile.bio || '',
+        email: profile.email || '',
       });
       // Set avatar preview from server
-      if (data.avatarUrl) {
+      if (profile.avatarUrl) {
         setAvatarPreview(
-          data.avatarUrl.startsWith('http')
-            ? data.avatarUrl
-            : `${API_URL.replace('/api', '')}${data.avatarUrl}`
+          profile.avatarUrl.startsWith('http')
+            ? profile.avatarUrl
+            : `${API_URL.replace('/api', '')}${profile.avatarUrl}`
         );
       }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+    }
+  }, [profile]);
+
+  // Fetch wallet balance
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (wallet) {
+        try {
+          const lovelace = await wallet.getLovelace();
+          const ada = (parseInt(lovelace) / 1_000_000).toFixed(2);
+          setBalance(ada);
+        } catch (error) {
+          console.error('Failed to fetch balance:', error);
+        }
+      }
+    };
+
+    if (wallet) {
+      fetchBalance();
+    }
+  }, [wallet]);
+
+  // Upload avatar mutation
+  const uploadAvatarMutation = useMutation({
+    mutationFn: uploadAvatar,
+    onSuccess: (data) => {
+      queryClient.setQueryData(['user-profile'], data.user);
+      setSelectedFile(null);
+
+      // Update preview with server URL
+      const avatarUrl = data.user.avatarUrl?.startsWith('http')
+        ? data.user.avatarUrl
+        : `${API_URL.replace('/api', '')}${data.user.avatarUrl}`;
+      setAvatarPreview(avatarUrl);
+
       toast.toast?.({
-        title: 'Error',
-        description: 'Failed to load profile',
+        title: 'Avatar updated!',
+        description: `Image optimized to ${Math.round(data.avatar.size / 1024)}KB`,
+      });
+    },
+    onError: (error: Error) => {
+      toast.toast?.({
+        title: 'Upload failed',
+        description: error.message || 'Failed to upload avatar. Please try again.',
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  const fetchBalance = async () => {
-    if (wallet) {
-      try {
-        const lovelace = await wallet.getLovelace();
-        const ada = (parseInt(lovelace) / 1_000_000).toFixed(2);
-        setBalance(ada);
-      } catch (error) {
-        console.error('Failed to fetch balance:', error);
-      }
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      if (!address) return;
-
-      const response = await fetch(`${API_URL}/articles/wallet/${address}?page=1&limit=1000`);
-      if (response.ok) {
-        const data = await response.json();
-        const allArticles = data.articles || [];
-        const published = allArticles.filter((a: any) => a.status === 'PUBLISHED').length;
-        const drafts = allArticles.filter((a: any) => a.status === 'DRAFT').length;
-        const totalLikes = allArticles.reduce(
-          (sum: number, a: any) => sum + (a._count?.likes || 0),
-          0
-        );
-        const totalViews = allArticles.reduce((sum: number, a: any) => sum + (a.viewCount || 0), 0);
-        const totalUniqueViews = allArticles.reduce(
-          (sum: number, a: any) => sum + (a.uniqueViews || 0),
-          0
-        );
-
-        setStats({
-          views: totalViews,
-          uniqueViews: totalUniqueViews,
-          likes: totalLikes,
-          articles: published,
-          drafts,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
-    }
-  };
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: updateUserProfile,
+    onSuccess: (updatedProfile) => {
+      queryClient.setQueryData(['user-profile'], updatedProfile);
+      setFormData({
+        name: updatedProfile.name || '',
+        bio: updatedProfile.bio || '',
+        email: updatedProfile.email || '',
+      });
+      toast.toast?.({
+        title: 'Profile updated!',
+        description: 'Your profile has been successfully updated.',
+      });
+    },
+    onError: (error: Error) => {
+      toast.toast?.({
+        title: 'Error',
+        description: error.message || 'Failed to update profile',
+        variant: 'destructive',
+      });
+    },
+  });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -185,46 +219,9 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  const handleUploadAvatar = async () => {
+  const handleUploadAvatar = () => {
     if (!selectedFile) return;
-
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('avatar', selectedFile);
-
-      const response = await fetch(`${API_URL}/users/me/avatar`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to upload avatar');
-
-      const data = await response.json();
-      setProfile(data.user);
-      setSelectedFile(null);
-
-      // Update preview with server URL
-      const avatarUrl = data.user.avatarUrl.startsWith('http')
-        ? data.user.avatarUrl
-        : `${API_URL.replace('/api', '')}${data.user.avatarUrl}`;
-      setAvatarPreview(avatarUrl);
-
-      toast.toast?.({
-        title: 'Avatar updated!',
-        description: `Image optimized to ${Math.round(data.avatar.size / 1024)}KB`,
-      });
-    } catch (error) {
-      console.error('Error uploading avatar:', error);
-      toast.toast?.({
-        title: 'Upload failed',
-        description: 'Failed to upload avatar. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setUploading(false);
-    }
+    uploadAvatarMutation.mutate(selectedFile);
   };
 
   const handleRemoveAvatar = () => {
@@ -241,45 +238,9 @@ export default function ProfilePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-
-    try {
-      const response = await fetch(`${API_URL}/users/me`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) throw new Error('Failed to update profile');
-
-      const updated = await response.json();
-      setProfile(updated);
-
-      setFormData({
-        name: updated.name || '',
-        bio: updated.bio || '',
-        email: updated.email || '',
-      });
-
-      toast.toast?.({
-        title: 'Profile updated!',
-        description: 'Your profile has been successfully updated.',
-      });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.toast?.({
-        title: 'Error',
-        description: 'Failed to update profile',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    updateProfileMutation.mutate(formData);
   };
 
   const copyAddress = () => {
@@ -290,20 +251,75 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading || connecting) {
+  const handleShareProfile = async () => {
+    if (!address) return;
+    const shareUrl = `${window.location.origin}/profile/${address}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: profile?.name ? `${profile.name} · EightBlock` : 'EightBlock Creator',
+          text: 'Discover my work on EightBlock',
+          url: shareUrl,
+        });
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.toast?.({
+          title: 'Profile link copied',
+          description: 'Public profile URL copied to your clipboard.',
+        });
+        return;
+      }
+      throw new Error('Clipboard unavailable');
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') return;
+      toast.toast?.({
+        title: 'Unable to share profile',
+        description: 'Copy the link manually if native sharing is unavailable.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  if (connecting || profileLoading) {
     return <ProfilePageSkeleton />;
   }
 
-  if (!connected || !address || !profile) {
+  if (!connected || !address) {
+    return null;
+  }
+
+  if (profileError) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-20">
+        <Card className="p-12 text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load profile</h3>
+          <p className="text-gray-600 mb-4">Unable to fetch your profile information</p>
+          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['user-profile'] })}>
+            Try Again
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!profile) {
     return null;
   }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-[#080808]">My Profile</h1>
-        <p className="mt-2 text-gray-600">Manage your profile information and settings</p>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold text-[#080808]">My Profile</h1>
+          <p className="mt-2 text-gray-600">Manage your profile information and settings</p>
+        </div>
+        <Button variant="outline" className="gap-2 self-start" onClick={handleShareProfile}>
+          <Share2 className="h-4 w-4" /> Share public profile
+        </Button>
       </div>
 
       {/* Wallet Info */}
@@ -359,7 +375,7 @@ export default function ProfilePage() {
               placeholder="Your name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              disabled={saving}
+              disabled={updateProfileMutation.isPending}
             />
             <p className="text-sm text-gray-500">This is how your name will appear to others</p>
           </div>
@@ -374,7 +390,7 @@ export default function ProfilePage() {
               placeholder="you@example.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              disabled={saving}
+              disabled={updateProfileMutation.isPending}
             />
             <p className="text-sm text-gray-500">
               We&apos;ll use this for upcoming notifications or newsletters. Leave blank if you
@@ -389,7 +405,7 @@ export default function ProfilePage() {
               placeholder="Tell us about yourself..."
               value={formData.bio}
               onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              disabled={saving}
+              disabled={updateProfileMutation.isPending}
               rows={4}
               className="resize-none"
             />
@@ -423,7 +439,7 @@ export default function ProfilePage() {
                   accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
                   onChange={handleFileSelect}
                   className="hidden"
-                  disabled={uploading}
+                  disabled={uploadAvatarMutation.isPending}
                 />
 
                 <div className="flex gap-2">
@@ -432,7 +448,7 @@ export default function ProfilePage() {
                     variant="outline"
                     size="sm"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading || saving}
+                    disabled={uploadAvatarMutation.isPending || updateProfileMutation.isPending}
                   >
                     <Upload className="mr-2 h-4 w-4" />
                     Choose Image
@@ -444,10 +460,9 @@ export default function ProfilePage() {
                         type="button"
                         size="sm"
                         onClick={handleUploadAvatar}
-                        disabled={uploading || saving}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={uploadAvatarMutation.isPending || updateProfileMutation.isPending}
                       >
-                        {uploading ? (
+                        {uploadAvatarMutation.isPending ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Uploading...
@@ -464,7 +479,7 @@ export default function ProfilePage() {
                         variant="outline"
                         size="sm"
                         onClick={handleRemoveAvatar}
-                        disabled={uploading || saving}
+                        disabled={uploadAvatarMutation.isPending || updateProfileMutation.isPending}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -490,10 +505,10 @@ export default function ProfilePage() {
           <div className="flex gap-3 pt-4">
             <Button
               type="submit"
-              disabled={saving || uploading}
-              className="bg-[#080808] hover:bg-gray-800 text-white"
+              disabled={updateProfileMutation.isPending || uploadAvatarMutation.isPending}
+              variant="default"
             >
-              {saving ? (
+              {updateProfileMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
@@ -516,7 +531,7 @@ export default function ProfilePage() {
                 });
                 handleRemoveAvatar();
               }}
-              disabled={saving}
+              disabled={updateProfileMutation.isPending}
             >
               Reset
             </Button>

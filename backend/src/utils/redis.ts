@@ -97,3 +97,6 @@ export async function closeRedis(): Promise<void> {
     redisClient = null;
   }
 }
+
+// Default export for compatibility with rate-limit-redis
+export default getRedisClient();

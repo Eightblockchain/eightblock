@@ -3,17 +3,23 @@
 import { useState, useRef, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@/lib/wallet-context';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
-import { ArrowLeft, Save, Eye, Loader2, Upload, X } from 'lucide-react';
+import { TagInput } from '@/components/editor/TagInput';
+import { ArrowLeft, Save, Eye, Loader2, Upload, X, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import {
+  fetchArticleBySlug,
+  updateArticle,
+  uploadArticleImage,
+  deleteArticleImage,
+} from '@/lib/services/article-service';
 
 interface Article {
   id: string;
@@ -42,13 +48,11 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [slug, setSlug] = useState<string>(slugParam);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(false);
   const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null);
   const [featuredImagePreview, setFeaturedImagePreview] = useState<string | null>(null);
-  const [article, setArticle] = useState<Article | null>(null);
+  const [deletedImages, setDeletedImages] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -65,59 +69,99 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
     Promise.resolve(params).then((p) => setSlug(p.slug));
   }, [params]);
 
-  // Fetch article data
+  // Fetch article data using React Query
+  const {
+    data: article,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['article', slug],
+    queryFn: () => fetchArticleBySlug(slug),
+    enabled: !!slug,
+  });
+
+  // Initialize form when article is loaded
   useEffect(() => {
-    if (!slug) return;
+    if (!article) return;
 
-    const fetchArticle = async () => {
-      try {
-        const response = await fetch(`${API_URL}/articles/${slug}`);
-        if (!response.ok) {
-          throw new Error('Article not found');
+    // Check if user is the author
+    const userId = localStorage.getItem('userId');
+    if (article.author.id !== userId) {
+      toast({
+        title: 'Unauthorized',
+        description: 'You can only edit your own articles',
+        variant: 'destructive',
+      });
+      router.push(`/articles/${slug}`);
+      return;
+    }
+
+    setFormData({
+      title: article.title,
+      slug: article.slug,
+      excerpt: article.description || '',
+      content: article.content,
+      tags: article.tags.map((t) => t.tag.name).join(', '),
+      featuredImageUrl: article.featuredImage || '',
+      status: article.status as 'DRAFT' | 'PUBLISHED',
+    });
+
+    if (article.featuredImage) {
+      setFeaturedImagePreview(article.featuredImage);
+    }
+  }, [article, slug, router, toast]);
+
+  // Update article mutation
+  const updateMutation = useMutation({
+    mutationFn: async (status: 'DRAFT' | 'PUBLISHED') => {
+      if (!article) throw new Error('No article loaded');
+
+      // Upload featured image if selected
+      let featuredImageUrl = formData.featuredImageUrl;
+      if (featuredImageFile) {
+        setUploading(true);
+        try {
+          const data = await uploadArticleImage(featuredImageFile);
+          featuredImageUrl = data.imageUrl;
+        } finally {
+          setUploading(false);
         }
-        const data: Article = await response.json();
-
-        // Check if user is the author
-        const userId = localStorage.getItem('userId');
-        if (data.author.id !== userId) {
-          toast({
-            title: 'Unauthorized',
-            description: 'You can only edit your own articles',
-            variant: 'destructive',
-          });
-          router.push(`/articles/${slug}`);
-          return;
-        }
-
-        setArticle(data);
-        setFormData({
-          title: data.title,
-          slug: data.slug,
-          excerpt: data.description || '',
-          content: data.content,
-          tags: data.tags.map((t) => t.tag.name).join(', '),
-          featuredImageUrl: data.featuredImage || '',
-          status: data.status as 'DRAFT' | 'PUBLISHED',
-        });
-
-        if (data.featuredImage) {
-          setFeaturedImagePreview(data.featuredImage);
-        }
-      } catch (error) {
-        console.error('Error fetching article:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load article',
-          variant: 'destructive',
-        });
-        router.push('/profile/articles');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    fetchArticle();
-  }, [slug, router, toast]);
+      // Delete images that were removed from content
+      if (deletedImages.length > 0) {
+        await Promise.all(deletedImages.map((url) => deleteArticleImage(url)));
+      }
+
+      return updateArticle(article.id, {
+        title: formData.title,
+        slug: formData.slug,
+        description: formData.excerpt,
+        content: formData.content,
+        tags: formData.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean),
+        featuredImageUrl,
+        status,
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Success',
+        description: `Article ${data.status === 'PUBLISHED' ? 'published' : 'saved as draft'}`,
+      });
+      router.push(`/articles/${data.slug}`);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save article',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Auto-generate slug from title
   const handleTitleChange = (title: string) => {
@@ -167,37 +211,6 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
     reader.readAsDataURL(file);
   };
 
-  const uploadFeaturedImage = async (): Promise<string | null> => {
-    if (!featuredImageFile) return formData.featuredImageUrl || null;
-
-    setUploading(true);
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('image', featuredImageFile);
-
-      const response = await fetch(`${API_URL}/upload/article-image`, {
-        method: 'POST',
-        credentials: 'include',
-        body: uploadFormData,
-      });
-
-      if (!response.ok) throw new Error('Failed to upload image');
-
-      const data = await response.json();
-      return data.imageUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: 'Upload failed',
-        description: 'Failed to upload featured image',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const removeFeaturedImage = () => {
     setFeaturedImageFile(null);
     setFeaturedImagePreview(null);
@@ -208,23 +221,14 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
   };
 
   // Handle image deletion from rich text editor
-  const handleImageDelete = async (imageUrl: string) => {
-    try {
-      await fetch(`${API_URL}/upload/article-image`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ imageUrl }),
-      });
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      // Silent fail - don't interrupt user experience
+  const handleImageDelete = (imageUrl: string) => {
+    // Track deleted images to clean up on save
+    if (imageUrl.includes('/uploads/articles/')) {
+      setDeletedImages((prev) => [...prev, imageUrl]);
     }
   };
 
-  const handleSubmit = async (status: 'DRAFT' | 'PUBLISHED') => {
+  const handleSubmit = (status: 'DRAFT' | 'PUBLISHED') => {
     if (!connected || !address) {
       toast({
         title: 'Not connected',
@@ -243,68 +247,10 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
       return;
     }
 
-    if (!article) return;
-
-    setSaving(true);
-
-    try {
-      // Upload featured image first if there's a new one
-      let featuredImageUrl = formData.featuredImageUrl;
-      if (featuredImageFile) {
-        const uploadedUrl = await uploadFeaturedImage();
-        if (uploadedUrl) {
-          featuredImageUrl = uploadedUrl;
-        }
-      }
-
-      const tagsArray = formData.tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
-
-      const response = await fetch(`${API_URL}/articles/${article.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          title: formData.title,
-          slug: formData.slug,
-          excerpt: formData.excerpt || undefined,
-          content: formData.content,
-          tags: tagsArray,
-          featuredImage: featuredImageUrl || undefined,
-          status,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update article');
-      }
-
-      const updatedArticle = await response.json();
-
-      toast({
-        title: status === 'PUBLISHED' ? 'Article published!' : 'Draft saved!',
-        description: `Your article has been ${status === 'PUBLISHED' ? 'published' : 'updated'}`,
-      });
-
-      router.push(`/articles/${updatedArticle.slug}`);
-    } catch (error) {
-      console.error('Error updating article:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update article',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate(status);
   };
 
-  if (loading) {
+  if (!connected) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -325,6 +271,29 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="p-12 text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load article</h3>
+          <p className="text-gray-600 mb-4">{(error as Error)?.message || 'An error occurred'}</p>
+          <Button onClick={() => router.push('/profile/articles')}>Back to Articles</Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!article) return null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -332,7 +301,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href={`/articles/${article?.slug}`}>
+              <Link href={`/articles/${article.slug}`}>
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
@@ -345,8 +314,12 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
                 <Eye className="h-4 w-4 mr-2" />
                 {preview ? 'Edit' : 'Preview'}
               </Button>
-              <Button variant="outline" onClick={() => handleSubmit('DRAFT')} disabled={saving}>
-                {saving ? (
+              <Button
+                variant="outline"
+                onClick={() => handleSubmit('DRAFT')}
+                disabled={updateMutation.isPending || uploading}
+              >
+                {updateMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
@@ -355,10 +328,9 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
               </Button>
               <Button
                 onClick={() => handleSubmit('PUBLISHED')}
-                disabled={saving}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={updateMutation.isPending || uploading}
               >
-                {saving ? (
+                {updateMutation.isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
@@ -427,15 +399,10 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="tags">Tags</Label>
-                  <Input
-                    id="tags"
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                    placeholder="cardano, blockchain, web3 (comma-separated)"
-                  />
-                </div>
+                <TagInput
+                  value={formData.tags}
+                  onChange={(tags) => setFormData({ ...formData, tags })}
+                />
 
                 <div>
                   <Label>Featured Image</Label>
@@ -489,13 +456,16 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
 
             {/* Rich Text Editor */}
             <div>
-              <Label className="mb-2 block">Content *</Label>
+              <Label className="mb-2 block text-base font-semibold">Content *</Label>
+              <p className="text-sm text-gray-500 mb-3">
+                Write your article content below using the rich text editor
+              </p>
               <RichTextEditor
                 content={formData.content}
                 onChange={(content) => setFormData({ ...formData, content })}
                 onImageDelete={handleImageDelete}
                 placeholder="Start writing your article..."
-                minHeight="500px"
+                minHeight="700px"
               />
             </div>
           </div>
