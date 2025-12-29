@@ -6,6 +6,7 @@
     "rootDir": "src",
     "outDir": "dist",
     "baseUrl": "./src",
+    "types": ["jest", "node"],
     "paths": {
       "@/*": ["*"],
       "@/prisma/*": ["prisma/*"],

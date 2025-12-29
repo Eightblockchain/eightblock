@@ -6,8 +6,9 @@ export async function listComments(req: Request, res: Response) {
   const { articleId } = req.params;
   const limitParam = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
   const cursorParam = Array.isArray(req.query.cursor) ? req.query.cursor[0] : req.query.cursor;
-  const limit = Math.min(Math.max(parseInt(limitParam ?? '5', 10) || 5, 1), 20);
-  const cursor = cursorParam || undefined;
+  const limitStr = typeof limitParam === 'string' ? limitParam : '5';
+  const limit = Math.min(Math.max(parseInt(limitStr, 10) || 5, 1), 20);
+  const cursor = typeof cursorParam === 'string' ? cursorParam : undefined;
 
   const [commentResults, totalCount] = await Promise.all([
     prisma.comment.findMany({
