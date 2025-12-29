@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { walletAuth, requestNonce } from '@/controllers/auth-controller';
-import { logout, revokeAllSessions } from '@/controllers/logout-controller';
-import { validateBody } from '@/middleware/validate';
-import { authLimiter, nonceLimiter } from '@/middleware/rate-limit';
-import { requireTrustedOrigin } from '@/middleware/origin-check';
+import { walletAuth, requestNonce } from '../controllers/auth-controller.js';
+import { logout, revokeAllSessions } from '../controllers/logout-controller.js';
+import { validateBody } from '../middleware/validate.js';
+import { authLimiter, nonceLimiter } from '../middleware/rate-limit.js';
+import { requireTrustedOrigin } from '../middleware/origin-check.js';
 
 const router = Router();
 

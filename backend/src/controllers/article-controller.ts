@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
-import { logger } from '@/utils/logger';
-import { cacheGet, cacheSet, cacheDelPattern } from '@/utils/redis';
+import { prisma } from '../prisma/client.js';
+import { logger } from '../utils/logger.js';
+import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis.js';
 
 /**
  * List published articles with pagination and caching (public endpoint)

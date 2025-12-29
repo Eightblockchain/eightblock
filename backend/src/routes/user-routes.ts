@@ -8,10 +8,10 @@ import {
   updateMyProfile,
   uploadAvatar,
   getPublicProfile,
-} from '@/controllers/user-controller';
-import { validateBody } from '@/middleware/validate';
-import { requireAuth } from '@/middleware/auth';
-import { upload } from '@/middleware/upload';
+} from '../controllers/user-controller.js';
+import { validateBody } from '../middleware/validate.js';
+import { requireAuth } from '../middleware/auth.js';
+import { upload } from '../middleware/upload.js';
 
 const router = Router();
 

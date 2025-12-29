@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
-import { signToken } from '@/utils/jwt';
-import { generateNonce, verifyAndConsumeNonce } from '@/utils/nonce';
-import { CSRF_COOKIE_NAME, csrfCookieOptions, generateCsrfToken } from '@/utils/csrf';
-import { verifyCardanoSignature, verifyPublicKeyMatchesAddress } from '@/utils/signature';
+import { prisma } from '../prisma/client.js';
+import { signToken } from '../utils/jwt.js';
+import { generateNonce, verifyAndConsumeNonce } from '../utils/nonce.js';
+import { CSRF_COOKIE_NAME, csrfCookieOptions, generateCsrfToken } from '../utils/csrf.js';
+import { verifyCardanoSignature, verifyPublicKeyMatchesAddress } from '../utils/signature.js';
 
 // Step 1: Request a nonce for wallet authentication
 export async function requestNonce(req: Request, res: Response) {

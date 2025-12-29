@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
+import { prisma } from '../prisma/client.js';
 import { UAParser } from 'ua-parser-js';
-import { cache } from '@/utils/cache';
+import { cache } from '../utils/cache.js';
 
 // Track article view with analytics
 export async function trackView(req: Request, res: Response) {

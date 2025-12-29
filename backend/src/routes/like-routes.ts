@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { removeLike, upsertLike, checkUserLike } from '@/controllers/like-controller';
-import { requireAuth, optionalAuth } from '@/middleware/auth';
+import { removeLike, upsertLike, checkUserLike } from '../controllers/like-controller.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
 const router = Router({ mergeParams: true });
 

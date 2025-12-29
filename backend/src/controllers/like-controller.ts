@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
-import { cacheDelPattern } from '@/utils/redis';
+import { prisma } from '../prisma/client.js';
+import { cacheDelPattern } from '../utils/redis.js';
 
 export async function upsertLike(req: Request, res: Response) {
   const { articleId } = req.params;

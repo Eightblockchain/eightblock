@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import { revokeToken, revokeUserTokens } from '@/utils/token-revocation';
-import { verifyToken } from '@/utils/jwt';
-import { CSRF_COOKIE_NAME, csrfCookieOptions } from '@/utils/csrf';
+import { revokeToken, revokeUserTokens } from '../utils/token-revocation.js';
+import { verifyToken } from '../utils/jwt.js';
+import { CSRF_COOKIE_NAME, csrfCookieOptions } from '../utils/csrf.js';
 
 const csrfRemovalOptions = { ...csrfCookieOptions };
 delete csrfRemovalOptions.maxAge;

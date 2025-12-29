@@ -1,11 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getAllowedOrigins } from '@/config/origins';
+import { getAllowedOrigins } from '../config/origins.js';
 import {
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
   csrfCookieOptions,
   generateCsrfToken,
-} from '@/utils/csrf';
+} from '../utils/csrf.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const CSRF_EXEMPT_PATHS = ['/api/auth/wallet', '/api/auth/wallet/nonce'];

@@ -1,10 +1,10 @@
-import Redis from 'ioredis';
-import { logger } from './logger';
+import Redis, { Redis as RedisType } from 'ioredis';
+import { logger } from './logger.js';
 
 // Redis client instance
-let redisClient: Redis | null = null;
+let redisClient: RedisType | null = null;
 
-export function getRedisClient(): Redis | null {
+export function getRedisClient(): RedisType | null {
   if (redisClient) {
     return redisClient;
   }
@@ -14,14 +14,14 @@ export function getRedisClient(): Redis | null {
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379'),
       password: process.env.REDIS_PASSWORD,
-      retryStrategy: (times) => {
+      retryStrategy: (times: number) => {
         const delay = Math.min(times * 50, 2000);
         return delay;
       },
       maxRetriesPerRequest: 3,
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err: Error) => {
       logger.error('Redis Client Error:', err);
     });
 
@@ -99,4 +99,4 @@ export async function closeRedis(): Promise<void> {
 }
 
 // Default export for compatibility with rate-limit-redis
-export default getRedisClient();
+export default getRedisClient;

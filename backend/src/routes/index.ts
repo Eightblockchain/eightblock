@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import articleRoutes from '@/routes/article-routes';
-import commentRoutes from '@/routes/comment-routes';
-import likeRoutes from '@/routes/like-routes';
-import subscriptionRoutes from '@/routes/subscription-routes';
-import tagRoutes from '@/routes/tag-routes';
-import authRoutes from '@/routes/auth-routes';
-import userRoutes from '@/routes/user-routes';
-import viewRoutes from '@/routes/view-routes';
-import uploadRoutes from '@/routes/upload-routes';
-import bookmarkRoutes from '@/routes/bookmark-routes';
+import articleRoutes from '../routes/article-routes.js';
+import commentRoutes from '../routes/comment-routes.js';
+import likeRoutes from '../routes/like-routes.js';
+import subscriptionRoutes from '../routes/subscription-routes.js';
+import tagRoutes from '../routes/tag-routes.js';
+import authRoutes from '../routes/auth-routes.js';
+import userRoutes from '../routes/user-routes.js';
+import viewRoutes from '../routes/view-routes.js';
+import uploadRoutes from '../routes/upload-routes.js';
+import bookmarkRoutes from '../routes/bookmark-routes.js';
 
 const router = Router();
 
