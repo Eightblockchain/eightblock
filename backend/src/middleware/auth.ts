@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '@/utils/jwt';
-import { isTokenRevoked, isTokenRevokedForUser } from '@/utils/token-revocation';
+import { verifyToken } from '../utils/jwt.js';
+import { isTokenRevoked, isTokenRevokedForUser } from '../utils/token-revocation.js';
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   // Read token from httpOnly cookie instead of Authorization header

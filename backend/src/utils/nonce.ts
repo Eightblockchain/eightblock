@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { getRedisClient } from '@/utils/redis';
-import { logger } from '@/utils/logger';
+import { getRedisClient } from '../utils/redis.js';
+import { logger } from '../utils/logger.js';
 
 const NONCE_TTL_MS = 5 * 60 * 1000;
 const REDIS_NONCE_PREFIX = 'wallet:nonce:';

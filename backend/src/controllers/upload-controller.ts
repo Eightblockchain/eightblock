@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
-import { optimizeImage, getExtensionForFormat, deleteImage } from '@/utils/image-optimizer';
+import { optimizeImage, getExtensionForFormat, deleteImage } from '../utils/image-optimizer.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { logger } from '@/utils/logger';
+import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

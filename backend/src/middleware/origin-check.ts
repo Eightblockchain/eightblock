@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { getAllowedOrigins } from '@/config/origins';
+import { getAllowedOrigins } from '../config/origins.js';
 
 const trustedOrigins = new Set(getAllowedOrigins());
 const allowOriginless = process.env.ALLOW_ORIGINLESS_WALLET === 'true';

@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { requireAuth } from '@/middleware/auth';
-import { articleUpload } from '@/middleware/upload';
-import { uploadArticleImage, deleteArticleImage } from '@/controllers/upload-controller';
+import { requireAuth } from '../middleware/auth.js';
+import { articleUpload } from '../middleware/upload.js';
+import { uploadArticleImage, deleteArticleImage } from '../controllers/upload-controller.js';
 
 const router = Router();
 

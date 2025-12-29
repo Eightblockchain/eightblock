@@ -1,5 +1,5 @@
-import { getRedisClient } from '@/utils/redis';
-import { logger } from '@/utils/logger';
+import { getRedisClient } from '../utils/redis.js';
+import { logger } from '../utils/logger.js';
 
 const REVOKED_TOKEN_PREFIX = 'revoked:token:';
 const TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days (match JWT expiry)

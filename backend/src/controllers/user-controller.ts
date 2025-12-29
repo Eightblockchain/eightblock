@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
-import { logger } from '@/utils/logger';
-import { cache } from '@/utils/cache';
-import { optimizeImage, deleteImage, getExtensionForFormat } from '@/utils/image-optimizer';
+import { prisma } from '../prisma/client.js';
+import { logger } from '../utils/logger.js';
+import { cache } from '../utils/cache.js';
+import { optimizeImage, deleteImage, getExtensionForFormat } from '../utils/image-optimizer.js';
 import path from 'path';
 import fs from 'fs';
 

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createTag, deleteTag, listTags } from '@/controllers/tag-controller';
-import { validateBody } from '@/middleware/validate';
-import { requireAuth } from '@/middleware/auth';
+import { createTag, deleteTag, listTags } from '../controllers/tag-controller.js';
+import { validateBody } from '../middleware/validate.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 

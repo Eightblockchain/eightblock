@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
-import { logger } from '@/utils/logger';
+import { prisma } from '../prisma/client.js';
+import { logger } from '../utils/logger.js';
 
 const BOOKMARK_ARTICLE_SELECT = {
   id: true,

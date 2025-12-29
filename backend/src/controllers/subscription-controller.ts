@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
+import { prisma } from '../prisma/client.js';
 
 export async function createSubscription(req: Request, res: Response) {
   const { email, topics } = req.body;

@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { trackView, getArticleAnalytics, getTrendingArticles } from '@/controllers/view-controller';
-import { validateBody } from '@/middleware/validate';
-import { optionalAuth } from '@/middleware/auth';
+import {
+  trackView,
+  getArticleAnalytics,
+  getTrendingArticles,
+} from '../controllers/view-controller.js';
+import { validateBody } from '../middleware/validate.js';
+import { optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 

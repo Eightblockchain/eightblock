@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { prisma } from '@/prisma/client';
-import { cache } from '@/utils/cache';
+import { prisma } from '../prisma/client.js';
+import { cache } from '../utils/cache.js';
 
 export async function listTags(_req: Request, res: Response) {
   try {
