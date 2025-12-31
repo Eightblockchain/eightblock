@@ -220,7 +220,7 @@ export default function LoginBtn() {
       <div className="relative">
         <Button
           onClick={() => setShowProfileMenu(!showProfileMenu)}
-          variant="default"
+          variant="ghost"
           className="px-4 text-base flex items-center gap-2"
         >
           <Avatar
