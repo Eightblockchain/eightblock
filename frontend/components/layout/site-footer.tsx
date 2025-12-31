@@ -34,7 +34,7 @@ export function SiteFooter() {
               <Github className="h-5 w-5" />
             </a>
             <a
-              href="https://twitter.com/eightblock"
+              href="https://x.com/Eightblock66103"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-primary p-2.5 text-white shadow-md transition-all hover:bg-primary-600 hover:scale-110"
@@ -43,7 +43,7 @@ export function SiteFooter() {
               <Twitter className="h-5 w-5" />
             </a>
             <a
-              href="https://linkedin.com/company/eightblock"
+              href="https://www.linkedin.com/company/eightblock/"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-full bg-primary p-2.5 text-white shadow-md transition-all hover:bg-primary-600 hover:scale-110"
@@ -58,7 +58,7 @@ export function SiteFooter() {
         <div className="mt-8 pt-6 border-t border-gray-200 text-center">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()}{' '}
-            <span className="font-semibold text-foreground">eightblock</span>
+            <span className="font-semibold text-foreground">Eightblock</span>
             {' • '}Built with ❤️ by the Cardano community
             {' • '}Open source under{' '}
             <a

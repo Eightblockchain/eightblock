@@ -5,14 +5,7 @@ import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-} from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 
 // Dynamically import client components to reduce initial bundle
