@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { logger } from '../utils/logger.js';
+import { getFullImageUrl } from '../utils/imgUrl.js';
 
 const BOOKMARK_ARTICLE_SELECT = {
   id: true,
@@ -49,6 +50,11 @@ export async function listBookmarks(req: Request, res: Response) {
           select: BOOKMARK_ARTICLE_SELECT,
         },
       },
+    });
+
+    // Format author avatar URLs
+    bookmarks.forEach((bookmark) => {
+      bookmark.article.author.avatarUrl = getFullImageUrl(bookmark.article.author.avatarUrl || '');
     });
 
     return res.json({
