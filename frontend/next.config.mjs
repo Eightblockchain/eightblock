@@ -33,7 +33,8 @@ const config = {
       },
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'api.eightblock.dev',
+        pathname: '/uploads/**',
       },
     ],
   },
