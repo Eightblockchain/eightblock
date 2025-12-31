@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { cacheDelPattern } from '../utils/redis.js';
+import { getFullImageUrl } from '../utils/imgUrl.js';
 
 export async function listComments(req: Request, res: Response) {
   const { articleId } = req.params;
@@ -39,6 +40,15 @@ export async function listComments(req: Request, res: Response) {
     nextCursor = comments[comments.length - 1]?.id ?? null;
   }
 
+  // Format author avatar URLs
+  comments = comments.map((comment) => ({
+    ...comment,
+    author: {
+      ...comment.author,
+      avatarUrl: getFullImageUrl(comment.author.avatarUrl || ''),
+    },
+  }));
+
   return res.json({ comments, nextCursor, totalCount });
 }
 
@@ -67,6 +77,9 @@ export async function createComment(req: Request, res: Response) {
 
   // Invalidate article list cache for real-time updates
   await cacheDelPattern('articles:page:*');
+
+  // Format author avatar URLs
+  comment.author.avatarUrl = getFullImageUrl(comment.author.avatarUrl || '');
 
   return res.status(201).json(comment);
 }
@@ -109,6 +122,12 @@ export async function updateComment(req: Request, res: Response) {
         },
       },
     });
+
+    // Invalidate article list cache for real-time updates
+    await cacheDelPattern('articles:page:*');
+
+    // Format author avatar URLs
+    updated.author.avatarUrl = getFullImageUrl(updated.author.avatarUrl || '');
 
     return res.json(updated);
   } catch (error) {

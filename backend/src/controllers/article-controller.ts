@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis.js';
+import { getFullImageUrl } from '../utils/imgUrl.js';
 
 /**
  * List published articles with pagination and caching (public endpoint)
@@ -65,8 +66,19 @@ export async function listArticles(req: Request, res: Response) {
       }),
     ]);
 
+    // Format author avatar URLs
+    const articlesWithFormattedAvatars = articles.map((article) => {
+      return {
+        ...article,
+        author: {
+          ...article.author,
+          avatarUrl: getFullImageUrl(article.author.avatarUrl || ''),
+        },
+      };
+    });
+
     const response = {
-      articles,
+      articles: articlesWithFormattedAvatars,
       pagination: {
         page,
         limit,
@@ -150,8 +162,19 @@ export async function getArticlesByWallet(req: Request, res: Response) {
       }),
     ]);
 
+    // Format author avatar URLs
+    const articlesWithFormattedAvatars = articles.map((article) => {
+      return {
+        ...article,
+        author: {
+          ...article.author,
+          avatarUrl: getFullImageUrl(article.author.avatarUrl || ''),
+        },
+      };
+    });
+
     return res.json({
-      articles,
+      articles: articlesWithFormattedAvatars,
       pagination: {
         page,
         limit,
@@ -205,6 +228,16 @@ export async function getArticle(req: Request, res: Response) {
     if (!article) {
       return res.status(404).json({ error: 'Article not found' });
     }
+
+    // Format author avatar URLs
+    article.author.avatarUrl = getFullImageUrl(article.author.avatarUrl || '');
+    article.comments = article.comments.map((comment) => ({
+      ...comment,
+      author: {
+        ...comment.author,
+        avatarUrl: getFullImageUrl(comment.author.avatarUrl || ''),
+      },
+    }));
 
     // Only allow access to draft articles if explicitly needed
     // Frontend should handle this by checking wallet address
@@ -286,6 +319,9 @@ export async function createArticle(req: Request, res: Response) {
 
     // Invalidate article list cache
     await cacheDelPattern('articles:page:*');
+
+    // Format author avatar URLs
+    created.author.avatarUrl = getFullImageUrl(created.author.avatarUrl || '');
 
     return res.status(201).json(created);
   } catch (error) {
@@ -369,6 +405,9 @@ export async function updateArticle(req: Request, res: Response) {
 
     // Invalidate article list cache
     await cacheDelPattern('articles:page:*');
+
+    // Format author avatar URLs
+    updated.author.avatarUrl = getFullImageUrl(updated.author.avatarUrl || '');
 
     return res.json(updated);
   } catch (error) {
