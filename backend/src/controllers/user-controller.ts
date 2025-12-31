@@ -5,6 +5,7 @@ import { cache } from '../utils/cache.js';
 import { optimizeImage, deleteImage, getExtensionForFormat } from '../utils/image-optimizer.js';
 import path from 'path';
 import fs from 'fs';
+import { getFullImageUrl } from '../utils/imgUrl.js';
 
 function normalizeEmailInput(value: unknown): string | null | undefined {
   if (value === undefined) return undefined;
@@ -56,7 +57,12 @@ export async function getUserByWallet(req: Request, res: Response) {
     // Cache for 5 minutes
     await cache.set(cacheKey, user, 300);
 
-    return res.json(user);
+    const userResponse = {
+      ...user,
+      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
+    };
+
+    return res.json(userResponse);
   } catch (error) {
     logger.error(`getUserByWallet: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to fetch user' });
@@ -101,7 +107,12 @@ export async function upsertUser(req: Request, res: Response) {
       },
     });
 
-    return res.json(user);
+    const userResponse = {
+      ...user,
+      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
+    };
+
+    return res.json(userResponse);
   } catch (error) {
     logger.error(`upsertUser: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to create/update user' });
@@ -136,7 +147,12 @@ export async function updateUser(req: Request, res: Response) {
       },
     });
 
-    return res.json(user);
+    const userResponse = {
+      ...user,
+      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
+    };
+
+    return res.json(userResponse);
   } catch (error) {
     logger.error(`updateUser: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to update user' });
@@ -171,7 +187,12 @@ export async function getMyProfile(req: Request, res: Response) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    return res.json(user);
+    const userResponse = {
+      ...user,
+      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
+    };
+
+    return res.json(userResponse);
   } catch (error) {
     logger.error(`getMyProfile: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to fetch profile' });
@@ -210,7 +231,12 @@ export async function updateMyProfile(req: Request, res: Response) {
       },
     });
 
-    return res.json(user);
+    const userResponse = {
+      ...user,
+      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
+    };
+
+    return res.json(userResponse);
   } catch (error) {
     logger.error(`updateMyProfile: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to update profile' });
@@ -279,8 +305,13 @@ export async function uploadAvatar(req: Request, res: Response) {
 
     logger.info(`Avatar uploaded for user ${userId}: ${avatarUrl}`);
 
+    const userResponse = {
+      ...updatedUser,
+      avatarUrl: getFullImageUrl(updatedUser.avatarUrl || ''),
+    };
+
     return res.json({
-      user: updatedUser,
+      user: userResponse,
       avatar: {
         url: avatarUrl,
         size: optimizedImage.size,
@@ -386,7 +417,7 @@ export async function getPublicProfile(req: Request, res: Response) {
         walletAddress: user.walletAddress,
         name: user.name,
         bio: user.bio,
-        avatarUrl: user.avatarUrl,
+        avatarUrl: getFullImageUrl(user.avatarUrl || ''),
         joinedAt: user.createdAt,
         stats: {
           articles: totalPublished,
