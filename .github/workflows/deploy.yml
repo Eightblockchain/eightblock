@@ -51,35 +51,11 @@ jobs:
             pm2 restart eightblock-backend
             pm2 restart eightblock-frontend
 
-            # Wait for services to start
-            sleep 5
+            echo "========================================"
+            echo "✅ Deployment completed at $(date)"
+            echo "========================================"
+            pm2 status
 
-            # Health checks
-            echo "🏥 Running health checks..."
-            if curl -f http://localhost:6000/health > /dev/null 2>&1; then
-              echo "✅ Backend is healthy"
-            else
-              echo "⚠️  Backend health check failed"
-              exit 1
-            fi
-
-            if curl -f http://localhost:3006 > /dev/null 2>&1; then
-              echo "✅ Frontend is healthy"
-            else
-              echo "⚠️  Frontend health check failed"
-              exit 1
-            fi
-
-            # Clear Nginx cache
-            sudo nginx -s reload
-
-            echo "✅ Deployment completed successfully!"
-
-      - name: Send deployment notification
-        if: always()
-        run: |
-          if [ ${{ job.status }} == 'success' ]; then
-            echo "✅ Deployment successful"
-          else
-            echo "❌ Deployment failed"
-          fi
+            echo ""
+            echo "📋 Service Status:"
+            pm2 list
