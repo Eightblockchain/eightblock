@@ -1,143 +1,45 @@
 #!/bin/bash
 
-# EightBlock VPS Deployment Script
-# This script automates the deployment process
-
+# Eightblock Auto-Deployment Script
 set -e
 
-echo "🚀 EightBlock Deployment Script"
-echo "================================"
-echo ""
+PROJECT_DIR="/var/www/eightblock"
+DEPLOY_LOG="$PROJECT_DIR/logs/deploy.log"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+echo "================================================" | tee -a "$DEPLOY_LOG"
+echo "Deployment started at $(date)" | tee -a "$DEPLOY_LOG"
+echo "================================================" | tee -a "$DEPLOY_LOG"
 
-# Check if running as correct user
-if [ "$USER" = "root" ]; then
-    echo -e "${RED}❌ Do not run this script as root!${NC}"
-    echo "Run as the deploy user: sudo -u deploy bash deploy.sh"
-    exit 1
-fi
+cd $PROJECT_DIR
 
-echo "📍 Current directory: $(pwd)"
-echo ""
+# Pull latest changes
+echo "Pulling latest changes..." | tee -a "$DEPLOY_LOG"
+git pull origin main 2>&1 | tee -a "$DEPLOY_LOG"
 
-# Pull latest code
-echo "📥 Pulling latest code from GitHub..."
-git pull origin main
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Git pull failed!${NC}"
-    exit 1
-fi
-echo -e "${GREEN}✅ Code updated${NC}"
-echo ""
+# Install dependencies
+echo "Installing dependencies..." | tee -a "$DEPLOY_LOG"
+pnpm install 2>&1 | tee -a "$DEPLOY_LOG"
 
-# Backend
-echo "🔧 Building backend..."
+# Backend deployment
+echo "Building backend..." | tee -a "$DEPLOY_LOG"
 cd backend
-echo "  📦 Installing dependencies..."
-pnpm install --prod --frozen-lockfile
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Backend dependencies installation failed!${NC}"
-    exit 1
-fi
+pnpm prisma generate 2>&1 | tee -a "$DEPLOY_LOG"
+pnpm prisma migrate deploy 2>&1 | tee -a "$DEPLOY_LOG"
+pnpm build 2>&1 | tee -a "$DEPLOY_LOG"
 
-echo "  🔄 Generating Prisma client..."
-npx prisma generate
-
-echo "  🗄️  Running database migrations..."
-npx prisma migrate deploy
-if [ $? -ne 0 ]; then
-    echo -e "${YELLOW}⚠️  Migration failed - check database connection${NC}"
-fi
-
-echo -e "${GREEN}✅ Backend built${NC}"
-echo ""
-
-# Frontend
-echo "🎨 Building frontend..."
+# Frontend deployment
+echo "Building frontend..." | tee -a "$DEPLOY_LOG"
 cd ../frontend
-echo "  📦 Installing dependencies..."
-pnpm install --frozen-lockfile
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Frontend dependencies installation failed!${NC}"
-    exit 1
-fi
-
-echo "  🏗️  Building Next.js..."
-pnpm build
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Frontend build failed!${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✅ Frontend built${NC}"
-echo ""
+pnpm build 2>&1 | tee -a "$DEPLOY_LOG"
 
 # Restart services
-echo "♻️  Restarting services..."
+echo "Restarting services..." | tee -a "$DEPLOY_LOG"
 cd ..
-pm2 restart ecosystem.config.js
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ PM2 restart failed!${NC}"
-    exit 1
-fi
+pm2 restart ecosystem.config.js 2>&1 | tee -a "$DEPLOY_LOG"
 
-# Wait for services to start
-echo "⏳ Waiting for services to start..."
-sleep 5
+echo "================================================" | tee -a "$DEPLOY_LOG"
+echo "Deployment completed at $(date)" | tee -a "$DEPLOY_LOG"
+echo "================================================" | tee -a "$DEPLOY_LOG"
 
-# Health checks
-echo ""
-echo "🏥 Running health checks..."
-
-# Backend health check
-if curl -f http://localhost:5000/health > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Backend is healthy${NC}"
-else
-    echo -e "${YELLOW}⚠️  Backend health check failed${NC}"
-fi
-
-# Frontend health check
-if curl -f http://localhost:3000 > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Frontend is healthy${NC}"
-else
-    echo -e "${YELLOW}⚠️  Frontend health check failed${NC}"
-fi
-
-# Database check
-if pg_isready -U eightblock > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Database is healthy${NC}"
-else
-    echo -e "${YELLOW}⚠️  Database connection issue${NC}"
-fi
-
-# Redis check
-if redis-cli ping > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Redis is healthy${NC}"
-else
-    echo -e "${YELLOW}⚠️  Redis connection issue${NC}"
-fi
-
-# Reload Nginx
-echo ""
-echo "🔄 Reloading Nginx..."
-sudo nginx -s reload
-
-echo ""
-echo "================================"
-echo -e "${GREEN}✅ Deployment completed successfully!${NC}"
-echo ""
-echo "📊 Status:"
-pm2 status
-echo ""
-echo "📝 View logs:"
-echo "  pm2 logs eightblock-backend"
-echo "  pm2 logs eightblock-frontend"
-echo ""
-echo "🌐 Your app should be live at:"
-echo "  Frontend: https://yourdomain.com"
-echo "  API: https://api.yourdomain.com"
+# Send notification (optional)
+# curl -X POST -H 'Content-type: application/json' --data '{"text":"Eightblock deployed successfully!"}' YOUR_SLACK_WEBHOOK_URL
