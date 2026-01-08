@@ -45,6 +45,30 @@ const config = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 
+  // Webpack configuration to suppress MeshSDK warnings
+  webpack: (config, { isServer }) => {
+    // Suppress specific warnings for MeshSDK
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      {
+        module: /@meshsdk\/core-cst/,
+        message: /Critical dependency/,
+      },
+    ];
+
+    // Ensure client-only code doesn't run on server
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+
+    return config;
+  },
+
   // Turbopack configuration (Next.js 16 default)
   turbopack: {},
 };
