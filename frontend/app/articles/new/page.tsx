@@ -186,7 +186,7 @@ export default function NewArticlePage() {
         body: JSON.stringify({
           title: formData.title,
           slug: formData.slug,
-          excerpt: formData.excerpt || undefined,
+          excerpt: formData.excerpt,
           content: formData.content,
           tags: tagsArray,
           featuredImage: featuredImageUrl || undefined,
