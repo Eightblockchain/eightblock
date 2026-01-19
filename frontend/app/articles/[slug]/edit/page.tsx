@@ -137,13 +137,13 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
       return updateArticle(article.id, {
         title: formData.title,
         slug: formData.slug,
-        description: formData.excerpt,
+        excerpt: formData.excerpt,
         content: formData.content,
         tags: formData.tags
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
-        featuredImageUrl,
+        featuredImage: featuredImageUrl,
         status,
       });
     },

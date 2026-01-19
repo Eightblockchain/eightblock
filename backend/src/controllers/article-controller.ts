@@ -380,7 +380,7 @@ export async function updateArticle(req: Request, res: Response) {
       data: {
         title,
         slug,
-        description: excerpt || '',
+        description: excerpt !== undefined ? excerpt : existingArticle.description,
         content,
         category: tags[0] || existingArticle.category,
         featuredImage: featuredImage !== undefined ? featuredImage : existingArticle.featuredImage,

@@ -42,6 +42,48 @@ async function isWalletExtensionEnabled(walletName: string) {
   return false;
 }
 
+// Helper to enable wallet with retry logic for flaky wallets
+async function enableWalletWithRetry(
+  walletName: string,
+  maxRetries = 3,
+  delayMs = 1000
+): Promise<BrowserWallet> {
+  let lastError: any;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(
+        `Attempting to enable ${walletName} wallet (attempt ${attempt}/${maxRetries})...`
+      );
+
+      // Use BrowserWallet.enable() which handles the wallet properly
+      const browserWallet = await BrowserWallet.enable(walletName);
+
+      // Verify we can get an address (validates the wallet is working)
+      const testAddress = await browserWallet.getChangeAddress();
+      if (!testAddress || !testAddress.startsWith('addr')) {
+        throw new Error('Failed to get valid address from wallet');
+      }
+
+      console.log('Wallet enabled successfully');
+      return browserWallet;
+    } catch (error) {
+      lastError = error;
+      console.warn(`Enable attempt ${attempt} failed:`, error);
+
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Wait before retrying (increase delay for each attempt)
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+
+  throw lastError || new Error('Failed to enable wallet after all retries');
+}
+
 function clearWalletStorage() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('walletConnected');
@@ -52,14 +94,18 @@ function clearWalletStorage() {
 function getWalletErrorDetails(error: unknown) {
   const fallback = {
     title: 'Wallet connection failed',
-    description: 'Please try again in a few seconds.',
+    description: 'Please make sure your wallet is unlocked and try again.',
   };
 
   const message =
     typeof error === 'string' ? error : error instanceof Error ? error.message : undefined;
 
-  if (!message) {
-    return fallback;
+  if (!message || message === '{}' || message.trim() === '') {
+    return {
+      title: 'Wallet connection failed',
+      description:
+        'Please ensure your wallet is unlocked and refresh the page if the issue persists.',
+    };
   }
 
   const normalized = message.toLowerCase();
@@ -72,6 +118,13 @@ function getWalletErrorDetails(error: unknown) {
     return {
       title: 'Connection cancelled',
       description: 'You dismissed the wallet request. Try again when you are ready.',
+    };
+  }
+
+  if (normalized.includes('enable') || normalized.includes('enable{}')) {
+    return {
+      title: 'Wallet enable failed',
+      description: 'Please make sure your wallet is unlocked and try connecting again.',
     };
   }
 
@@ -92,15 +145,31 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   >([]);
   const { toast } = useToast();
 
-  // Get available wallets on mount
+  // Get available wallets on mount (client-side only)
   useEffect(() => {
-    const wallets = BrowserWallet.getInstalledWallets();
-    setAvailableWallets(wallets);
+    if (typeof window === 'undefined') return;
+    try {
+      const wallets = BrowserWallet.getInstalledWallets();
+      setAvailableWallets(wallets);
+    } catch (error) {
+      console.warn('Failed to get installed wallets:', error);
+      setAvailableWallets([]);
+    }
   }, []);
 
   const hydrateWalletSession = useCallback(async (walletName: string) => {
-    const browserWallet = await BrowserWallet.enable(walletName);
+    // Check if wallet extension exists
+    const cardanoWallet = getCardanoWalletApi(walletName);
+    if (!cardanoWallet) {
+      throw new Error(`${walletName} wallet not found`);
+    }
+
+    // Enable wallet with retry logic for flaky wallets like VESPR
+    const browserWallet = await enableWalletWithRetry(walletName);
+
+    // Get the change address in proper bech32 format (addr1...)
     const walletAddress = (await browserWallet.getChangeAddress()).toLowerCase();
+
     setWallet(browserWallet);
     setAddress(walletAddress);
     setConnected(true);
@@ -141,8 +210,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({ walletAddress }),
           });
 
-          // Step 2: Sign nonce using raw CIP-30 API (not MeshSDK's broken signData)
-          // Access the wallet's CIP-30 API directly
+          // Step 2: Sign nonce using the wallet API we already have from browserWallet
+          // Get the raw CIP-30 API from the cardano wallet object
           const api = await cardanoWallet.enable();
 
           // CIP-30 signData requires the hex-encoded wallet address

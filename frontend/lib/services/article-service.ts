@@ -27,20 +27,20 @@ export interface Article {
 export interface CreateArticleData {
   title: string;
   slug: string;
-  description: string;
+  excerpt: string;
   content: string;
   tags: string[];
-  featuredImageUrl?: string;
+  featuredImage?: string;
   status: 'DRAFT' | 'PUBLISHED';
 }
 
 export interface UpdateArticleData {
   title: string;
   slug: string;
-  description: string;
+  excerpt: string;
   content: string;
   tags: string[];
-  featuredImageUrl?: string;
+  featuredImage?: string;
   status: 'DRAFT' | 'PUBLISHED';
 }
 

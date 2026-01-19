@@ -20,9 +20,6 @@ export const metadata: Metadata = {
     template: '%s | eightblock',
     default: `${siteConfig.name} - Cardano Community Hub`,
   },
-  icons: {
-    icon: '/favicon.svg',
-  },
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.url),
   openGraph: {
