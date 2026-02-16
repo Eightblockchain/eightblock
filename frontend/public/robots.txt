@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://eightblock.dev/sitemap.xml
+
+# Disallow admin or auth paths
+Disallow: /auth/
+Disallow: /admin/

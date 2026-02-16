@@ -1,3 +1,6 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
@@ -29,7 +32,6 @@ interface ArticleHeaderProps {
   };
   readingTime: number;
   isOwner: boolean;
-  onBack: () => void;
   onEdit?: () => void;
   onPublish?: () => void;
 }
@@ -38,21 +40,25 @@ export function ArticleHeader({
   article,
   readingTime,
   isOwner,
-  onBack,
   onEdit,
   onPublish,
 }: ArticleHeaderProps) {
+  const router = useRouter();
   const publishedDate = new Date(article.publishedAt).toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
     <div className="border-b border-gray-200 bg-gradient-to-b from-white to-gray-50">
       <div className="mx-auto max-w-4xl px-4 py-8">
         <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={onBack} className="-ml-2">
+          <Button variant="ghost" onClick={handleBack} className="-ml-2">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
