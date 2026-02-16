@@ -2,9 +2,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArticleHeader } from '@/components/articles/article-header';
 import { ArticleContent } from '@/components/articles/article-content';
-import { ArticleEngagement } from '@/components/articles/article-engagement';
 import { ArticleAuthor } from '@/components/articles/article-author';
-import { CommentsSection } from '@/components/articles/comments-section';
+import { ArticleInteractiveWrapper } from '@/components/articles/article-interactive-wrapper';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -105,48 +104,18 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     <div className="min-h-screen bg-white">
       <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
 
-      <ArticleHeader
-        article={article}
-        readingTime={readingTime}
-        isOwner={false}
-        onBack={() => {}}
-      />
+      <ArticleHeader article={article} readingTime={readingTime} isOwner={false} />
 
       <ArticleContent content={article.content} />
 
-      {/* Engagement and comments are client components and will hydrate on the client */}
-      <ArticleEngagement
-        likesCount={article._count?.likes || 0}
-        commentsCount={article._count?.comments || 0}
-        userLiked={false}
-        bookmarked={false}
-        isLiking={false}
-        onLike={() => {}}
-        onComment={() => {
-          const commentsSection = document.getElementById('comments');
-          commentsSection?.scrollIntoView({ behavior: 'smooth' });
-        }}
-        onShare={() => {}}
-        onBookmark={() => {}}
+      {/* Engagement and comments are handled by the client component wrapper */}
+      <ArticleInteractiveWrapper
+        articleId={article.id}
+        initialLikesCount={article._count?.likes || 0}
+        initialCommentsCount={article._count?.comments || 0}
       />
 
       <ArticleAuthor author={article.author} />
-
-      <CommentsSection
-        comments={[]}
-        totalComments={article._count?.comments || 0}
-        hasMoreComments={false}
-        isLoadingMoreComments={false}
-        isAuthenticated={false}
-        currentUserId={null}
-        isPostingComment={false}
-        isUpdatingComment={false}
-        isDeletingComment={false}
-        onPostComment={() => {}}
-        onUpdateComment={() => {}}
-        onDeleteComment={() => {}}
-        onLoadMoreComments={() => {}}
-      />
 
       <div className="border-t bg-gray-50 py-12">
         <div className="mx-auto max-w-4xl px-4 text-center">
