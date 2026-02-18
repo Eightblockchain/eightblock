@@ -1,5 +1,27 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+// CSRF token handling
+const CSRF_COOKIE_NAME = 'csrf_token';
+
+function getBrowserCsrfToken() {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+
+  const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+// Helper to add CSRF token to headers
+function getHeadersWithCsrf(additionalHeaders?: HeadersInit): HeadersInit {
+  const headers = new Headers(additionalHeaders);
+  const csrfToken = getBrowserCsrfToken();
+  if (csrfToken) {
+    headers.set('X-CSRF-Token', csrfToken);
+  }
+  return headers;
+}
+
 export interface Comment {
   id: string;
   body: string;
@@ -46,6 +68,7 @@ export async function toggleLike(articleId: string) {
   const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
     method: 'POST',
     credentials: 'include',
+    headers: getHeadersWithCsrf(),
   });
 
   if (!response.ok) {
@@ -60,6 +83,7 @@ export async function removeLike(articleId: string) {
   const response = await fetch(`${API_URL}/articles/${articleId}/likes`, {
     method: 'DELETE',
     credentials: 'include',
+    headers: getHeadersWithCsrf(),
   });
 
   if (!response.ok) {
@@ -110,9 +134,7 @@ export async function createComment(articleId: string, content: string): Promise
   const response = await fetch(`${API_URL}/articles/${articleId}/comments`, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ body: content }),
   });
 
@@ -132,9 +154,7 @@ export async function updateComment(
   const response = await fetch(`${API_URL}/articles/${articleId}/comments/${commentId}`, {
     method: 'PUT',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ body: content }),
   });
 
@@ -150,6 +170,7 @@ export async function deleteComment(articleId: string, commentId: string): Promi
   const response = await fetch(`${API_URL}/articles/${articleId}/comments/${commentId}`, {
     method: 'DELETE',
     credentials: 'include',
+    headers: getHeadersWithCsrf(),
   });
 
   if (!response.ok) {
@@ -199,9 +220,7 @@ export async function createBookmark(articleId: string): Promise<void> {
   const response = await fetch(`${API_URL}/bookmarks`, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ articleId }),
   });
 
@@ -219,6 +238,7 @@ export async function deleteBookmark(articleId: string): Promise<void> {
   const response = await fetch(`${API_URL}/bookmarks/${articleId}`, {
     method: 'DELETE',
     credentials: 'include',
+    headers: getHeadersWithCsrf(),
   });
 
   if (response.status === 401) {

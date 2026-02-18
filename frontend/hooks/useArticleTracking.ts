@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
+// CSRF token handling
+const CSRF_COOKIE_NAME = 'csrf_token';
+
+function getBrowserCsrfToken() {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+
+  const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE_NAME}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
 interface TrackViewOptions {
   articleId: string;
   enabled?: boolean;
@@ -66,13 +78,20 @@ export function useArticleTracking({ articleId, enabled = true }: TrackViewOptio
         const visitorId = getVisitorId();
         const referrer = document.referrer || window.location.origin;
 
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+
+        const csrfToken = getBrowserCsrfToken();
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken;
+        }
+
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/views/${articleId}/track`,
           {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             credentials: 'include',
             body: JSON.stringify({
               visitorId,
