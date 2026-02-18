@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArticleHeader } from '@/components/articles/article-header';
 import { ArticleContent } from '@/components/articles/article-content';
 import { ArticleAuthor } from '@/components/articles/article-author';
-import { ArticleInteractiveWrapper } from '@/components/articles/article-interactive-wrapper';
+import { ArticleClientWrapper } from '@/components/articles/article-client-wrapper';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -108,11 +108,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
       <ArticleContent content={article.content} />
 
-      {/* Engagement and comments are handled by the client component wrapper */}
-      <ArticleInteractiveWrapper
+      {/* Engagement and comments with proper cookie-based authentication */}
+      <ArticleClientWrapper
         articleId={article.id}
+        articleSlug={slug}
         initialLikesCount={article._count?.likes || 0}
         initialCommentsCount={article._count?.comments || 0}
+        isPublished={article.status === 'PUBLISHED'}
       />
 
       <ArticleAuthor author={article.author} />
