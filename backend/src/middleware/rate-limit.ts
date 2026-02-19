@@ -9,19 +9,30 @@ const walletKey = (req: Request) => {
   return `${ip}:${wallet}`;
 };
 
-// General API rate limiter: 100 requests per 15 minutes
+// Detect development environment
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// General API rate limiter: More lenient in development
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: isDevelopment ? 1000 : 100, // 1000 in dev, 100 in production
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for localhost in development
+    if (isDevelopment) {
+      const ip = req.ip || '';
+      return ip === '127.0.0.1' || ip === '::1' || ip.includes('localhost');
+    }
+    return false;
+  },
 });
 
 // Strict rate limiter for authentication: 5 attempts per 15 minutes
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
+  max: isDevelopment ? 50 : 5, // More lenient in development
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -32,7 +43,7 @@ export const authLimiter = rateLimit({
 // Rate limiter for nonce requests: 10 per 5 minutes
 export const nonceLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 10,
+  max: isDevelopment ? 100 : 10, // More lenient in development
   message: 'Too many nonce requests, please wait before trying again.',
   standardHeaders: true,
   legacyHeaders: false,

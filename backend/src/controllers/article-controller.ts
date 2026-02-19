@@ -458,3 +458,147 @@ export async function deleteArticle(req: Request, res: Response) {
     return res.status(500).json({ error: 'Failed to delete article' });
   }
 }
+
+/**
+ * Get related articles based on shared tags
+ */
+export async function getRelatedArticles(req: Request, res: Response) {
+  const { slug } = req.params;
+  const limit = Math.min(parseInt(req.query.limit as string) || 3, 6);
+
+  try {
+    // First, get the current article's tags
+    const currentArticle = await prisma.article.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        tags: {
+          select: {
+            tagId: true,
+          },
+        },
+      },
+    });
+
+    if (!currentArticle) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    const tagIds = currentArticle.tags.map((t) => t.tagId);
+
+    if (tagIds.length === 0) {
+      // If no tags, return recent published articles
+      const recentArticles = await prisma.article.findMany({
+        where: {
+          status: 'PUBLISHED',
+          id: { not: currentArticle.id },
+        },
+        take: limit,
+        orderBy: { publishedAt: 'desc' },
+        include: {
+          author: {
+            select: {
+              id: true,
+              walletAddress: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+          _count: {
+            select: {
+              likes: true,
+              comments: true,
+            },
+          },
+        },
+      });
+
+      return res.json(
+        recentArticles.map((article) => ({
+          ...article,
+          author: {
+            ...article.author,
+            avatarUrl: getFullImageUrl(article.author.avatarUrl || ''),
+          },
+        }))
+      );
+    }
+
+    // Find articles that share tags with the current article
+    const relatedArticles = await prisma.article.findMany({
+      where: {
+        status: 'PUBLISHED',
+        id: { not: currentArticle.id },
+        tags: {
+          some: {
+            tagId: {
+              in: tagIds,
+            },
+          },
+        },
+      },
+      take: limit * 2, // Get more to sort by relevance
+      include: {
+        author: {
+          select: {
+            id: true,
+            walletAddress: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
+
+    // Calculate relevance score based on shared tags
+    const articlesWithScore = relatedArticles.map((article) => {
+      const articleTagIds = article.tags.map((t) => t.tagId);
+      const sharedTags = tagIds.filter((tagId) => articleTagIds.includes(tagId));
+      return {
+        ...article,
+        relevanceScore: sharedTags.length,
+      };
+    });
+
+    // Sort by relevance (most shared tags) then by likes
+    articlesWithScore.sort((a, b) => {
+      if (b.relevanceScore !== a.relevanceScore) {
+        return b.relevanceScore - a.relevanceScore;
+      }
+      return b._count.likes - a._count.likes;
+    });
+
+    // Take top N and format
+    const topRelated = articlesWithScore.slice(0, limit).map((article) => {
+      const { relevanceScore, ...articleData } = article;
+      return {
+        ...articleData,
+        author: {
+          ...articleData.author,
+          avatarUrl: getFullImageUrl(articleData.author.avatarUrl || ''),
+        },
+      };
+    });
+
+    return res.json(topRelated);
+  } catch (error) {
+    logger.error(`getRelatedArticles: ${(error as Error).message}`);
+    return res.status(500).json({ error: 'Failed to fetch related articles' });
+  }
+}

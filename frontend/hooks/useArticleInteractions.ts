@@ -125,7 +125,7 @@ export function useArticleInteractions({
       queryClient.setQueryData(['article-like', articleId, userId], !userLiked);
       return { previousLiked };
     },
-    onSuccess: () => {
+    onSuccess: (data, variables, context) => {
       // Invalidate the specific article query
       queryClient.invalidateQueries({ queryKey: ['article', articleSlug] });
       queryClient.invalidateQueries({ queryKey: ['article-like', articleId, userId] });
@@ -135,9 +135,12 @@ export function useArticleInteractions({
       queryClient.invalidateQueries({ queryKey: ['articles'] });
       queryClient.invalidateQueries({ queryKey: ['trending-articles'] });
 
+      // Use previousLiked from context to show correct message
+      // If previousLiked was false, user just liked. If true, user just unliked.
+      const wasLiked = context?.previousLiked;
       toast.toast?.({
-        title: userLiked ? 'Like removed' : 'Article liked!',
-        description: userLiked ? 'You unliked this article' : 'Thanks for your support!',
+        title: wasLiked ? 'Like removed' : 'Article liked!',
+        description: wasLiked ? 'You unliked this article' : 'Thanks for your support!',
       });
     },
     onError: (error, variables, context) => {

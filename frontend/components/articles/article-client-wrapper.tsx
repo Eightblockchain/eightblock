@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { ArticleEngagement } from '@/components/articles/article-engagement';
 import { CommentsSection } from '@/components/articles/comments-section';
 import { useArticleTracking } from '@/hooks/useArticleTracking';
 import { useArticleInteractions } from '@/hooks/useArticleInteractions';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useState } from 'react';
 
 interface ArticleClientWrapperProps {
   articleId: string;
@@ -21,15 +22,11 @@ export function ArticleClientWrapper({
   initialCommentsCount,
   isPublished,
 }: ArticleClientWrapperProps) {
-  const [userId, setUserId] = useState<string | null>(null);
+  const [likesCount, setLikesCount] = useState(initialLikesCount);
 
-  // Get user ID from localStorage (set during wallet authentication)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedUserId = localStorage.getItem('userId');
-      setUserId(storedUserId);
-    }
-  }, []);
+  // Get authenticated user using React Query
+  const { data: currentUser } = useCurrentUser();
+  const userId = currentUser?.id || null;
 
   // Track article view (automatic on mount)
   useArticleTracking({
@@ -60,6 +57,13 @@ export function ArticleClientWrapper({
     isPublished,
   });
 
+  // Update likes count optimistically when user likes/unlikes
+  const handleLikeWithOptimisticUpdate = () => {
+    // Optimistically update the count
+    setLikesCount((prev) => (userLiked ? prev - 1 : prev + 1));
+    handleLike();
+  };
+
   const handleComment = () => {
     const commentsSection = document.getElementById('comments');
     commentsSection?.scrollIntoView({ behavior: 'smooth' });
@@ -89,12 +93,12 @@ export function ArticleClientWrapper({
   return (
     <>
       <ArticleEngagement
-        likesCount={initialLikesCount}
+        likesCount={likesCount}
         commentsCount={totalComments || initialCommentsCount}
         userLiked={userLiked}
         bookmarked={bookmarked}
         isLiking={likeMutation.isPending}
-        onLike={handleLike}
+        onLike={handleLikeWithOptimisticUpdate}
         onComment={handleComment}
         onShare={() => handleShare(articleSlug, '')}
         onBookmark={handleBookmark}

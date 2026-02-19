@@ -21,6 +21,8 @@ import {
   deleteArticleImage,
 } from '@/lib/services/article-service';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
 interface Article {
   id: string;
   title: string;
@@ -85,17 +87,45 @@ export default function EditArticlePage({ params }: { params: Promise<{ slug: st
   useEffect(() => {
     if (!article) return;
 
-    // Check if user is the author
-    const userId = localStorage.getItem('userId');
-    if (article.author.id !== userId) {
-      toast({
-        title: 'Unauthorized',
-        description: 'You can only edit your own articles',
-        variant: 'destructive',
-      });
-      router.push(`/articles/${slug}`);
-      return;
-    }
+    // Check if user is the author using cookie-based auth
+    const checkAuthorization = async () => {
+      try {
+        const response = await fetch(`${API_URL}/users/me`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          toast({
+            title: 'Authentication required',
+            description: 'Please connect your wallet to edit articles',
+            variant: 'destructive',
+          });
+          router.push(`/articles/${slug}`);
+          return;
+        }
+
+        const user = await response.json();
+        if (article.author.id !== user.id) {
+          toast({
+            title: 'Unauthorized',
+            description: 'You can only edit your own articles',
+            variant: 'destructive',
+          });
+          router.push(`/articles/${slug}`);
+          return;
+        }
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to verify authorization',
+          variant: 'destructive',
+        });
+        router.push(`/articles/${slug}`);
+        return;
+      }
+    };
+
+    checkAuthorization();
 
     setFormData({
       title: article.title,
