@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArticleCard } from './article-card';
 import { useRelatedArticles } from '@/hooks/useRelatedArticles';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface RelatedArticlesProps {
   articleSlug: string;
@@ -38,9 +38,7 @@ export function RelatedArticles({ articleSlug }: RelatedArticlesProps) {
         {/* Section Header */}
         <div className="mb-8 sm:mb-12">
           <div className="flex items-center justify-center gap-2 mb-3">
-            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Related Articles</h2>
-            <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
           </div>
           <p className="text-center text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
             Continue your learning journey with these handpicked articles that share similar topics
