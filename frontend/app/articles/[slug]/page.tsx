@@ -4,6 +4,7 @@ import { ArticleHeader } from '@/components/articles/article-header';
 import { ArticleContent } from '@/components/articles/article-content';
 import { ArticleAuthor } from '@/components/articles/article-author';
 import { ArticleClientWrapper } from '@/components/articles/article-client-wrapper';
+import { RelatedArticles } from '@/components/articles/related-articles';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -119,17 +120,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
       <ArticleAuthor author={article.author} />
 
-      <div className="border-t bg-gray-50 py-12">
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <h2 className="mb-4 text-2xl font-bold text-gray-900">Ready to explore more articles?</h2>
-          <Link
-            href="/"
-            className="inline-block px-6 py-3 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-          >
-            Browse All Articles
-          </Link>
-        </div>
-      </div>
+      {/* Related Articles Section */}
+      <RelatedArticles articleSlug={slug} />
     </div>
   );
 }

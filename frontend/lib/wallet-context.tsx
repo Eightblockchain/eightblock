@@ -88,7 +88,6 @@ function clearWalletStorage() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem('walletConnected');
   localStorage.removeItem('walletName');
-  localStorage.removeItem('userId');
 }
 
 function getWalletErrorDetails(error: unknown) {
@@ -231,8 +230,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
             }),
           });
 
-          // Store only user ID (token is in httpOnly cookie)
-          localStorage.setItem('userId', data.user.id);
+          // Token is stored in httpOnly cookie by the backend
+          // User info can be fetched from /api/users/me when needed
 
           console.log('Wallet authenticated successfully:', data.user);
         } catch (authError) {
