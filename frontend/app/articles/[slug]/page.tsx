@@ -6,24 +6,70 @@ import { ArticleAuthor } from '@/components/articles/article-author';
 import { ArticleClientWrapper } from '@/components/articles/article-client-wrapper';
 import { RelatedArticles } from '@/components/articles/related-articles';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev';
+
+/**
+ * Returns a publicly accessible absolute image URL, or null.
+ * Rejects localhost/relative URLs so social bots (which can't reach localhost) don't get broken images.
+ */
+function sanitizeOgImageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return null;
+    return url;
+  } catch {
+    // relative path — not usable directly for OG
+    return null;
+  }
+}
+
+export const revalidate = 3600; // Re-generate pages every hour
+
+export async function generateStaticParams() {
+  try {
+    let slugs: { slug: string }[] = [];
+    let page = 1;
+    while (true) {
+      const res = await fetch(`${API_URL}/articles?page=${page}&limit=100&status=PUBLISHED`);
+      if (!res.ok) break;
+      const data = await res.json();
+      const articles = Array.isArray(data) ? data : data.articles ?? [];
+      if (articles.length === 0) break;
+      slugs = slugs.concat(articles.map((a: { slug: string }) => ({ slug: a.slug })));
+      if (!data.pagination || page >= data.pagination.totalPages) break;
+      page++;
+    }
+    return slugs;
+  } catch {
+    return [];
+  }
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   try {
-    const res = await fetch(`${API_URL}/articles/${slug}`, { cache: 'no-store' });
+    const res = await fetch(`${API_URL}/articles/${slug}`, { next: { revalidate: 3600 } });
     if (!res.ok) return {};
     const article = await res.json();
 
     const title = article.title;
-    const description = article.description || article.content.slice(0, 160);
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev';
-    const url = `${baseUrl}/articles/${slug}`;
+    const rawDesc = article.description || article.content?.slice(0, 200) || '';
+    const description = rawDesc.length > 160
+      ? rawDesc.slice(0, rawDesc.lastIndexOf(' ', 160)) + '…'
+      : rawDesc.trim();
+    const url = `${BASE_URL}/articles/${slug}`;
 
-    // Generate dynamic OG image or use article's featured image
-    const ogImage =
-      article.featuredImage ||
-      `${baseUrl}/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description.slice(0, 100))}`;
+    // Use article's featured image if it's a public https URL, otherwise generate a dynamic OG image.
+    // Use a relative path for the dynamic OG so Next.js resolves it via metadataBase
+    // (guarantees correct production domain regardless of NEXT_PUBLIC_SITE_URL env var).
+    const safeFeaturedImage = sanitizeOgImageUrl(article.featuredImage);
+    const ogImageUrl = safeFeaturedImage
+      ? safeFeaturedImage
+      : `/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description.slice(0, 100))}`;
+
+    const ogImageEntry = { url: ogImageUrl, width: 1200, height: 630, alt: title };
 
     return {
       title,
@@ -34,17 +80,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         title,
         description,
         url,
-        images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+        images: [ogImageEntry],
         type: 'article',
         publishedTime: article.publishedAt,
-        authors: [article.author?.name || 'Anonymous'],
+        modifiedTime: article.updatedAt || article.publishedAt,
+        authors: [`${BASE_URL}/profile/${article.author?.walletAddress}`],
         siteName: 'Eightblock',
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description,
-        images: [ogImage],
+        images: [ogImageUrl],
       },
       alternates: {
         canonical: url,
@@ -60,7 +107,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 async function fetchArticle(slug: string) {
-  const response = await fetch(`${API_URL}/articles/${slug}`);
+  const response = await fetch(`${API_URL}/articles/${slug}`, { next: { revalidate: 3600 } });
   if (!response.ok) {
     if (response.status === 404) throw new Error('Article not found');
     throw new Error('Failed to fetch article');
@@ -85,25 +132,51 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const readingTime = article ? Math.ceil(article.content.split(' ').length / 200) : 0;
 
   // JSON-LD structured data
+  const canonicalUrl = `${BASE_URL}/articles/${slug}`;
+  const safeImage = sanitizeOgImageUrl(article.featuredImage) || `${BASE_URL}/og.png`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: article.title,
-    description: article.description,
-    image:
-      article.featuredImage ||
-      `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev'}/og.png`,
+    description: article.description || '',
+    image: safeImage,
+    url: canonicalUrl,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': canonicalUrl,
+    },
     author: {
       '@type': 'Person',
       name: article.author?.name || 'Anonymous',
+      url: `${BASE_URL}/profile/${article.author?.walletAddress}`,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Eightblock',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${BASE_URL}/logo.svg`,
+      },
     },
     datePublished: article.publishedAt,
-    mainEntityOfPage: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev'}/articles/${slug}`,
+    dateModified: article.updatedAt || article.publishedAt,
+    keywords: article.tags?.map((t: any) => t.tag.name).join(', ') || '',
+  };
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: BASE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Articles', item: `${BASE_URL}/articles` },
+      { '@type': 'ListItem', position: 3, name: article.title },
+    ],
   };
 
   return (
     <div className="min-h-screen bg-white">
       <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
+      <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
 
       <ArticleHeader article={article} readingTime={readingTime} isOwner={false} />
 

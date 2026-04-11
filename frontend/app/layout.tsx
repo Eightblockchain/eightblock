@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: siteConfig.name,
-    images: [{ url: siteConfig.ogImage }],
+    images: [{ url: siteConfig.ogImage, width: 1200, height: 630, alt: `${siteConfig.name} - Cardano Community Hub` }],
     locale: 'en_US',
     type: 'website',
   },
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     creator: '@Eightblock66103',
-    images: [siteConfig.ogImage],
+    images: [{ url: siteConfig.ogImage, width: 1200, height: 630, alt: `${siteConfig.name} - Cardano Community Hub` }],
   },
   robots: {
     index: true,
@@ -66,9 +66,22 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const websiteLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteConfig.name,
+    url: siteConfig.url,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${siteConfig.url}/?search={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <html lang="en">
       <body className={`${lato.variable} font-sans min-h-screen bg-background text-foreground`}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
         <ReactQueryProvider>
           <WalletProvider>
             <div className="flex min-h-screen flex-col">
