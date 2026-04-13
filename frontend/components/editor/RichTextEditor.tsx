@@ -79,7 +79,7 @@ export function RichTextEditor({
       CodeBlockLowlight.configure({
         lowlight,
         HTMLAttributes: {
-          class: 'rounded-lg bg-gray-900 text-gray-100 p-4 font-mono text-sm overflow-x-auto',
+          class: 'rounded-xl font-mono text-sm overflow-x-auto',
         },
       }),
       Table.configure({
@@ -95,7 +95,7 @@ export function RichTextEditor({
       }),
       TableHeader.configure({
         HTMLAttributes: {
-          class: 'border px-4 py-2 bg-gray-100 font-semibold text-left',
+          class: 'border px-4 py-2 font-semibold text-left',
         },
       }),
       TableCell.configure({
@@ -116,9 +116,7 @@ export function RichTextEditor({
       }),
       Typography,
       Highlight.configure({
-        HTMLAttributes: {
-          class: 'bg-yellow-200 px-1 rounded',
-        },
+        multicolor: false,
       }),
     ],
     content,
@@ -145,9 +143,7 @@ export function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: `prose prose-lg sm:prose-xl lg:prose-2xl max-w-none focus:outline-none ${
-          editable ? 'min-h-[${minHeight}]' : ''
-        }`,
+        class: 'prose max-w-none focus:outline-none',
       },
     },
   });
@@ -163,9 +159,12 @@ export function RichTextEditor({
   }
 
   return (
-    <div className="border-2 border-gray-200 rounded-[2px] overflow-hidden bg-white shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+    <div className="overflow-hidden bg-card transition-all">
       {editable && <EditorToolbar editor={editor} />}
-      <div className={`px-4 py-3 ${editable ? 'min-h-[${minHeight}]' : ''}`}>
+      <div
+        className="px-6 py-5"
+        style={editable ? { minHeight } : undefined}
+      >
         <EditorContent editor={editor} />
       </div>
     </div>
