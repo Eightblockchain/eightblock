@@ -1,7 +1,6 @@
 'use client';
 
 import { Eye, Heart, FileText, Users, LucideIcon } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface PublicProfileStatsProps {
   stats?: {
@@ -29,9 +28,9 @@ interface StatCard {
 export function PublicProfileStats({ stats, isLoading }: PublicProfileStatsProps) {
   if (isLoading || !stats) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {[...Array(4)].map((_, idx) => (
-          <Skeleton key={idx} className="h-32 rounded-[2px]" />
+          <div key={idx} className="h-32 rounded-2xl border border-border/20 bg-card animate-pulse" />
         ))}
       </div>
     );
@@ -39,58 +38,57 @@ export function PublicProfileStats({ stats, isLoading }: PublicProfileStatsProps
 
   const statCards: StatCard[] = [
     {
-      label: 'Articles published',
+      label: 'Articles',
       value: stats.articles,
       icon: FileText,
-      accent: 'bg-primary text-white',
+      accent: 'border-primary/25 bg-primary/10 text-primary',
       description: 'Stories live on EightBlock',
     },
     {
       label: 'Total views',
       value: stats.views,
       icon: Eye,
-      accent: 'bg-secondary text-black',
+      accent: 'border-accent/25 bg-accent/10 text-accent',
       description: `${numberFormatter.format(stats.uniqueViews)} unique readers`,
     },
     {
       label: 'Total likes',
       value: stats.likes,
       icon: Heart,
-      accent: 'bg-primary-700 text-white',
+      accent: 'border-rose-400/25 bg-rose-400/10 text-rose-400',
       description: 'Organic appreciation',
     },
     {
-      label: 'Community reach',
+      label: 'Unique readers',
       value: stats.uniqueViews,
       icon: Users,
-      accent: 'bg-secondary-600 text-black',
+      accent: 'border-border/40 bg-card/60 text-foreground/50',
       description: 'Reach across the network',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
       {statCards.map((stat) => {
         const Icon = stat.icon;
         return (
           <div
             key={stat.label}
-            className="rounded-[2px] border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
+            className="relative overflow-hidden rounded-2xl border border-border/30 bg-card p-5
+              hover:border-border/55 transition-all duration-200"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  {stat.label}
-                </p>
-                <p className="mt-3 text-3xl font-bold text-foreground">
-                  {numberFormatter.format(stat.value)}
-                </p>
-                <p className="mt-2 text-xs text-muted-foreground">{stat.description}</p>
-              </div>
-              <div className={`rounded-[2px] p-3 shadow-sm ${stat.accent}`}>
-                <Icon className="h-6 w-6" />
-              </div>
+            <div className="mb-3">
+              <span className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border ${stat.accent}`}>
+                <Icon className="h-4 w-4" />
+              </span>
             </div>
+            <p className="text-2xl font-black tabular-nums text-foreground/90">
+              {numberFormatter.format(stat.value)}
+            </p>
+            <p className="mt-1 font-mono text-[10px] tracking-[0.12em] uppercase text-muted-foreground/35">
+              {stat.label}
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground/25">{stat.description}</p>
           </div>
         );
       })}

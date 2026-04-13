@@ -12,13 +12,6 @@ export function useProfile() {
   const [isChecking, setIsChecking] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [allStats, setAllStats] = useState({
-    published: 0,
-    drafts: 0,
-    totalLikes: 0,
-    totalViews: 0,
-    totalUniqueViews: 0,
-  });
 
   useEffect(() => {
     // Wait for wallet to finish attempting reconnection
@@ -61,42 +54,37 @@ export function useProfile() {
     enabled: !!address && connected,
   });
 
+  // Query for all-time stats (single fetch, cached separately from pagination)
+  const { data: statsData } = useQuery({
+    queryKey: ['profile-stats', address],
+    queryFn: async () => {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
+      const response = await fetch(`${API_URL}/articles/wallet/${address}?page=1&limit=1000`);
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const result = await response.json();
+      const allArticles: any[] = result.articles || [];
+      return {
+        published: allArticles.filter((a) => a.status === 'PUBLISHED').length,
+        drafts: allArticles.filter((a) => a.status === 'DRAFT').length,
+        totalLikes: allArticles.reduce((sum, a) => sum + (a._count?.likes || 0), 0),
+        totalViews: allArticles.reduce((sum, a) => sum + (a.viewCount || 0), 0),
+        totalUniqueViews: allArticles.reduce((sum, a) => sum + (a.uniqueViews || 0), 0),
+      };
+    },
+    enabled: !!address && connected,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const allStats = statsData ?? {
+    published: 0,
+    drafts: 0,
+    totalLikes: 0,
+    totalViews: 0,
+    totalUniqueViews: 0,
+  };
+
   const articles = data?.articles ?? [];
   const pagination = data?.pagination ?? { page: 1, totalPages: 0, total: 0 };
-
-  // Fetch all articles stats (without pagination) for accurate stats display
-  useEffect(() => {
-    async function fetchAllStats() {
-      if (address && connected) {
-        try {
-          const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
-          const response = await fetch(`${API_URL}/articles/wallet/${address}?page=1&limit=1000`);
-          if (response.ok) {
-            const data = await response.json();
-            const allArticles = data.articles || [];
-            const published = allArticles.filter((a: any) => a.status === 'PUBLISHED').length;
-            const drafts = allArticles.filter((a: any) => a.status === 'DRAFT').length;
-            const totalLikes = allArticles.reduce(
-              (sum: number, a: any) => sum + (a._count?.likes || 0),
-              0
-            );
-            const totalViews = allArticles.reduce(
-              (sum: number, a: any) => sum + (a.viewCount || 0),
-              0
-            );
-            const totalUniqueViews = allArticles.reduce(
-              (sum: number, a: any) => sum + (a.uniqueViews || 0),
-              0
-            );
-            setAllStats({ published, drafts, totalLikes, totalViews, totalUniqueViews });
-          }
-        } catch (error) {
-          console.error('Failed to fetch all stats:', error);
-        }
-      }
-    }
-    fetchAllStats();
-  }, [address, connected]);
 
   useEffect(() => {
     async function fetchUserData() {

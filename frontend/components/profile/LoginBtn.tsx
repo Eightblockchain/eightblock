@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useWallet } from '@/lib/wallet-context';
-import { Button } from '../ui/button';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useQueryClient } from '@tanstack/react-query';
 import { Avatar } from '../ui/avatar';
 import {
   ChevronDown,
@@ -15,11 +16,10 @@ import {
   PlusCircle,
   Loader2,
   Smartphone,
+  Zap,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { MobileWalletConnect } from './MobileWalletConnect';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export default function LoginBtn() {
   const { connected, connecting, address, connect, disconnect, availableWallets } = useWallet();
@@ -28,158 +28,81 @@ export default function LoginBtn() {
   const [mobileGuideOpen, setMobileGuideOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [pendingWallet, setPendingWallet] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<{
-    name: string | null;
-    avatarUrl: string | null;
-  } | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const profileRequestRef = useRef<AbortController | null>(null);
-  const skipEffectFetchRef = useRef(false);
+  const queryClient = useQueryClient();
 
-  // Detect mobile device
+  const { data: currentUser, isLoading: profileLoading } = useCurrentUser();
+  const userProfile = currentUser
+    ? { name: currentUser.name, avatarUrl: currentUser.avatarUrl }
+    : null;
+
   useEffect(() => {
     const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
-      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
-        userAgent
-      );
+      const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
       const isSmallScreen = window.innerWidth < 768;
       setIsMobile(isMobileDevice && isSmallScreen);
     };
-
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const truncateAddress = (addr: string) => {
-    return `${addr.slice(0, 8)}...${addr.slice(-8)}`;
-  };
-
-  const fetchUserProfile = useCallback(async () => {
-    profileRequestRef.current?.abort();
-    const controller = new AbortController();
-    profileRequestRef.current = controller;
-    setProfileLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/users/me`, {
-        credentials: 'include',
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUserProfile({ name: data.name, avatarUrl: data.avatarUrl });
-        return;
-      }
-
-      if (response.status === 401) {
-        setUserProfile(null);
-        return;
-      }
-
-      const errorText = await response.text();
-      console.error('Failed to fetch user profile:', errorText);
-      setUserProfile(null);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return;
-      }
-      console.error('Failed to fetch user profile:', error);
-      setUserProfile(null);
-    } finally {
-      if (profileRequestRef.current === controller) {
-        setProfileLoading(false);
-        profileRequestRef.current = null;
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (connected && address) {
-      if (skipEffectFetchRef.current) {
-        skipEffectFetchRef.current = false;
-        return;
-      }
-      void fetchUserProfile();
-    } else if (!connected) {
-      profileRequestRef.current?.abort();
-      profileRequestRef.current = null;
-      setProfileLoading(false);
-      setUserProfile(null);
-    }
-  }, [connected, address, fetchUserProfile]);
-
-  useEffect(() => {
-    return () => {
-      profileRequestRef.current?.abort();
-    };
-  }, []);
+  const truncateAddress = (addr: string) => `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 
   const handleWalletSelect = async (walletName: string) => {
     setPendingWallet(walletName);
-    setUserProfile(null);
-    profileRequestRef.current?.abort();
-    skipEffectFetchRef.current = true;
     try {
       await connect(walletName);
-      await fetchUserProfile();
+      // Invalidate the current-user query so LoginBtn re-fetches fresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['current-user'] });
       setWalletPickerOpen(false);
       setShowProfileMenu(false);
     } catch (error) {
       console.error('Failed to connect selected wallet:', error);
     } finally {
       setPendingWallet(null);
-      skipEffectFetchRef.current = false;
     }
   };
 
   const handleDisconnect = useCallback(async () => {
-    profileRequestRef.current?.abort();
-    profileRequestRef.current = null;
-    skipEffectFetchRef.current = false;
-    setProfileLoading(false);
-    setUserProfile(null);
     await disconnect();
-  }, [disconnect]);
+    queryClient.setQueryData(['current-user'], null);
+  }, [disconnect, queryClient]);
 
   useEffect(() => {
-    if (connected) {
-      setWalletPickerOpen(false);
-      setPendingWallet(null);
-    }
+    if (connected) { setWalletPickerOpen(false); setPendingWallet(null); }
   }, [connected]);
 
+  useEffect(() => {
+    const handler = () => handleConnectClick();
+    window.addEventListener('open-wallet-picker', handler);
+    return () => window.removeEventListener('open-wallet-picker', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, availableWallets]);
+
   const handleConnectClick = () => {
-    // If on mobile with no wallets detected, show mobile guide
-    if (isMobile && availableWallets.length === 0) {
-      setMobileGuideOpen(true);
-      return;
-    }
-
-    if (availableWallets.length === 0) {
-      setWalletPickerOpen(true);
-      return;
-    }
-
-    if (availableWallets.length === 1) {
-      void handleWalletSelect(availableWallets[0].name);
-      return;
-    }
-
+    if (isMobile && availableWallets.length === 0) { setMobileGuideOpen(true); return; }
+    if (availableWallets.length === 0) { setWalletPickerOpen(true); return; }
+    if (availableWallets.length === 1) { void handleWalletSelect(availableWallets[0].name); return; }
     setWalletPickerOpen((prev) => !prev);
   };
 
+  // ── Wallet picker dropdown ────────────────────────────────────────────────
   const walletPicker = walletPickerOpen && (
-    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-2xl z-50">
-      <div className="px-3 py-2 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase">
-        Select Wallet
+    <div className="absolute right-0 mt-2.5 w-64 rounded-2xl border border-border/60
+      bg-card shadow-2xl shadow-black/50 overflow-hidden z-50
+      animate-in fade-in slide-in-from-top-2 duration-150">
+      <div className="px-4 py-2.5 border-b border-border/40">
+        <div className="flex items-center gap-2">
+          <div className="h-px w-4 bg-primary/50" />
+          <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-primary/60">
+            Select Wallet
+          </span>
+        </div>
       </div>
-      <div className="max-h-64 overflow-y-auto">
+      <div className="max-h-60 overflow-y-auto p-1.5">
         {availableWallets.length === 0 ? (
-          <p className="px-3 py-4 text-sm text-gray-500">
+          <p className="px-3 py-4 text-[13px] text-muted-foreground/50 text-center leading-relaxed">
             No wallets detected. Install a Cardano wallet extension to continue.
           </p>
         ) : (
@@ -190,98 +113,106 @@ export default function LoginBtn() {
                 key={wallet.name}
                 onClick={() => void handleWalletSelect(wallet.name)}
                 disabled={isPending}
-                className={`w-full text-left px-3 py-2 text-sm rounded flex items-center gap-3 text-gray-700 hover:bg-gray-100 ${
-                  isPending ? 'opacity-60 cursor-wait' : ''
-                }`}
+                className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3
+                  text-foreground/80 hover:bg-card/70 hover:text-foreground
+                  transition-all duration-150 ${isPending ? 'opacity-60 cursor-wait' : ''}`}
               >
-                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Wallet className="h-4 w-4 text-gray-600" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl
+                  border border-border/50 bg-background/60">
+                  <Wallet className="h-3.5 w-3.5 text-primary/70" />
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium">{wallet.name}</p>
-                  <p className="text-xs text-gray-500">v{wallet.version}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-[13px] truncate">{wallet.name}</p>
+                  <p className="font-mono text-[10px] text-muted-foreground/40">v{wallet.version}</p>
                 </div>
-                {isPending && <span className="text-xs text-gray-500">Connecting...</span>}
+                {isPending && (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary/70 flex-shrink-0" />
+                )}
               </button>
             );
           })
         )}
       </div>
-      <div className="border-t border-gray-100 p-2 flex justify-end">
-        <Button variant="ghost" size="sm" onClick={() => setWalletPickerOpen(false)}>
+      <div className="border-t border-border/40 p-2 flex justify-end">
+        <button
+          onClick={() => setWalletPickerOpen(false)}
+          className="px-3 py-1.5 rounded-lg text-[12px] text-muted-foreground/50
+            hover:text-foreground/70 hover:bg-card/60 transition-colors font-medium"
+        >
           Cancel
-        </Button>
+        </button>
       </div>
     </div>
   );
 
+  // ── Connected state ───────────────────────────────────────────────────────
   if (connected && address) {
     return (
       <div className="relative">
-        <Button
+        <button
           onClick={() => setShowProfileMenu(!showProfileMenu)}
-          variant="ghost"
-          className="px-4 text-base flex items-center gap-2"
+          className="flex items-center gap-2.5 rounded-xl border border-border/50 bg-card/40
+            px-3 py-1.5 text-foreground/80 hover:border-border hover:bg-card hover:text-foreground
+            transition-all duration-150"
         >
           <Avatar
             key={userProfile?.avatarUrl ?? address ?? 'wallet-avatar'}
             src={userProfile?.avatarUrl}
             name={userProfile?.name}
             size="xs"
-            className={profileLoading ? 'ring-1 ring-white/20' : ''}
+            className={profileLoading ? 'ring-1 ring-primary/30' : ''}
           />
-          <span className="flex items-center gap-2">
-            {userProfile?.name || truncateAddress(address)}
-            {profileLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />}
+          <span className="text-[13px] font-semibold max-w-[110px] truncate">
+            {profileLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/50" />
+            ) : (
+              userProfile?.name || truncateAddress(address)
+            )}
           </span>
-          <ChevronDown className="h-4 w-4" />
-        </Button>
+          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-150
+            ${showProfileMenu ? 'rotate-180' : ''}`} />
+        </button>
 
         {showProfileMenu && (
-          <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-            <div className="py-1">
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => setShowProfileMenu(false)}
-              >
-                <User className="h-4 w-4" />
-                My Profile
-              </Link>
-              <Link
-                href="/profile/articles"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => setShowProfileMenu(false)}
-              >
-                <FileText className="h-4 w-4" />
-                My Articles
-              </Link>
-              <Link
-                href="/articles/new"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => setShowProfileMenu(false)}
-              >
-                <PlusCircle className="h-4 w-4" />
-                New Article
-              </Link>
-              <Link
-                href="/profile/bookmarks"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                onClick={() => setShowProfileMenu(false)}
-              >
-                <Bookmark className="h-4 w-4" />
-                Bookmarks
-              </Link>
-              <div className="border-t border-gray-200 my-1"></div>
+          <div className="absolute right-0 mt-2.5 w-52 rounded-2xl border border-border/60
+            bg-card shadow-2xl shadow-black/50 overflow-hidden z-50
+            animate-in fade-in slide-in-from-top-2 duration-150">
+            {/* address badge */}
+            <div className="px-4 py-3 border-b border-border/40">
+              <p className="font-mono text-[10px] text-muted-foreground/40 truncate">{address}</p>
+            </div>
+            <div className="p-1.5 space-y-0.5">
+              {[
+                { href: '/profile', icon: User, label: 'My Profile' },
+                { href: '/profile/articles', icon: FileText, label: 'My Articles' },
+                { href: '/articles/new', icon: PlusCircle, label: 'New Article' },
+                { href: '/profile/bookmarks', icon: Bookmark, label: 'Bookmarks' },
+              ].map(({ href, icon: Icon, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setShowProfileMenu(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px]
+                    text-foreground/70 hover:text-foreground hover:bg-card/70
+                    transition-all duration-150"
+                >
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground/50" />
+                  {label}
+                </Link>
+              ))}
+            </div>
+            <div className="border-t border-border/40 p-1.5 space-y-0.5">
               <button
                 onClick={async () => {
                   setShowProfileMenu(false);
                   await handleDisconnect();
                   setWalletPickerOpen(true);
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px]
+                  text-foreground/60 hover:text-foreground/80 hover:bg-card/70
+                  transition-all duration-150"
               >
-                <Wallet className="h-4 w-4" />
+                <Wallet className="h-3.5 w-3.5 text-muted-foreground/40" />
                 Switch Wallet
               </button>
               <button
@@ -289,42 +220,60 @@ export default function LoginBtn() {
                   setShowProfileMenu(false);
                   await handleDisconnect();
                 }}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center gap-2"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px]
+                  text-rose-400/70 hover:text-rose-400 hover:bg-rose-400/8
+                  transition-all duration-150"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-3.5 w-3.5" />
                 Disconnect
               </button>
             </div>
           </div>
         )}
-
         {walletPicker}
       </div>
     );
   }
 
+  // ── Disconnected state — Connect Wallet button ────────────────────────────
   return (
     <>
       <div className="relative">
-        <Button
+        <button
           onClick={handleConnectClick}
           disabled={connecting}
-          variant="default"
-          className="px-4 sm:px-8 text-sm sm:text-base"
+          className="group relative flex items-center gap-2 overflow-hidden rounded-xl
+            bg-primary px-4 py-2 text-[13px] font-bold text-primary-foreground
+            shadow-lg shadow-primary/25
+            hover:shadow-primary/40 hover:brightness-105
+            active:scale-[0.97]
+            transition-all duration-150
+            disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {isMobile && availableWallets.length === 0 ? (
-            <>
-              <Smartphone className="h-4 w-4 mr-2" />
-              Mobile Wallet
-            </>
+          {/* shimmer sweep */}
+          <span className="pointer-events-none absolute inset-0 -translate-x-full
+            bg-gradient-to-r from-transparent via-white/20 to-transparent
+            group-hover:translate-x-full transition-transform duration-500 ease-in-out" />
+
+          {connecting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" />
+          ) : isMobile && availableWallets.length === 0 ? (
+            <Smartphone className="h-3.5 w-3.5 flex-shrink-0" />
           ) : (
-            <>{connecting ? 'Connecting...' : 'Connect Wallet'}</>
+            <Zap className="h-3.5 w-3.5 flex-shrink-0" />
           )}
-        </Button>
+
+          <span>
+            {connecting
+              ? 'Connecting…'
+              : isMobile && availableWallets.length === 0
+              ? 'Mobile Wallet'
+              : 'Connect Wallet'}
+          </span>
+        </button>
         {walletPicker}
       </div>
 
-      {/* Mobile Wallet Guide Sheet */}
       <Sheet open={mobileGuideOpen} onOpenChange={setMobileGuideOpen}>
         <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
           <SheetHeader>
@@ -336,3 +285,5 @@ export default function LoginBtn() {
     </>
   );
 }
+
+
