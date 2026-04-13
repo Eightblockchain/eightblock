@@ -55,7 +55,7 @@ export async function listArticles(req: Request, res: Response) {
           },
           _count: { select: { likes: true, comments: true } },
         },
-        orderBy: { publishedAt: 'desc' },
+        orderBy: [{ score: 'desc' }, { publishedAt: 'desc' }],
         skip,
         take: limit,
       }),

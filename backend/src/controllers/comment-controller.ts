@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { cacheDelPattern } from '../utils/redis.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
+import { refreshScore } from '../utils/score.js';
 
 export async function listComments(req: Request, res: Response) {
   const { articleId } = req.params;
@@ -75,8 +76,8 @@ export async function createComment(req: Request, res: Response) {
     },
   });
 
-  // Invalidate article list cache for real-time updates
-  await cacheDelPattern('articles:page:*');
+  // Recompute score and invalidate cache
+  await refreshScore(articleId);
 
   // Format author avatar URLs
   comment.author.avatarUrl = getFullImageUrl(comment.author.avatarUrl || '');
