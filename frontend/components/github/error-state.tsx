@@ -10,9 +10,9 @@ interface ErrorStateProps {
 
 export const ErrorState = ({ message, linkUrl, linkText }: ErrorStateProps) => {
   return (
-    <Card className="p-8 text-center bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900">
-      <AlertCircle className="h-12 w-12 text-red-600 dark:text-red-400 mx-auto mb-4" />
-      <p className="text-red-600 dark:text-red-400 mb-4">{message}</p>
+    <Card className="p-8 text-center border-destructive/40 bg-destructive/5">
+      <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+      <p className="text-destructive mb-4">{message}</p>
       {linkUrl && linkText && (
         <Link
           href={linkUrl}
