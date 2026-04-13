@@ -34,7 +34,7 @@ export function useArticleInteractions({
   const toast = useToast?.() || { toast: () => {} };
 
   // Check if user liked the article
-  const { data: userLiked = false } = useQuery({
+  const { data: userLiked = false, isLoading: isUserLikedLoading } = useQuery({
     queryKey: ['article-like', articleId, userId],
     queryFn: () => checkUserLike(articleId),
     enabled: !!articleId && !!userId && isPublished,
@@ -280,6 +280,7 @@ export function useArticleInteractions({
   return {
     // State
     userLiked,
+    isUserLikedLoading,
     bookmarked,
     comments,
     totalComments,

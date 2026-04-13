@@ -11,14 +11,14 @@ interface RelatedArticlesProps {
 
 export function RelatedArticles({ articleSlug }: RelatedArticlesProps) {
   // Use React Query hook for data fetching
-  const { data: relatedArticles = [], isLoading } = useRelatedArticles({
+  const { data: relatedArticles = [], isLoading, isError } = useRelatedArticles({
     articleSlug,
     limit: 3,
   });
 
   if (isLoading) {
     return (
-      <div className="border-t bg-gray-50 py-12">
+      <div className="border-t border-border/20 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -28,21 +28,28 @@ export function RelatedArticles({ articleSlug }: RelatedArticlesProps) {
     );
   }
 
-  if (relatedArticles.length === 0) {
+  if (isError || relatedArticles.length === 0) {
     return null;
   }
 
   return (
-    <div className="border-t bg-gray-50 py-12 sm:py-16">
+    <div className="border-t border-border/20 bg-background py-12 sm:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="mb-8 sm:mb-12">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Related Articles</h2>
+        <div className="mb-10 sm:mb-12">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex gap-0.5 items-end">
+              <div className="w-0.5 h-5 bg-primary rounded-full" />
+              <div className="w-0.5 h-3.5 bg-accent rounded-full" />
+              <div className="w-0.5 h-2 bg-muted-foreground/20 rounded-full" />
+            </div>
+            <span className="font-mono text-[11px] uppercase tracking-[0.35em] text-muted-foreground/35">
+              Continue Reading
+            </span>
           </div>
-          <p className="text-center text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
-            Continue your learning journey with these handpicked articles that share similar topics
-          </p>
+          <h2 className="text-[28px] sm:text-[38px] font-black text-foreground tracking-tighter leading-none">
+            Related Articles
+          </h2>
         </div>
 
         {/* Articles Grid */}
@@ -55,10 +62,10 @@ export function RelatedArticles({ articleSlug }: RelatedArticlesProps) {
         </div>
 
         {/* CTA */}
-        <div className="text-center pt-4">
+        <div className="text-center pt-6">
           <Link
             href="/"
-            className="inline-flex items-center justify-center px-6 py-3 text-sm sm:text-base font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center px-7 py-3 text-sm font-bold text-primary-foreground bg-primary rounded-xl hover:bg-primary/90 transition-all duration-200 shadow-lg shadow-primary/20 hover:-translate-y-0.5"
           >
             Explore All Articles
           </Link>

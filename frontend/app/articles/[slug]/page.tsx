@@ -174,11 +174,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
 
-      <ArticleHeader article={article} readingTime={readingTime} isOwner={false} />
+      <ArticleHeader article={article} readingTime={readingTime} />
 
       <ArticleContent content={article.content} />
 
@@ -186,6 +186,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
       <ArticleClientWrapper
         articleId={article.id}
         articleSlug={slug}
+        authorId={article.author?.id ?? null}
         initialLikesCount={article._count?.likes || 0}
         initialCommentsCount={article._count?.comments || 0}
         isPublished={article.status === 'PUBLISHED'}

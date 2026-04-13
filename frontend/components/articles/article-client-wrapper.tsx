@@ -5,11 +5,14 @@ import { CommentsSection } from '@/components/articles/comments-section';
 import { useArticleTracking } from '@/hooks/useArticleTracking';
 import { useArticleInteractions } from '@/hooks/useArticleInteractions';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { Edit2 } from 'lucide-react';
 
 interface ArticleClientWrapperProps {
   articleId: string;
   articleSlug: string;
+  authorId: string | null;
   initialLikesCount: number;
   initialCommentsCount: number;
   isPublished: boolean;
@@ -18,6 +21,7 @@ interface ArticleClientWrapperProps {
 export function ArticleClientWrapper({
   articleId,
   articleSlug,
+  authorId,
   initialLikesCount,
   initialCommentsCount,
   isPublished,
@@ -25,8 +29,9 @@ export function ArticleClientWrapper({
   const [likesCount, setLikesCount] = useState(initialLikesCount);
 
   // Get authenticated user using React Query
-  const { data: currentUser } = useCurrentUser();
+  const { data: currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const userId = currentUser?.id || null;
+  const isOwner = !!userId && !!authorId && userId === authorId;
 
   // Track article view (automatic on mount)
   useArticleTracking({
@@ -37,6 +42,7 @@ export function ArticleClientWrapper({
   // Get article interactions (likes, comments, bookmarks)
   const {
     userLiked,
+    isUserLikedLoading,
     bookmarked,
     comments,
     totalComments,
@@ -57,10 +63,26 @@ export function ArticleClientWrapper({
     isPublished,
   });
 
+  // Once we know the user's like status, correct the count if the ISR-cached
+  // initialLikesCount is stale (e.g. user liked the article after the last revalidation
+  // so the server-rendered count is 0 even though userLiked = true).
+  const countCorrectedRef = useRef(false);
+  useEffect(() => {
+    if (countCorrectedRef.current) return;
+    // Wait until we know who the user is (currentUser query resolved)
+    // and, if logged in, until the like-status query has also resolved.
+    if (isCurrentUserLoading || (userId !== null && isUserLikedLoading)) return;
+    countCorrectedRef.current = true;
+    if (userLiked && likesCount === 0) {
+      // The ISR page was cached before this user's like — bump to at least 1.
+      setLikesCount(1);
+    }
+  }, [isCurrentUserLoading, isUserLikedLoading, userId, userLiked, likesCount]);
+
   // Update likes count optimistically when user likes/unlikes
   const handleLikeWithOptimisticUpdate = () => {
-    // Optimistically update the count
-    setLikesCount((prev) => (userLiked ? prev - 1 : prev + 1));
+    // Floor at 0 to guard against stale initialLikesCount producing -1
+    setLikesCount((prev) => (userLiked ? Math.max(0, prev - 1) : prev + 1));
     handleLike();
   };
 
@@ -92,6 +114,17 @@ export function ArticleClientWrapper({
 
   return (
     <>
+      {isOwner && (
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 mb-4 flex justify-end">
+          <Link
+            href={`/articles/${articleSlug}/edit`}
+            className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+            Edit article
+          </Link>
+        </div>
+      )}
       <ArticleEngagement
         likesCount={likesCount}
         commentsCount={totalComments || initialCommentsCount}
@@ -113,7 +146,7 @@ export function ArticleClientWrapper({
         currentUserId={userId}
         isPostingComment={commentMutation.isPending}
         isUpdatingComment={updateCommentMutation.isPending}
-        isDeletingComment={deleteCommentMutation.isPending}
+        deletingCommentId={deleteCommentMutation.isPending ? (deleteCommentMutation.variables as string) : null}
         onPostComment={handlePostComment}
         onUpdateComment={handleUpdateComment}
         onDeleteComment={handleDeleteComment}
