@@ -16,6 +16,7 @@ function getBrowserCsrfToken() {
 interface TrackViewOptions {
   articleId: string;
   enabled?: boolean;
+  onTracked?: () => void;
 }
 
 interface VisitorAnalytics {
@@ -28,7 +29,7 @@ interface VisitorAnalytics {
  * Hook to track article views and user engagement
  * Automatically tracks time on page and scroll depth
  */
-export function useArticleTracking({ articleId, enabled = true }: TrackViewOptions) {
+export function useArticleTracking({ articleId, enabled = true, onTracked }: TrackViewOptions) {
   const [isTracking, setIsTracking] = useState(false);
   const startTimeRef = useRef<number>(Date.now());
   const maxScrollRef = useRef<number>(0);
@@ -102,6 +103,7 @@ export function useArticleTracking({ articleId, enabled = true }: TrackViewOptio
 
         if (response.ok) {
           hasTrackedRef.current = true;
+          onTracked?.();
           console.log('✅ View tracked successfully');
         }
       } catch (error) {

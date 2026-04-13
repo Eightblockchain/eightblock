@@ -15,6 +15,7 @@ interface ArticleClientWrapperProps {
   authorId: string | null;
   initialLikesCount: number;
   initialCommentsCount: number;
+  initialViewCount: number;
   isPublished: boolean;
 }
 
@@ -24,19 +25,25 @@ export function ArticleClientWrapper({
   authorId,
   initialLikesCount,
   initialCommentsCount,
+  initialViewCount,
   isPublished,
 }: ArticleClientWrapperProps) {
   const [likesCount, setLikesCount] = useState(initialLikesCount);
+  const [viewCount, setViewCount] = useState(initialViewCount);
 
   // Get authenticated user using React Query
   const { data: currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const userId = currentUser?.id || null;
   const isOwner = !!userId && !!authorId && userId === authorId;
 
-  // Track article view (automatic on mount)
+  // Track article view (automatic on mount) — increment local count and notify header
   useArticleTracking({
     articleId,
     enabled: isPublished,
+    onTracked: () => {
+      setViewCount((v) => v + 1);
+      window.dispatchEvent(new CustomEvent('article-view-tracked'));
+    },
   });
 
   // Get article interactions (likes, comments, bookmarks)

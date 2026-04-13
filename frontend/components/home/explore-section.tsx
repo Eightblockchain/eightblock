@@ -100,12 +100,12 @@ function ArticleEntry({
 
           {/* ── CENTER: content ── */}
           <div className="flex-1 min-w-0">
-            {/* Latest indicator — first entry only */}
+            {/* Top indicator — first entry only */}
             {index === 0 && (
               <div className="flex items-center gap-1.5 mb-2.5">
                 <span className="w-1 h-1 rounded-full bg-primary animate-pulse" />
                 <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-primary/55">
-                  Latest
+                  Top Ranked
                 </span>
               </div>
             )}

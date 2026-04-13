@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Calendar, Clock, Eye } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
+import { useState, useEffect } from 'react';
 
 interface ArticleHeaderProps {
   article: {
@@ -30,16 +31,25 @@ interface ArticleHeaderProps {
     }>;
   };
   readingTime: number;
+  viewCountOverride?: number;
 }
 
 export function ArticleHeader({
   article,
   readingTime,
+  viewCountOverride,
 }: ArticleHeaderProps) {
   const router = useRouter();
   const handleBack = () => router.back();
   const hasTags = article.tags && article.tags.length > 0;
 
+  // Start with the SSR count; increment when the view-tracking event fires
+  const [liveViewCount, setLiveViewCount] = useState(viewCountOverride ?? article.viewCount);
+  useEffect(() => {
+    const onTracked = () => setLiveViewCount((c) => c + 1);
+    window.addEventListener('article-view-tracked', onTracked);
+    return () => window.removeEventListener('article-view-tracked', onTracked);
+  }, []);
   const publishedDate = new Date(article.publishedAt).toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'long',
@@ -102,11 +112,11 @@ export function ArticleHeader({
       <span className="opacity-30">·</span>
       <Clock className="h-3 w-3 flex-shrink-0" />
       <span>{readingTime} min read</span>
-      {article.viewCount > 0 && (
+      {liveViewCount > 0 && (
         <>
           <span className="opacity-30">·</span>
           <Eye className="h-3 w-3 flex-shrink-0" />
-          <span>{article.viewCount.toLocaleString()} views</span>
+          <span>{liveViewCount.toLocaleString()} views</span>
         </>
       )}
     </div>
