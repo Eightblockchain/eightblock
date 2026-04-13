@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { UAParser } from 'ua-parser-js';
 import { cache } from '../utils/cache.js';
+import { refreshScore } from '../utils/score.js';
 
 // Track article view with analytics
 export async function trackView(req: Request, res: Response) {
@@ -23,6 +24,26 @@ export async function trackView(req: Request, res: Response) {
       (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
       req.ip ||
       req.socket.remoteAddress;
+
+    // Check if this visitor already has a view record within the last 30 minutes.
+    // This deduplicates the "page load" POST and the "beforeunload" sendBeacon POST
+    // so that a single reading session only counts as one view.
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const recentView = await prisma.articleView.findFirst({
+      where: { articleId, visitorId, viewedAt: { gte: thirtyMinutesAgo } },
+    });
+
+    if (recentView) {
+      // Update engagement analytics on the existing record; do NOT re-increment counters.
+      await prisma.articleView.update({
+        where: { id: recentView.id },
+        data: {
+          ...(timeOnPage !== undefined && { timeOnPage }),
+          ...(scrollDepth !== undefined && { scrollDepth }),
+        },
+      });
+      return res.status(200).json({ success: true, viewId: recentView.id, isUniqueView: false });
+    }
 
     // Check if this is a unique view (same visitor within last 24 hours)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -61,6 +82,11 @@ export async function trackView(req: Request, res: Response) {
         ...(isUniqueView && { uniqueViews: { increment: 1 } }),
       },
     });
+
+    // Refresh ranking score on every unique view (deduped by visitorId)
+    if (isUniqueView) {
+      await refreshScore(articleId);
+    }
 
     return res.status(201).json({
       success: true,
