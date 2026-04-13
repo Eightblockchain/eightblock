@@ -14,9 +14,12 @@ async function fetchAllPublishedArticles(): Promise<Article[]> {
   const articles: Article[] = [];
   let page = 1;
   const limit = 100;
+  // Google enforces a 50,000 URL / 50 MB per-sitemap limit.
+  // Fetch at most 49,994 articles (leaving room for static pages).
+  const MAX_ARTICLE_URLS = 49_994;
 
   try {
-    while (true) {
+    while (articles.length < MAX_ARTICLE_URLS) {
       const res = await fetch(`${API_URL}/articles?page=${page}&limit=${limit}&status=PUBLISHED`, {
         next: { revalidate: 3600 },
       });
@@ -40,7 +43,7 @@ async function fetchAllPublishedArticles(): Promise<Article[]> {
     console.error('Failed to fetch articles for sitemap:', e);
   }
 
-  return articles;
+  return articles.slice(0, MAX_ARTICLE_URLS);
 }
 
 export async function GET() {

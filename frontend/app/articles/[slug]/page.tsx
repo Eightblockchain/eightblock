@@ -28,10 +28,13 @@ function sanitizeOgImageUrl(url: string | null | undefined): string | null {
 export const revalidate = 3600; // Re-generate pages every hour
 
 export async function generateStaticParams() {
+  // Pre-generate only the 1,000 most-recently-published articles at build time.
+  // Remaining slugs are rendered on-demand via ISR (Next.js dynamicParams = true default).
+  const MAX_PREGENERATE = 1000;
   try {
     let slugs: { slug: string }[] = [];
     let page = 1;
-    while (true) {
+    while (slugs.length < MAX_PREGENERATE) {
       const res = await fetch(`${API_URL}/articles?page=${page}&limit=100&status=PUBLISHED`);
       if (!res.ok) break;
       const data = await res.json();
@@ -41,7 +44,7 @@ export async function generateStaticParams() {
       if (!data.pagination || page >= data.pagination.totalPages) break;
       page++;
     }
-    return slugs;
+    return slugs.slice(0, MAX_PREGENERATE);
   } catch {
     return [];
   }
@@ -189,6 +192,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         authorId={article.author?.id ?? null}
         initialLikesCount={article._count?.likes || 0}
         initialCommentsCount={article._count?.comments || 0}
+        initialViewCount={article.viewCount || 0}
         isPublished={article.status === 'PUBLISHED'}
       />
 
