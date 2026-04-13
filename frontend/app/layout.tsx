@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Lato } from 'next/font/google';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { ThemeProvider } from '@/components/layout/theme-provider';
 import { WalletProvider } from '@/lib/wallet-context';
 import { ReactQueryProvider } from '@/lib/react-query-provider';
 import { Toaster } from '@/components/ui/toaster';
@@ -13,6 +14,7 @@ const lato = Lato({
   subsets: ['latin'],
   weight: ['300', '400', '700', '900'],
   variable: '--font-lato',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -79,19 +81,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${lato.variable} font-sans min-h-screen bg-background text-foreground`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
-        <ReactQueryProvider>
-          <WalletProvider>
-            <div className="flex min-h-screen flex-col">
-              <SiteHeader />
-              <main className="flex-1 bg-gradient-to-b from-white to-slate-50">{children}</main>
-              <SiteFooter />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <ReactQueryProvider>
+            <WalletProvider>
+              <div className="flex min-h-screen flex-col">
+                <SiteHeader />
+                <main className="flex-1 bg-background">{children}</main>
+                <SiteFooter />
             </div>
             <Toaster />
           </WalletProvider>
         </ReactQueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
