@@ -4,28 +4,28 @@ import { useSearch } from '@/hooks/useSearch';
 import { SearchTrigger, SearchOverlay, SearchInput, SearchHint } from './search-ui';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-async function searchArticles(query: string) {
-  if (!query.trim()) return [];
-
-  const response = await fetch(`${API_URL}/articles?limit=100`);
-  if (!response.ok) throw new Error('Failed to search articles');
-
+async function fetchArticlePool() {
+  const response = await fetch(`${API_URL}/articles?page=1&limit=30&status=PUBLISHED`);
+  if (!response.ok) throw new Error('Failed to fetch articles');
   const data = await response.json();
-  const searchLower = query.toLowerCase();
-  const words = searchLower.split(/\s+/).filter(Boolean);
+  return Array.isArray(data) ? data : (data.articles ?? []);
+}
 
-  return data.articles
+function clientSearch(articles: any[], query: string) {
+  if (!query.trim()) return [];
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+
+  return articles
     .map((article: any) => {
       let score = 0;
       const titleLower = article.title.toLowerCase();
-      const descLower = article.description.toLowerCase();
-      const categoryLower = article.category?.toLowerCase() || '';
+      const descLower = (article.description || '').toLowerCase();
+      const categoryLower = (article.category || '').toLowerCase();
 
-      // Title matches get highest score
       words.forEach((word) => {
         if (titleLower.includes(word)) score += 10;
         if (descLower.includes(word)) score += 5;
@@ -56,13 +56,20 @@ export default function SearchComponent() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const { data: results = [], isLoading } = useQuery({
-    queryKey: ['search', debouncedQuery],
-    queryFn: () => searchArticles(debouncedQuery),
-    enabled: debouncedQuery.length > 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+  // Fetch article pool ONCE when search opens (cached 10 min)
+  const { data: articlePool = [], isLoading } = useQuery({
+    queryKey: ['search-articles-pool'],
+    queryFn: fetchArticlePool,
+    enabled: isOpen,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
+
+  // Filter client-side
+  const results = useMemo(
+    () => clientSearch(articlePool, debouncedQuery),
+    [articlePool, debouncedQuery]
+  );
 
   return (
     <>
@@ -84,38 +91,46 @@ export default function SearchComponent() {
 
             {/* Search Results Dropdown */}
             {query.length > 0 && (
-              <div className="mt-2 max-h-96 overflow-y-auto rounded-lg bg-white shadow-xl">
+              <div className="mt-2 max-h-[420px] overflow-y-auto rounded-2xl border border-border/60
+                bg-card shadow-2xl shadow-black/50 overflow-hidden">
                 {query.length < 2 ? (
-                  <div className="p-4 text-center text-sm text-gray-500">
-                    Type at least 2 characters...
+                  <div className="p-5 text-center text-[13px] text-muted-foreground/40">
+                    Type at least 2 characters…
                   </div>
-                ) : isLoading || query !== debouncedQuery ? (
-                  <div className="p-4 text-center text-sm text-gray-500">Searching...</div>
+                ) : isLoading ? (
+                  <div className="p-5 text-center text-[13px] text-muted-foreground/40">
+                    Searching…
+                  </div>
                 ) : results.length > 0 ? (
-                  <div className="divide-y">
+                  <div className="divide-y divide-border/25">
                     {results.map((article: any) => (
                       <Link
                         key={article.slug}
                         href={`/articles/${article.slug}`}
                         onClick={closeSearch}
-                        className="block p-4 transition-colors hover:bg-gray-50"
+                        className="block px-5 py-4 transition-colors hover:bg-card/60 group"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 line-clamp-1">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-foreground/90 line-clamp-1 text-[14px]
+                              group-hover:text-foreground transition-colors">
                               {article.title}
                             </h3>
-                            <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+                            <p className="mt-1 text-[13px] text-muted-foreground/50 line-clamp-1">
                               {article.description}
                             </p>
-                            <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                              <span className="rounded bg-gray-100 px-2 py-0.5">
-                                {article.category}
-                              </span>
+                            <div className="mt-2 flex items-center gap-1.5">
+                              {article.category && (
+                                <span className="rounded-lg border border-border/50 bg-background/60
+                                  px-2 py-0.5 font-mono text-[10px] text-muted-foreground/60">
+                                  {article.category}
+                                </span>
+                              )}
                               {article.tags?.slice(0, 2).map((t: any) => (
                                 <span
                                   key={t.tag.id}
-                                  className="rounded bg-blue-50 px-2 py-0.5 text-blue-600"
+                                  className="rounded-lg border border-accent/25 bg-accent/8
+                                    px-2 py-0.5 font-mono text-[10px] text-accent/80"
                                 >
                                   {t.tag.name}
                                 </span>
@@ -128,14 +143,18 @@ export default function SearchComponent() {
                     <Link
                       href={`/?search=${encodeURIComponent(query)}`}
                       onClick={closeSearch}
-                      className="block p-3 text-center text-sm font-medium text-blue-600 hover:bg-gray-50"
+                      className="flex items-center justify-center gap-2 px-5 py-3.5
+                        text-[13px] font-semibold text-primary/80 hover:text-primary
+                        hover:bg-primary/5 transition-colors border-t border-border/25"
                     >
-                      See all results for &ldquo;{query}&rdquo;
+                      See all results for
+                      <span className="text-primary">&ldquo;{query}&rdquo;</span>
                     </Link>
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-sm text-gray-500">
-                    No articles found for &ldquo;{query}&rdquo;
+                  <div className="p-5 text-center text-[13px] text-muted-foreground/40">
+                    No articles found for{' '}
+                    <span className="text-foreground/60">&ldquo;{query}&rdquo;</span>
                   </div>
                 )}
               </div>

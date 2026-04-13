@@ -44,17 +44,21 @@ export function useSearch(): UseSearchReturn {
     }
   }, [isOpen]);
 
-  // Handle ESC key to close search
+  // Handle keyboard shortcuts: ESC to close, Cmd/Ctrl+K to open
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    const handleKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
         closeSearch();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (isOpen) closeSearch();
+        else openSearch();
       }
     };
 
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, closeSearch]);
+    document.addEventListener('keydown', handleKeydown);
+    return () => document.removeEventListener('keydown', handleKeydown);
+  }, [isOpen, closeSearch, openSearch]);
 
   return {
     isOpen,
