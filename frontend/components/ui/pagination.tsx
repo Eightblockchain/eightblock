@@ -39,7 +39,7 @@ const PaginationLink = ({ className, isActive, size = 'icon', ...props }: Pagina
         variant: isActive ? 'outline' : 'ghost',
         size,
       }),
-      isActive && 'border-primary bg-primary text-white hover:bg-primary-600 hover:text-white',
+      isActive && 'border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
       'cursor-pointer',
       className
     )}

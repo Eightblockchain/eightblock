@@ -4,14 +4,63 @@
 
 @import '../styles/editor.css';
 
+/* ============================================================
+   Eightblock Dark Theme — Black + Gold + Blue
+   ============================================================ */
 :root {
+  --background: 0 0% 3%;
+  --foreground: 0 0% 95%;
+
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 95%;
+
+  /* Primary: Gold #ffbe0d */
+  --primary: 44 100% 52%;
+  --primary-foreground: 0 0% 0%;
+
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 80%;
+
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 50%;
+
+  /* Accent: Blue #58B1E1 */
+  --accent: 201 65% 61%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 12%;
+  --input: 0 0% 12%;
+  --ring: 44 100% 52%;
+
+  --radius: 0.625rem;
+}
+
+/* Light theme overrides */
+.light {
   --background: 0 0% 100%;
   --foreground: 0 0% 5%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 5%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 5%;
+  --primary: 40 100% 45%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 201 65% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
   --border: 0 0% 90%;
   --input: 0 0% 90%;
-  --ring: 196 100% 45%;
-  --primary: 196 100% 45%;
-  --secondary: 45 100% 52%;
+  --ring: 40 100% 45%;
 }
 
 html,
@@ -23,15 +72,80 @@ body {
   @apply bg-background text-foreground antialiased;
 }
 
-.prose h2 {
-  @apply text-2xl font-semibold text-foreground mt-10 mb-4;
+/* ============================================================
+   Grid / Glow utilities
+   ============================================================ */
+.grid-bg {
+  background-image: linear-gradient(rgba(255, 190, 13, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 190, 13, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
-.prose p {
-  @apply leading-7 text-muted-foreground;
+.glow-gold {
+  box-shadow: 0 0 30px rgba(255, 190, 13, 0.3), 0 0 80px rgba(255, 190, 13, 0.08);
 }
 
-/* Hide scrollbar for carousel */
+.glow-blue {
+  box-shadow: 0 0 30px rgba(88, 177, 225, 0.3), 0 0 80px rgba(88, 177, 225, 0.08);
+}
+
+.card-glow {
+  border: 1px solid hsl(var(--border));
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-glow:hover {
+  border-color: rgba(255, 190, 13, 0.3);
+  box-shadow: 0 0 0 1px rgba(255, 190, 13, 0.08), 0 8px 32px rgba(255, 190, 13, 0.06);
+}
+
+/* ============================================================
+   Scrolling ticker (hero)
+   ============================================================ */
+@keyframes marquee-scroll {
+  to { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: marquee-scroll 55s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ============================================================
+   Prose (article content)
+   Tie Tailwind Typography's internal CSS vars to design tokens
+   so prose always adapts to both dark and light themes.
+   ============================================================ */
+.prose {
+  --tw-prose-body:        hsl(var(--foreground) / 0.85);
+  --tw-prose-headings:    hsl(var(--foreground));
+  --tw-prose-lead:        hsl(var(--foreground) / 0.8);
+  --tw-prose-links:       hsl(var(--accent));
+  --tw-prose-bold:        hsl(var(--foreground));
+  --tw-prose-counters:    hsl(var(--foreground) / 0.7);
+  --tw-prose-bullets:     hsl(var(--foreground) / 0.4);
+  --tw-prose-hr:          hsl(var(--border));
+  --tw-prose-quotes:      hsl(var(--foreground) / 0.75);
+  --tw-prose-quote-borders: hsl(var(--primary));
+  --tw-prose-captions:    hsl(var(--muted-foreground));
+  --tw-prose-code:        hsl(var(--primary));
+  --tw-prose-pre-code:    hsl(var(--foreground));
+  --tw-prose-pre-bg:      hsl(0 0% 6%);
+  --tw-prose-th-borders:  hsl(var(--border));
+  --tw-prose-td-borders:  hsl(var(--border) / 0.5);
+}
+
+.prose img {
+  @apply rounded-xl;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -41,54 +155,119 @@ body {
   display: none;
 }
 
-/* Mobile-first responsive utilities */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* ============================================================
+   Responsive utilities
+   ============================================================ */
 @layer utilities {
   .container-responsive {
     @apply px-4 sm:px-6 lg:px-8;
   }
-
   .text-responsive-xs {
     @apply text-xs sm:text-sm;
   }
-
   .text-responsive-sm {
     @apply text-sm sm:text-base;
   }
-
   .text-responsive-base {
     @apply text-base sm:text-lg;
   }
-
   .text-responsive-lg {
     @apply text-lg sm:text-xl lg:text-2xl;
   }
-
   .text-responsive-xl {
     @apply text-xl sm:text-2xl lg:text-3xl;
   }
-
   .text-responsive-2xl {
     @apply text-2xl sm:text-3xl lg:text-4xl;
   }
-
   .gap-responsive {
     @apply gap-3 sm:gap-4 lg:gap-6;
   }
-
   .p-responsive {
     @apply p-4 sm:p-6 lg:p-8;
   }
-
   .py-responsive {
     @apply py-4 sm:py-6 lg:py-8;
   }
-
   .px-responsive {
     @apply px-4 sm:px-6 lg:px-8;
   }
 }
 
-/* Touch target improvements for mobile */
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 190, 13, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 190, 13, 0.45), 0 0 80px rgba(255, 190, 13, 0.1);
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.6s ease-out forwards;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+  .animate-glow-pulse {
+    animation: glowPulse 2.5s ease-in-out infinite;
+  }
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--border)) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+/* Mobile touch targets */
 @media (hover: none) and (pointer: coarse) {
   button,
   a {
@@ -97,14 +276,11 @@ body {
   }
 }
 
-/* Prevent text size adjustment on orientation change */
 html {
   -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-/* Improve tap highlighting on mobile */
 * {
   -webkit-tap-highlight-color: transparent;
 }
