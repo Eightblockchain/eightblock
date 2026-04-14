@@ -38,9 +38,10 @@ jobs:
             # Backend updates
             echo "🔧 Updating backend..."
             cd backend
-            pnpm install --prod
+            pnpm install
             npx prisma generate
             npx prisma db push
+            pnpm build
 
             # Frontend updates
             echo "🎨 Building frontend..."
