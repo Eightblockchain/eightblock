@@ -1,9 +1,17 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { BrowserWallet } from '@meshsdk/core';
+import type { BrowserWallet } from '@meshsdk/core';
 import { fetcher } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+
+// Lazy-load @meshsdk/core only in the browser — the package accesses browser globals
+// (localStorage, window.cardano) at module-init time and will crash during SSR if
+// bundled into the server build.
+async function getMeshBrowserWallet() {
+  const { BrowserWallet } = await import('@meshsdk/core');
+  return BrowserWallet;
+}
 
 interface WalletContextType {
   connected: boolean;
@@ -49,6 +57,7 @@ async function enableWalletWithRetry(
   delayMs = 1000
 ): Promise<BrowserWallet> {
   let lastError: any;
+  const BrowserWallet = await getMeshBrowserWallet();
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -147,13 +156,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // Get available wallets on mount (client-side only)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      const wallets = BrowserWallet.getInstalledWallets();
-      setAvailableWallets(wallets);
-    } catch (error) {
-      console.warn('Failed to get installed wallets:', error);
-      setAvailableWallets([]);
-    }
+    getMeshBrowserWallet().then((BrowserWallet) => {
+      try {
+        const wallets = BrowserWallet.getInstalledWallets();
+        setAvailableWallets(wallets);
+      } catch (error) {
+        console.warn('Failed to get installed wallets:', error);
+        setAvailableWallets([]);
+      }
+    });
   }, []);
 
   const hydrateWalletSession = useCallback(async (walletName: string) => {
@@ -180,6 +191,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       setConnecting(true);
       try {
         // Get list of available wallets
+        const BrowserWallet = await getMeshBrowserWallet();
         const installedWallets = BrowserWallet.getInstalledWallets();
 
         if (installedWallets.length === 0) {

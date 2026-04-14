@@ -35,8 +35,10 @@ export function useArticleTracking({ articleId, enabled = true, onTracked }: Tra
   const maxScrollRef = useRef<number>(0);
   const hasTrackedRef = useRef<boolean>(false);
 
-  // Get or create visitor ID
+  // Get or create visitor ID — guard against SSR (bundler may inline this
+  // into the render body where localStorage is not defined in Node.js)
   const getVisitorId = () => {
+    if (typeof window === 'undefined') return '';
     let visitorId = localStorage.getItem('visitor_id');
     if (!visitorId) {
       visitorId = uuidv4();
