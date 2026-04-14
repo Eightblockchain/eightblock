@@ -31,6 +31,8 @@ jobs:
 
             # Pull latest code
             echo "📥 Pulling latest code..."
+            git fetch origin
+            git checkout main
             git pull origin main
 
             # Backend updates
