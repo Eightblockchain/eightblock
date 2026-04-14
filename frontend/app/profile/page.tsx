@@ -248,8 +248,9 @@ export default function ProfilePage() {
   };
 
   const handleShareProfile = async () => {
-    if (!address) return;
-    const shareUrl = `${window.location.origin}/profile/${address}`;
+    const shareAddress = profile?.walletAddress ?? address;
+    if (!shareAddress) return;
+    const shareUrl = `${window.location.origin}/profile/${shareAddress}`;
     try {
       if (navigator.share) {
         await navigator.share({
