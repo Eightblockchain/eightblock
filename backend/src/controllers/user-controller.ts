@@ -24,7 +24,7 @@ export async function getUserByWallet(req: Request, res: Response) {
   try {
     // Try cache first
     const cacheKey = cache.userProfileKey(walletAddress);
-    const cached = await cache.get<any>(cacheKey);
+    const cached = await cache.get<unknown>(cacheKey);
 
     if (cached) {
       return res.json(cached);

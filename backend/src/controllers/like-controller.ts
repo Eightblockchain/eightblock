@@ -1,6 +1,5 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
-import { cacheDelPattern } from '../utils/redis.js';
 import { refreshScore } from '../utils/score.js';
 
 export async function upsertLike(req: Request, res: Response) {

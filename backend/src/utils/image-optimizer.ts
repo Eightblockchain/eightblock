@@ -24,7 +24,7 @@ export async function optimizeImage(
   try {
     // Process the image
     const image = sharp(inputPath);
-    const metadata = await image.metadata();
+    await image.metadata();
 
     // Resize and optimize
     let processedImage = image.resize(width, height, {

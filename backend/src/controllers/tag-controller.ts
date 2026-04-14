@@ -6,7 +6,7 @@ export async function listTags(_req: Request, res: Response) {
   try {
     // Try cache first
     const cacheKey = cache.tagsKey();
-    const cached = await cache.get<any[]>(cacheKey);
+    const cached = await cache.get<unknown[]>(cacheKey);
 
     if (cached) {
       return res.json(cached);
@@ -26,7 +26,7 @@ export async function listTags(_req: Request, res: Response) {
     await cache.set(cacheKey, tags, 600);
 
     return res.json(tags);
-  } catch (error) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Failed to fetch tags' });
   }
 }
@@ -47,7 +47,7 @@ export async function createTag(req: Request, res: Response) {
     await cache.delete(cache.tagsKey());
 
     return res.status(201).json(tag);
-  } catch (error) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Failed to create tag' });
   }
 }
@@ -61,7 +61,7 @@ export async function deleteTag(req: Request, res: Response) {
     await cache.delete(cache.tagsKey());
 
     return res.status(204).send();
-  } catch (error) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Failed to delete tag' });
   }
 }

@@ -240,7 +240,7 @@ export async function getTrendingArticles(req: Request, res: Response) {
   try {
     // Try cache first (cached for 15 minutes)
     const cacheKey = `${cache.trendingKey()}:${limit}:${period}`;
-    const cached = await cache.get<any[]>(cacheKey);
+    const cached = await cache.get<unknown[]>(cacheKey);
 
     if (cached) {
       return res.json(cached);
