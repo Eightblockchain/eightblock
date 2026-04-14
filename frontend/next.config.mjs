@@ -4,6 +4,10 @@ import { withContentlayer } from 'next-contentlayer';
 const config = {
   reactStrictMode: true,
 
+  // Prevent webpack from bundling jsdom (used by isomorphic-dompurify on the server).
+  // When bundled, jsdom cannot resolve its own browser/default-stylesheet.css at build time.
+  serverExternalPackages: ['jsdom', 'isomorphic-dompurify'],
+
   // ESLint configuration for build
   eslint: {
     ignoreDuringBuilds: false,
