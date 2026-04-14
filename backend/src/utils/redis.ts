@@ -52,7 +52,7 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 
 export async function cacheSet(
   key: string,
-  value: any,
+  value: unknown,
   ttl: number = 300 // 5 minutes default
 ): Promise<void> {
   const client = getRedisClient();

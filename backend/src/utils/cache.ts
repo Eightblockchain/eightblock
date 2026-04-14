@@ -26,7 +26,7 @@ export class CacheService {
   /**
    * Set cached data with TTL
    */
-  async set(key: string, data: any, ttl: number = this.defaultTTL): Promise<void> {
+  async set(key: string, data: unknown, ttl: number = this.defaultTTL): Promise<void> {
     const redis = getRedisClient();
     if (!redis) return;
 

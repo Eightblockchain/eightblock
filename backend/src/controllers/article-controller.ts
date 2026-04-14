@@ -16,7 +16,7 @@ export async function listArticles(req: Request, res: Response) {
 
     // Try to get from cache
     const cacheKey = `articles:page:${page}:limit:${limit}`;
-    const cached = await cacheGet<any>(cacheKey);
+    const cached = await cacheGet<unknown>(cacheKey);
 
     if (cached) {
       logger.info(`Cache hit for ${cacheKey}`);
@@ -418,7 +418,7 @@ export async function updateArticle(req: Request, res: Response) {
 
 export async function deleteArticle(req: Request, res: Response) {
   const { id } = req.params;
-  const userId = (req as any).user?.userId;
+  const userId = req.user?.userId;
 
   try {
     // Verify article exists and user owns it
@@ -586,7 +586,7 @@ export async function getRelatedArticles(req: Request, res: Response) {
 
     // Take top N and format
     const topRelated = articlesWithScore.slice(0, limit).map((article) => {
-      const { relevanceScore, ...articleData } = article;
+      const { relevanceScore: _relevanceScore, ...articleData } = article;
       return {
         ...articleData,
         author: {

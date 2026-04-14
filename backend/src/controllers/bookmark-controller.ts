@@ -156,7 +156,7 @@ export async function removeBookmark(req: Request, res: Response) {
     return res.status(204).send();
   } catch (error) {
     logger.error(`removeBookmark: ${(error as Error).message}`);
-    if ((error as any)?.code === 'P2025') {
+    if ((error as { code?: string })?.code === 'P2025') {
       return res.status(404).json({ error: 'Bookmark not found' });
     }
     return res.status(500).json({ error: 'Failed to remove bookmark' });
