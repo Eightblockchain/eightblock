@@ -33,7 +33,7 @@ jobs:
             echo "📥 Pulling latest code..."
             git fetch origin
             git checkout main
-            git pull origin main
+            git reset --hard origin/main
 
             # Backend updates
             echo "🔧 Updating backend..."
