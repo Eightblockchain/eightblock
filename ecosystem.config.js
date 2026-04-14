@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'eightblock-backend',
       cwd: '/var/www/eightblock/backend',
-      script: 'tsx',
-      args: 'src/server.ts',
+      script: 'node',
+      args: 'dist/server.js',
       instances: 2,
       exec_mode: 'cluster',
       env: {
