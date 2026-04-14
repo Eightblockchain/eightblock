@@ -1,11 +1,10 @@
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function ArticleCardSkeleton() {
   return (
-    <Card className="overflow-hidden border-none shadow-none">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card p-4">
       {/* Image skeleton */}
-      <Skeleton className="aspect-video w-full rounded-lg" />
+      <Skeleton className="aspect-video w-full rounded-xl" />
 
       {/* Content skeleton */}
       <div className="mt-4 space-y-3">
@@ -40,15 +39,15 @@ export function ArticleCardSkeleton() {
           <Skeleton className="h-4 w-20" />
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
 export function TrendingArticleCardSkeleton() {
   return (
-    <Card className="relative overflow-hidden border-none shadow-none rounded-[2px]">
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4">
       {/* Image skeleton */}
-      <Skeleton className="aspect-video w-full rounded-[2px]" />
+      <Skeleton className="aspect-video w-full rounded-xl" />
 
       {/* Content skeleton */}
       <div className="mt-4 space-y-2">
@@ -70,14 +69,14 @@ export function TrendingArticleCardSkeleton() {
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
 export function ArticleThumbnailSkeleton() {
   return (
-    <div className="flex gap-4 rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
-      <Skeleton className="h-32 w-48 flex-shrink-0 rounded-[2px]" />
+    <div className="flex gap-4 rounded-2xl border border-border bg-card p-4">
+      <Skeleton className="h-32 w-48 flex-shrink-0 rounded-xl" />
       <div className="flex flex-1 flex-col justify-between">
         <div className="space-y-2">
           <Skeleton className="h-4 w-20" />

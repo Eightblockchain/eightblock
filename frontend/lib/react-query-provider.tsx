@@ -12,10 +12,10 @@ export function ReactQueryProvider({ children }: { children: React.ReactNode }) 
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
+            staleTime: 30 * 1000, // 30 seconds — stale queries refetch on mount/focus
             gcTime: 5 * 60 * 1000, // 5 minutes (previously cacheTime)
-            refetchOnWindowFocus: !isDevelopment, // Disable in dev to reduce requests
-            refetchOnMount: false, // Don't refetch on mount if data exists
+            refetchOnWindowFocus: true, // Re-sync when user returns to tab
+            refetchOnMount: true, // Refetch when a stale query's component mounts
             retry: isDevelopment ? 1 : 3, // Less retries in dev
             retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
           },

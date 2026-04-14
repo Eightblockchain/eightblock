@@ -39,8 +39,11 @@ export async function uploadArticleImage(req: Request, res: Response) {
       format: 'webp',
     });
 
-    // Generate full image URL with backend server address
-    const baseUrl = process.env.API_URL || 'http://localhost:5000';
+    // Generate full image URL with backend server address.
+    // API_URL must be set to the public-facing backend URL in production
+    // (e.g. https://api.eightblock.dev) so that OG image links are accessible to social crawlers.
+    const port = process.env.PORT || '8080';
+    const baseUrl = process.env.API_URL || `http://localhost:${port}`;
     const imageUrl = `${baseUrl}/uploads/articles/${path.basename(optimizedImage.path)}`;
 
     logger.info(`Article image uploaded by user ${userId}: ${imageUrl}`);

@@ -3,10 +3,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X, Plus, Check } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { fetchTags } from '@/lib/services/tag-service';
 
 interface TagInputProps {
@@ -20,24 +16,20 @@ export function TagInput({ value, onChange }: TagInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Parse selected tags from comma-separated value
   const selectedTags = value
     .split(',')
     .map((tag) => tag.trim())
     .filter(Boolean);
 
-  // Fetch all tags using React Query
   const { data: allTags = [], isLoading } = useQuery({
     queryKey: ['tags'],
     queryFn: fetchTags,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
-  // Filter suggestions based on input
   const suggestions = useMemo(() => {
     if (!inputValue.trim()) return [];
-
     return allTags.filter((tag) => {
       const tagName = tag.name.toLowerCase();
       const input = inputValue.toLowerCase();
@@ -45,7 +37,6 @@ export function TagInput({ value, onChange }: TagInputProps) {
     });
   }, [inputValue, allTags, selectedTags]);
 
-  // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -56,7 +47,6 @@ export function TagInput({ value, onChange }: TagInputProps) {
         setShowSuggestions(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -64,26 +54,19 @@ export function TagInput({ value, onChange }: TagInputProps) {
   const addTag = (tagName: string) => {
     const trimmedTag = tagName.trim();
     if (!trimmedTag || selectedTags.includes(trimmedTag)) return;
-
-    const newTags = [...selectedTags, trimmedTag];
-    onChange(newTags.join(', '));
+    onChange([...selectedTags, trimmedTag].join(', '));
     setInputValue('');
     setShowSuggestions(false);
-
-    // Note: New tags will be created when the article is submitted
   };
 
   const removeTag = (tagName: string) => {
-    const newTags = selectedTags.filter((tag) => tag !== tagName);
-    onChange(newTags.join(', '));
+    onChange(selectedTags.filter((tag) => tag !== tagName).join(', '));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
-      if (inputValue.trim()) {
-        addTag(inputValue);
-      }
+      if (inputValue.trim()) addTag(inputValue);
     } else if (e.key === 'Backspace' && !inputValue && selectedTags.length > 0) {
       removeTag(selectedTags[selectedTags.length - 1]);
     }
@@ -91,37 +74,34 @@ export function TagInput({ value, onChange }: TagInputProps) {
 
   return (
     <div className="space-y-3">
-      <Label htmlFor="tags-input">Tags</Label>
 
-      {/* Selected Tags */}
+      {/* Selected pills */}
       {selectedTags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {selectedTags.map((tag) => (
-            <Badge
+            <span
               key={tag}
-              variant="secondary"
-              className="pl-3 pr-1 py-1 text-sm bg-primary/10 text-primary hover:bg-primary/20"
+              className="inline-flex items-center gap-1 rounded-full border border-accent/30
+                bg-accent/10 px-2.5 py-0.5 text-[12px] font-semibold text-accent/80"
             >
               {tag}
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="h-auto p-1 ml-1 hover:bg-transparent"
                 onClick={() => removeTag(tag)}
+                className="flex h-3.5 w-3.5 items-center justify-center rounded-full
+                  hover:bg-accent/20 text-accent/60 hover:text-accent transition-colors"
               >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </span>
           ))}
         </div>
       )}
 
-      {/* Input Field */}
+      {/* Input area */}
       <div className="relative">
-        <Input
+        <input
           ref={inputRef}
-          id="tags-input"
           type="text"
           value={inputValue}
           onChange={(e) => {
@@ -130,62 +110,66 @@ export function TagInput({ value, onChange }: TagInputProps) {
           }}
           onFocus={() => setShowSuggestions(true)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            selectedTags.length === 0
-              ? 'Start typing to see suggestions... (e.g., cardano, blockchain, web3)'
-              : 'Add more tags...'
-          }
-          className="w-full"
+          placeholder={selectedTags.length === 0 ? 'cardano, web3, defi…' : 'Add more…'}
           disabled={isLoading}
+          className="w-full bg-transparent text-[13px] text-foreground
+            placeholder:text-muted-foreground/30
+            focus:outline-none border-none p-0"
         />
 
-        {/* Suggestions Dropdown */}
-        {showSuggestions && (inputValue || suggestions.length > 0 || allTags.length > 0) && (
+        {/* Dropdown */}
+        {showSuggestions && (inputValue || allTags.length > 0) && (
           <div
             ref={suggestionsRef}
-            className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-[2px] shadow-lg max-h-64 overflow-y-auto"
+            className="absolute top-full left-0 z-50 w-full mt-2
+              rounded-2xl border border-border/60 dark:border-border/30
+              bg-card shadow-xl shadow-black/10 dark:shadow-black/40
+              max-h-56 overflow-y-auto"
           >
-            {/* Show filtered suggestions if there's input */}
             {inputValue && suggestions.length > 0 && (
               <>
-                <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b">
-                  Suggested Tags
+                <div className="font-mono text-[9px] tracking-[0.18em] uppercase
+                  text-muted-foreground/40 px-4 py-2.5 border-b border-border/40 dark:border-border/20">
+                  Suggestions
                 </div>
                 {suggestions.map((tag) => (
                   <button
                     key={tag.id}
                     type="button"
-                    className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center justify-between group"
                     onClick={() => addTag(tag.name)}
+                    className="group w-full flex items-center justify-between
+                      px-4 py-2.5 text-[13px] text-foreground/70 hover:text-foreground
+                      hover:bg-muted/40 dark:hover:bg-muted/20
+                      transition-colors duration-100 first-of-type:mt-0"
                   >
-                    <span className="text-sm text-gray-700">{tag.name}</span>
-                    <Check className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {tag.name}
+                    <Check className="h-3.5 w-3.5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 ))}
               </>
             )}
 
-            {/* Option to create new tag */}
-            {inputValue &&
-              !allTags.find((t) => t.name.toLowerCase() === inputValue.toLowerCase()) && (
-                <>
-                  {suggestions.length > 0 && <div className="border-t" />}
-                  <button
-                    type="button"
-                    className="w-full px-3 py-2 text-left hover:bg-primary/5 flex items-center gap-2 text-primary font-medium"
-                    onClick={() => addTag(inputValue)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span className="text-sm">Create &quot;{inputValue}&quot;</span>
-                  </button>
-                </>
-              )}
+            {inputValue && !allTags.find((t) => t.name.toLowerCase() === inputValue.toLowerCase()) && (
+              <>
+                {suggestions.length > 0 && <div className="border-t border-border/40 dark:border-border/20" />}
+                <button
+                  type="button"
+                  onClick={() => addTag(inputValue)}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5
+                    text-[13px] font-semibold text-primary/70 hover:text-primary
+                    hover:bg-primary/5 transition-colors duration-100"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Create &quot;{inputValue}&quot;
+                </button>
+              </>
+            )}
 
-            {/* Show all tags when no input */}
             {!inputValue && allTags.length > 0 && (
               <>
-                <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b">
-                  All Available Tags
+                <div className="font-mono text-[9px] tracking-[0.18em] uppercase
+                  text-muted-foreground/40 px-4 py-2.5 border-b border-border/40 dark:border-border/20">
+                  All Tags
                 </div>
                 {allTags
                   .filter((tag) => !selectedTags.includes(tag.name))
@@ -194,33 +178,35 @@ export function TagInput({ value, onChange }: TagInputProps) {
                     <button
                       key={tag.id}
                       type="button"
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center justify-between group"
                       onClick={() => addTag(tag.name)}
+                      className="group w-full flex items-center justify-between
+                        px-4 py-2.5 text-[13px] text-foreground/70 hover:text-foreground
+                        hover:bg-muted/40 dark:hover:bg-muted/20 transition-colors duration-100"
                     >
-                      <span className="text-sm text-gray-700">{tag.name}</span>
-                      <Check className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {tag.name}
+                      <Check className="h-3.5 w-3.5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                   ))}
               </>
             )}
 
-            {/* Empty state */}
             {!inputValue && allTags.length === 0 && !isLoading && (
-              <div className="px-3 py-6 text-center text-sm text-gray-500">
-                No tags yet. Start typing to create one!
+              <div className="px-4 py-6 text-center font-mono text-[10px] text-muted-foreground/40">
+                No tags yet. Type to create one.
               </div>
             )}
 
-            {/* Loading state */}
             {isLoading && (
-              <div className="px-3 py-6 text-center text-sm text-gray-500">Loading tags...</div>
+              <div className="px-4 py-6 text-center font-mono text-[10px] text-muted-foreground/40">
+                Loading…
+              </div>
             )}
           </div>
         )}
       </div>
 
-      <p className="text-xs text-gray-500">
-        Select from existing tags or type to create new ones. Press Enter or comma to add.
+      <p className="font-mono text-[10px] text-muted-foreground/35">
+        Enter or comma to add · Backspace to remove last
       </p>
     </div>
   );

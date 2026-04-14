@@ -7,152 +7,149 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String    @id @default(cuid())
-  walletAddress String    @unique
-  email         String?   @unique
-  name          String?
-  role          Role      @default(WRITER)
-  avatarUrl     String?
-  bio           String?
-  articles      Article[]
-  comments      Comment[]
-  likes         Like[]
-  bookmarks     Bookmark[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  @@index([walletAddress])
-}
-
 model Article {
-  id            String       @id @default(cuid())
+  id            String         @id @default(uuid())
   title         String
-  slug          String       @unique
+  slug          String         @unique
   description   String
   content       String
   category      String
-  featuredImage String?
-  tags          TagOnArticle[]
-  author        User         @relation(fields: [authorId], references: [id])
   authorId      String
-  likes         Like[]
-  comments      Comment[]
-  bookmarks     Bookmark[]
+  publishedAt   DateTime       @default(now())
+  status        ArticleStatus  @default(DRAFT)
+  featured      Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  uniqueViews   Int            @default(0)
+  viewCount     Int            @default(0)
+  featuredImage String?
+  score         Float          @default(0)
+  author        User           @relation(fields: [authorId], references: [id])
   views         ArticleView[]
-  viewCount     Int          @default(0)
-  uniqueViews   Int          @default(0)
-  publishedAt   DateTime     @default(now())
-  status        ArticleStatus @default(DRAFT)
-  featured      Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  bookmarks     Bookmark[]
+  comments      Comment[]
+  likes         Like[]
+  tags          TagOnArticle[]
 
-  @@index([viewCount])
-  @@index([uniqueViews])
   @@index([authorId])
-  @@index([status])
-  @@index([publishedAt])
-  @@index([featured])
-  @@index([createdAt])
-  @@index([status, publishedAt])
   @@index([authorId, status])
+  @@index([createdAt])
+  @@index([featured])
+  @@index([publishedAt])
+  @@index([status])
+  @@index([status, publishedAt])
+  @@index([status, score])
+  @@index([uniqueViews])
+  @@index([viewCount])
+}
+
+model ArticleView {
+  id          String   @id @default(uuid())
+  articleId   String
+  userId      String?
+  visitorId   String
+  ipAddress   String?
+  userAgent   String?
+  referrer    String?
+  country     String?
+  city        String?
+  device      String?
+  browser     String?
+  os          String?
+  viewedAt    DateTime @default(now())
+  timeOnPage  Int?
+  scrollDepth Int?
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, visitorId, viewedAt])
+  @@index([articleId])
+  @@index([viewedAt])
+  @@index([visitorId])
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String
+  articleId String
+  createdAt DateTime @default(now())
+  article   Article  @relation(fields: [articleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, articleId])
+  @@index([articleId])
+  @@index([userId, createdAt])
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String        @id @default(uuid())
   body      String
-  article   Article  @relation(fields: [articleId], references: [id])
   articleId String
-  author    User     @relation(fields: [authorId], references: [id])
   authorId  String
   status    CommentStatus @default(PENDING)
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
+  article   Article       @relation(fields: [articleId], references: [id])
+  author    User          @relation(fields: [authorId], references: [id])
 
   @@index([articleId])
+  @@index([articleId, createdAt]) // paginated comment queries per article
   @@index([authorId])
   @@index([createdAt])
   @@index([status])
 }
 
 model Like {
-  id        String   @id @default(cuid())
-  article   Article  @relation(fields: [articleId], references: [id])
+  id        String   @id @default(uuid())
   articleId String
-  user      User     @relation(fields: [userId], references: [id])
   userId    String
   createdAt DateTime @default(now())
+  article   Article  @relation(fields: [articleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@unique([articleId, userId])
-  @@index([userId])
-  @@index([createdAt])
   @@index([articleId, createdAt])
-}
-
-model Bookmark {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  article   Article  @relation(fields: [articleId], references: [id])
-  articleId String
-  createdAt DateTime @default(now())
-
-  @@unique([userId, articleId])
-  @@index([userId, createdAt])
-  @@index([articleId])
+  @@index([createdAt])
+  @@index([userId])
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   email     String   @unique
   topics    String[]
   createdAt DateTime @default(now())
 }
 
 model Tag {
-  id     String          @id @default(cuid())
-  name   String          @unique
-  slug   String          @unique
-  posts  TagOnArticle[]
+  id           String         @id @default(uuid())
+  name         String         @unique
+  slug         String         @unique
+  usages       TagOnArticle[]
 }
 
 model TagOnArticle {
-  article   Article @relation(fields: [articleId], references: [id])
   articleId String
-  tag       Tag     @relation(fields: [tagId], references: [id])
   tagId     String
+  article   Article @relation(fields: [articleId], references: [id])
+  tag       Tag     @relation(fields: [tagId], references: [id])
 
   @@id([articleId, tagId])
 }
 
-model ArticleView {
-  id              String   @id @default(cuid())
-  article         Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  articleId       String
-  userId          String?  // Optional - for logged-in users
-  visitorId       String   // Browser fingerprint or session ID
-  ipAddress       String?
-  userAgent       String?
-  referrer        String?
-  country         String?
-  city            String?
-  device          String?  // mobile, desktop, tablet
-  browser         String?
-  os              String?
-  viewedAt        DateTime @default(now())
-  timeOnPage      Int?     // seconds spent on page
-  scrollDepth     Int?     // percentage scrolled
+model User {
+  id            String     @id @default(uuid())
+  walletAddress String     @unique
+  name          String?
+  role          Role       @default(WRITER)
+  avatarUrl     String?
+  bio           String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  email         String?    @unique
+  articles      Article[]
+  bookmarks     Bookmark[]
+  comments      Comment[]
+  likes         Like[]
 
-  @@unique([articleId, visitorId, viewedAt])
-  @@index([articleId])
-  @@index([visitorId])
-  @@index([viewedAt])
-}
-
-enum Role {
-  ADMIN
-  EDITOR
-  WRITER
+  @@index([walletAddress])
 }
 
 enum ArticleStatus {
@@ -165,4 +162,10 @@ enum CommentStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  WRITER
 }

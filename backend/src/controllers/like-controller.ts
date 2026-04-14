@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { cacheDelPattern } from '../utils/redis.js';
+import { refreshScore } from '../utils/score.js';
 
 export async function upsertLike(req: Request, res: Response) {
   const { articleId } = req.params;
@@ -13,8 +14,8 @@ export async function upsertLike(req: Request, res: Response) {
     create: { articleId, userId },
   });
 
-  // Invalidate article list cache for real-time updates
-  await cacheDelPattern('articles:page:*');
+  // Recompute score and invalidate cache
+  await refreshScore(articleId);
 
   return res.json(like);
 }
@@ -26,8 +27,8 @@ export async function removeLike(req: Request, res: Response) {
 
   await prisma.like.delete({ where: { articleId_userId: { articleId, userId } } });
 
-  // Invalidate article list cache for real-time updates
-  await cacheDelPattern('articles:page:*');
+  // Recompute score and invalidate cache
+  await refreshScore(articleId);
 
   return res.status(204).send();
 }

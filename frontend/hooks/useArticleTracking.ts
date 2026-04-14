@@ -16,6 +16,7 @@ function getBrowserCsrfToken() {
 interface TrackViewOptions {
   articleId: string;
   enabled?: boolean;
+  onTracked?: () => void;
 }
 
 interface VisitorAnalytics {
@@ -28,14 +29,16 @@ interface VisitorAnalytics {
  * Hook to track article views and user engagement
  * Automatically tracks time on page and scroll depth
  */
-export function useArticleTracking({ articleId, enabled = true }: TrackViewOptions) {
+export function useArticleTracking({ articleId, enabled = true, onTracked }: TrackViewOptions) {
   const [isTracking, setIsTracking] = useState(false);
   const startTimeRef = useRef<number>(Date.now());
   const maxScrollRef = useRef<number>(0);
   const hasTrackedRef = useRef<boolean>(false);
 
-  // Get or create visitor ID
+  // Get or create visitor ID — guard against SSR (bundler may inline this
+  // into the render body where localStorage is not defined in Node.js)
   const getVisitorId = () => {
+    if (typeof window === 'undefined') return '';
     let visitorId = localStorage.getItem('visitor_id');
     if (!visitorId) {
       visitorId = uuidv4();
@@ -102,6 +105,7 @@ export function useArticleTracking({ articleId, enabled = true }: TrackViewOptio
 
         if (response.ok) {
           hasTrackedRef.current = true;
+          onTracked?.();
           console.log('✅ View tracked successfully');
         }
       } catch (error) {

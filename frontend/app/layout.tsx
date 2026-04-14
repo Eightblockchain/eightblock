@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Lato } from 'next/font/google';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { ThemeProvider } from '@/components/layout/theme-provider';
 import { WalletProvider } from '@/lib/wallet-context';
 import { ReactQueryProvider } from '@/lib/react-query-provider';
 import { Toaster } from '@/components/ui/toaster';
@@ -13,6 +14,7 @@ const lato = Lato({
   subsets: ['latin'],
   weight: ['300', '400', '700', '900'],
   variable: '--font-lato',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -41,7 +43,7 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: siteConfig.name,
-    images: [{ url: siteConfig.ogImage }],
+    images: [{ url: siteConfig.ogImage, width: 1200, height: 630, alt: `${siteConfig.name} - Cardano Community Hub` }],
     locale: 'en_US',
     type: 'website',
   },
@@ -50,7 +52,7 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     creator: '@Eightblock66103',
-    images: [siteConfig.ogImage],
+    images: [{ url: siteConfig.ogImage, width: 1200, height: 630, alt: `${siteConfig.name} - Cardano Community Hub` }],
   },
   robots: {
     index: true,
@@ -66,19 +68,34 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const websiteLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteConfig.name,
+    url: siteConfig.url,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${siteConfig.url}/?search={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${lato.variable} font-sans min-h-screen bg-background text-foreground`}>
-        <ReactQueryProvider>
-          <WalletProvider>
-            <div className="flex min-h-screen flex-col">
-              <SiteHeader />
-              <main className="flex-1 bg-gradient-to-b from-white to-slate-50">{children}</main>
-              <SiteFooter />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <ReactQueryProvider>
+            <WalletProvider>
+              <div className="flex min-h-screen flex-col">
+                <SiteHeader />
+                <main className="flex-1 bg-background">{children}</main>
+                <SiteFooter />
             </div>
             <Toaster />
           </WalletProvider>
         </ReactQueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

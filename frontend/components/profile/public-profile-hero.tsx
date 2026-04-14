@@ -2,8 +2,6 @@
 
 import { Share2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface PublicProfileHeroProps {
   profile?: {
@@ -31,14 +29,14 @@ export function PublicProfileHero({
 }: PublicProfileHeroProps) {
   if (!profile || isLoading) {
     return (
-      <div className="relative overflow-hidden rounded-[2px] border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 p-8 md:p-10">
-        <Skeleton className="h-12 w-32 mb-6 rounded-[2px]" />
+      <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card p-8 md:p-10">
+        <div className="h-8 w-24 rounded-xl bg-card/60 animate-pulse mb-6" />
         <div className="flex items-center gap-4">
-          <Skeleton className="h-20 w-20 rounded-[2px]" />
+          <div className="h-20 w-20 rounded-2xl bg-card/60 animate-pulse flex-shrink-0" />
           <div className="space-y-3 flex-1">
-            <Skeleton className="h-6 w-1/3 rounded-[2px]" />
-            <Skeleton className="h-4 w-1/4 rounded-[2px]" />
-            <Skeleton className="h-4 w-2/3 rounded-[2px]" />
+            <div className="h-6 w-1/3 rounded-xl bg-card/60 animate-pulse" />
+            <div className="h-4 w-1/4 rounded-xl bg-card/60 animate-pulse" />
+            <div className="h-4 w-2/3 rounded-xl bg-card/60 animate-pulse" />
           </div>
         </div>
       </div>
@@ -46,52 +44,71 @@ export function PublicProfileHero({
   }
 
   return (
-    <section className="relative overflow-hidden rounded-[2px] border border-primary-200 bg-gradient-to-br from-primary-600 via-primary-500 to-primary-700 p-8 md:p-10 text-white shadow-xl">
-      <div className="absolute inset-0 opacity-20" aria-hidden>
-        <div className="h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(255,190,13,0.3),_transparent_50%)]" />
+    <section className="relative overflow-hidden rounded-2xl border border-border/30 bg-card shadow-xl shadow-black/20">
+      {/* bg glow */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_0%_0%,hsl(var(--primary)/0.08),transparent)]" />
+      {/* ghost watermark */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 flex items-center overflow-hidden select-none">
+        <span className="font-black leading-none text-foreground/[0.03] translate-x-1/4"
+          style={{ fontSize: 'clamp(80px, 15vw, 220px)' }}>
+          {(profile.name || profile.walletAddress || '').slice(0, 2).toUpperCase()}
+        </span>
       </div>
-      <div
-        className="absolute top-0 right-0 w-64 h-64 bg-secondary/10 rounded-full blur-3xl"
-        aria-hidden
-      />
-      <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-5">
-          <Avatar
-            src={profile.avatarUrl}
-            name={profile.name}
-            size="xl"
-            className="ring-4 ring-white/30 shadow-lg"
-          />
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/90 font-semibold">
-              EightBlock Creator
-            </p>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mt-2">
-              {profile.name || 'Unnamed Creator'}
-            </h1>
-            <p className="mt-2 text-sm text-white/90 font-mono">
-              {formatWallet(profile.walletAddress)}
-            </p>
+
+      <div className="relative z-10 p-8 md:p-10">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="h-px w-5 bg-primary/50" />
+          <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-primary/60">
+            EightBlock Creator
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="flex items-center gap-5">
+            <Avatar
+              src={profile.avatarUrl}
+              name={profile.name}
+              size="xl"
+              className="ring-2 ring-border/40 rounded-2xl shadow-xl flex-shrink-0"
+            />
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground leading-none mb-2">
+                {profile.name || 'Unnamed Creator'}
+              </h1>
+              <p className="font-mono text-[12px] text-muted-foreground/35">
+                {formatWallet(profile.walletAddress)}
+              </p>
+              {profile.bio && (
+                <p className="mt-3 text-[14px] text-foreground/55 leading-relaxed max-w-lg line-clamp-2">
+                  {profile.bio}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              onClick={onShare}
+              className="flex items-center gap-2 rounded-xl border border-border/50 bg-card/40
+                px-3.5 py-2 text-[13px] font-semibold text-foreground/70
+                hover:border-border hover:text-foreground hover:bg-card
+                transition-all duration-150"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </button>
+            <button
+              onClick={onCopyWallet}
+              className="flex items-center gap-2 rounded-xl border border-border/50 bg-card/40
+                px-3.5 py-2 text-[13px] font-semibold text-foreground/70
+                hover:border-border hover:text-foreground hover:bg-card
+                transition-all duration-150"
+            >
+              Copy wallet
+            </button>
           </div>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="secondary" onClick={onShare} className="gap-2 shadow-md">
-            <Share2 className="h-4 w-4" /> Share profile
-          </Button>
-          <Button
-            variant="outline"
-            className="border-2 border-white text-white hover:bg-white hover:text-primary"
-            onClick={onCopyWallet}
-          >
-            Copy wallet
-          </Button>
-        </div>
       </div>
-      {profile.bio && (
-        <p className="relative z-10 mt-6 max-w-3xl text-base text-white/95 leading-relaxed">
-          {profile.bio}
-        </p>
-      )}
     </section>
   );
 }

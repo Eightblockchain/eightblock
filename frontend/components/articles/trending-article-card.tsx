@@ -1,8 +1,6 @@
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
 import Image from 'next/image';
-import { Heart, MessageCircle, TrendingUp } from 'lucide-react';
+import { Heart, MessageCircle, Clock, TrendingUp } from 'lucide-react';
 import { Article } from '@/hooks/useInfiniteArticles';
 
 interface TrendingArticleCardProps {
@@ -11,96 +9,90 @@ interface TrendingArticleCardProps {
   showEngagement?: boolean;
 }
 
-/**
- * Enhanced article card specifically for trending section
- * Shows engagement metrics and trending indicators
- */
+const rankBadgeClass: Record<number, string> = {
+  1: 'bg-primary text-primary-foreground shadow-primary/40',
+  2: 'bg-accent text-accent-foreground shadow-accent/30',
+  3: 'bg-muted text-foreground',
+};
+
 export function TrendingArticleCard({
   article,
   rank,
   showEngagement = true,
 }: TrendingArticleCardProps) {
-  const readingTime = Math.ceil(article.content.split(' ').length / 200);
-  const likesCount = article._count?.likes || 0;
-  const commentsCount = article._count?.comments || 0;
+  const readingTime = Math.ceil((article.content?.split(' ').length || 0) / 200);
+  const likes = article._count?.likes || 0;
+  const comments = article._count?.comments || 0;
   const authorName = article.author?.name || 'Anonymous';
-  const authorAvatar = article.author?.avatarUrl || null;
+  const badgeClass = rank ? (rankBadgeClass[rank] ?? 'bg-muted text-foreground') : '';
 
   return (
-    <Link href={`/articles/${article.slug}`} className="group">
-      <Card className="relative overflow-hidden border-none shadow-none transition-all hover:shadow-lg hover:scale-[1.02] rounded-[2px]">
-        {/* Trending Badge */}
-        {rank && rank <= 3 && (
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-bold text-black shadow-lg">
+    <Link href={`/articles/${article.slug}`} className="group block h-full">
+      <article className="relative overflow-hidden rounded-xl h-full min-h-[280px] bg-card border border-border/60 transition-all duration-300 hover:border-primary/30 hover:-translate-y-0.5">
+        {/* Image */}
+        {article.featuredImage ? (
+          <Image
+            src={article.featuredImage}
+            alt={article.title}
+            fill
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            unoptimized
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        ) : (
+          <div className="absolute inset-0 grid-bg opacity-40" />
+        )}
+
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+        {/* Rank badge */}
+        {rank && (
+          <div
+            className={`absolute top-3 left-3 z-10 flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold shadow-lg ${badgeClass}`}
+          >
             <TrendingUp className="h-3 w-3" />#{rank}
           </div>
         )}
 
-        {/* Article Image */}
-        <div className="aspect-video w-full overflow-hidden rounded-[2px] relative">
-          {article.featuredImage ? (
-            <Image
-              src={article.featuredImage}
-              alt={article.title}
-              width={800}
-              height={450}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
-              unoptimized
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 relative">
-              <div className="absolute inset-0 flex items-center justify-center p-6">
-                <h3 className="text-lg md:text-xl font-bold text-white text-center leading-tight line-clamp-3">
-                  {article.title}
-                </h3>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-secondary/40 to-transparent"></div>
-            </div>
-          )}
-        </div>
-
         {/* Content */}
-        <div className="mt-4 space-y-2">
-          <span className="inline-block px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white bg-primary rounded-full shadow-sm">
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-white/60 mb-1.5">
             {article.category}
           </span>
-          <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+          <h3 className="text-base font-bold text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug mb-2">
             {article.title}
           </h3>
-          <p className="line-clamp-2 text-sm text-gray-600">{article.description}</p>
-
-          {/* Author and Engagement */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between text-xs text-white/60">
             <div className="flex items-center gap-2">
-              <Avatar src={authorAvatar} name={authorName} size="xs" />
-              <div className="flex flex-col">
-                <span className="text-xs font-medium text-gray-700">{authorName}</span>
-                <span className="text-xs text-gray-500">{readingTime} min read</span>
+              <span className="font-medium text-white/80 truncate max-w-[90px]">{authorName}</span>
+              <span className="text-white/30">·</span>
+              <div className="flex items-center gap-1 text-accent">
+                <Clock className="h-3 w-3" />
+                <span>{readingTime} min</span>
               </div>
             </div>
-
-            {showEngagement && (likesCount > 0 || commentsCount > 0) && (
-              <div className="flex items-center gap-3 text-xs text-gray-500">
-                {likesCount > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Heart className="h-3.5 w-3.5 fill-red-100 text-red-500" />
-                    <span className="font-medium">{likesCount}</span>
-                  </div>
+            {showEngagement && (likes > 0 || comments > 0) && (
+              <div className="flex items-center gap-2">
+                {likes > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Heart className="h-3 w-3 text-rose-400" />
+                    {likes}
+                  </span>
                 )}
-                {commentsCount > 0 && (
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="h-3.5 w-3.5 fill-blue-100 text-blue-500" />
-                    <span className="font-medium">{commentsCount}</span>
-                  </div>
+                {comments > 0 && (
+                  <span className="flex items-center gap-1">
+                    <MessageCircle className="h-3 w-3 text-accent" />
+                    {comments}
+                  </span>
                 )}
               </div>
             )}
           </div>
         </div>
-      </Card>
+      </article>
     </Link>
   );
 }

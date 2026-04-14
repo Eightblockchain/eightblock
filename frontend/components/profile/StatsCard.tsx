@@ -1,5 +1,4 @@
-import { Card } from '@/components/ui/card';
-import { Eye, Heart, Coins, FileText, Users } from 'lucide-react';
+import { Eye, Heart, Coins, FileText } from 'lucide-react';
 
 interface StatsCardProps {
   articles: Array<any>;
@@ -22,59 +21,68 @@ export function StatsCard({ articles, stats }: StatsCardProps) {
     stats?.likes || articles.reduce((sum, article) => sum + (article._count?.likes || 0), 0);
   const publishedCount = stats?.articles || articles.filter((a) => a.status === 'PUBLISHED').length;
   const draftCount = stats?.drafts || articles.filter((a) => a.status === 'DRAFT').length;
-  const totalArticles = articles.length;
 
-  const statsData = [
+  const statTiles = [
     {
-      label: 'Total Views',
+      label: 'TOTAL VIEWS',
       value: totalViews.toLocaleString(),
+      sub: `${totalUniqueViews.toLocaleString()} unique`,
       icon: Eye,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      subtitle: `${totalUniqueViews.toLocaleString()} unique`,
+      valueColor: 'text-primary',
+      iconClass: 'border-primary/40 bg-primary/8 text-primary dark:border-primary/25 dark:bg-primary/10',
     },
     {
-      label: 'Total Likes',
+      label: 'TOTAL LIKES',
       value: totalLikes.toLocaleString(),
+      sub: null as string | null,
       icon: Heart,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
+      valueColor: 'text-accent',
+      iconClass: 'border-accent/40 bg-accent/8 text-accent dark:border-accent/25 dark:bg-accent/10',
     },
     {
-      label: 'Articles',
-      value: `${publishedCount}/${totalArticles}`,
+      label: 'ARTICLES',
+      value: publishedCount.toString(),
+      sub: `${draftCount} draft${draftCount !== 1 ? 's' : ''}`,
       icon: FileText,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      subtitle: `${draftCount} drafts`,
+      valueColor: 'text-foreground/80',
+      iconClass: 'border-border bg-muted/60 text-foreground/50 dark:border-border/40 dark:bg-card/60',
     },
     {
-      label: 'Rewards Earned',
-      value: 'Soon',
+      label: 'REWARDS',
+      value: 'V2',
+      sub: 'Coming soon',
       icon: Coins,
-      color: 'text-foreground',
-      bgColor: 'bg-gray-100',
-      subtitle: 'Coming in V2',
+      valueColor: 'text-muted-foreground/50 dark:text-muted-foreground/30',
+      iconClass: 'border-border/60 bg-muted/40 text-muted-foreground/40 dark:border-border/20 dark:bg-card/30 dark:text-muted-foreground/20',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {statsData.map((stat) => {
-        const Icon = stat.icon;
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {statTiles.map((tile) => {
+        const Icon = tile.icon;
         return (
-          <Card key={stat.label} className="p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                {stat.subtitle && <p className="text-xs text-gray-400 mt-1">{stat.subtitle}</p>}
-              </div>
-              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                <Icon className={`h-5 w-5 ${stat.color}`} />
-              </div>
+          <div
+            key={tile.label}
+            className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 dark:border-border/30"
+          >
+            <div className="mb-3">
+              <span
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border ${tile.iconClass}`}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
             </div>
-          </Card>
+            <p className={`text-2xl font-black tabular-nums ${tile.valueColor}`}>
+              {tile.value}
+            </p>
+            <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-muted-foreground/60 dark:text-muted-foreground/35">
+              {tile.label}
+            </p>
+            {tile.sub && (
+              <p className="mt-0.5 text-[11px] text-muted-foreground/50 dark:text-muted-foreground/25">{tile.sub}</p>
+            )}
+          </div>
         );
       })}
     </div>

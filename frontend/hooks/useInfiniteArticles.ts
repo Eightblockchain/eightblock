@@ -54,6 +54,8 @@ export function useInfiniteArticles(limit: number = 10) {
       return page < totalPages ? page + 1 : undefined;
     },
     initialPageParam: 1,
-    staleTime: 30 * 1000, // 30 seconds - aggressive for real-time updates
+    staleTime: 0,             // always considered stale
+    refetchOnMount: 'always', // override global false — refetch when homepage mounts after navigation
+    refetchOnWindowFocus: true, // also refetch when tab regains focus (handles bfcache restore)
   });
 }

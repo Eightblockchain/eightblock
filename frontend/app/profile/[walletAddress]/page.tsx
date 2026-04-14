@@ -32,7 +32,7 @@ export default function PublicProfilePage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4 text-center">
         <div>
-          <p className="text-lg text-gray-600">No wallet address provided.</p>
+          <p className="text-lg text-muted-foreground">No wallet address provided.</p>
         </div>
       </div>
     );
@@ -42,8 +42,8 @@ export default function PublicProfilePage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4 text-center">
         <div className="max-w-md">
-          <p className="text-xl font-semibold text-[#080808] mb-2">Profile unavailable</p>
-          <p className="text-gray-600">
+          <p className="text-xl font-semibold text-foreground mb-2">Profile unavailable</p>
+          <p className="text-muted-foreground">
             {error instanceof Error ? error.message : 'Unable to load this profile right now.'}
           </p>
         </div>
@@ -71,8 +71,8 @@ export default function PublicProfilePage() {
       </section>
 
       <section className="space-y-6">
-        <div className="flex flex-col gap-2 border-l-4 border-secondary pl-4">
-          <p className="text-xs uppercase tracking-[0.2em] font-semibold text-secondary-700">
+        <div className="flex flex-col gap-2 border-l-4 border-primary pl-4">
+          <p className="text-xs uppercase tracking-[0.2em] font-semibold text-primary/60">
             Library
           </p>
           <h2 className="text-3xl font-bold text-foreground">

@@ -1,96 +1,86 @@
 import Link from 'next/link';
 import { Post } from 'contentlayer/generated';
-import { Card } from '@/components/ui/card';
-import { Avatar } from '@/components/ui/avatar';
 import Image from 'next/image';
+import { Clock } from 'lucide-react';
 import { Article } from '@/hooks/useInfiniteArticles';
 
 export function ArticleCard({ post }: { post: Post | Article }) {
-  // Check if this is an Article from the API (has _count field) vs contentlayer Post
   const isArticle = '_count' in post;
   const readingTime =
     'readingTime' in post
       ? post.readingTime
-      : Math.ceil((post.content?.split(' ').length || 0) / 200);
+      : Math.max(1, Math.ceil((post.content?.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).filter(Boolean).length || 0) / 200));
 
   const featuredImage = isArticle ? (post as Article).featuredImage : null;
-
-  // Debug logging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('ArticleCard:', {
-      title: post.title,
-      isArticle,
-      featuredImage,
-      hasCount: '_count' in post,
-    });
-  }
+  const publishedDate = new Date(post.publishedAt).toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 
   return (
-    <Link href={`/articles/${post.slug}`} className="group block">
-      <Card className="overflow-hidden border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
-        {/* Article Image */}
-        <div className="aspect-video w-full overflow-hidden rounded-[2px] relative flex-shrink-0">
+    <Link href={`/articles/${post.slug}`} className="group block h-full">
+      <article className="card-glow h-full flex flex-col overflow-hidden rounded-xl bg-card transition-all duration-300 hover:-translate-y-0.5">
+        {/* Thumbnail */}
+        <div className="aspect-video w-full overflow-hidden relative flex-shrink-0 bg-muted">
           {featuredImage ? (
             <Image
               src={featuredImage}
               alt={post.title}
               width={800}
               height={450}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               unoptimized
-              onError={(e) => {
-                console.error('Image failed to load:', featuredImage);
-                e.currentTarget.style.display = 'none';
-              }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 relative">
+            <div className="h-full w-full bg-card relative">
+              {/* Grid overlay */}
+              <div className="absolute inset-0 grid-bg opacity-60" />
               <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-white text-center leading-tight line-clamp-3">
+                <h3 className="text-sm sm:text-base font-semibold text-foreground/90 text-center leading-tight line-clamp-3">
                   {post.title}
                 </h3>
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
             </div>
           )}
         </div>
 
         {/* Content */}
-        <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3 flex-1 flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="inline-block px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white bg-primary rounded-full shadow-sm">
+        <div className="flex flex-col flex-1 p-4 sm:p-5 gap-3">
+          {/* Category badge */}
+          <div>
+            <span className="inline-flex items-center px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 rounded-full">
               {post.category}
             </span>
           </div>
-          <h3 className="text-base sm:text-lg lg:text-xl font-bold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-2">
+
+          {/* Title */}
+          <h3 className="text-base sm:text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors line-clamp-2 flex-1">
             {post.title}
           </h3>
-          <p className="line-clamp-2 text-xs sm:text-sm text-muted-foreground leading-relaxed flex-1">
+
+          {/* Description */}
+          <p className="line-clamp-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
             {post.description}
           </p>
-          <div className="flex items-center gap-1.5 sm:gap-2 pt-2 text-[10px] sm:text-xs text-muted-foreground">
-            <Avatar
-              src={typeof post.author === 'object' ? post.author?.avatarUrl : null}
-              name={typeof post.author === 'object' ? post.author?.name : post.author}
-              size="xs"
-            />
-            <span className="truncate">
+
+          {/* Footer: author + meta */}
+          <div className="flex items-center justify-between pt-1 border-t border-border/50">
+            <span className="text-xs text-muted-foreground truncate">
               {typeof post.author === 'object'
                 ? post.author?.name || 'Anonymous'
-                : post.author || 'Anonymous'}{' '}
-              <span className="hidden xs:inline">
-                ·{' '}
-                {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}{' '}
-                · {readingTime} min
-              </span>
+                : post.author || 'Anonymous'}
             </span>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0 ml-2">
+              <Clock className="h-3 w-3 text-accent" />
+              <span className="text-accent">{readingTime} min</span>
+              <span className="hidden xs:inline ml-1 text-muted-foreground/40">·</span>
+              <span className="hidden xs:inline text-muted-foreground/70">{publishedDate}</span>
+            </div>
           </div>
         </div>
-      </Card>
+      </article>
     </Link>
   );
 }

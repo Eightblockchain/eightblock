@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Avatar } from '@/components/ui/avatar';
-import { ArrowLeft, Calendar, Clock, Eye, Edit2, Check } from 'lucide-react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Calendar, Clock, Eye } from 'lucide-react';
+import { Avatar } from '@/components/ui/avatar';
+import { useState, useEffect } from 'react';
 
 interface ArticleHeaderProps {
   article: {
@@ -31,128 +31,220 @@ interface ArticleHeaderProps {
     }>;
   };
   readingTime: number;
-  isOwner: boolean;
-  onEdit?: () => void;
-  onPublish?: () => void;
+  viewCountOverride?: number;
 }
 
 export function ArticleHeader({
   article,
   readingTime,
-  isOwner,
-  onEdit,
-  onPublish,
+  viewCountOverride,
 }: ArticleHeaderProps) {
   const router = useRouter();
+  const handleBack = () => router.back();
+  const hasTags = article.tags && article.tags.length > 0;
+
+  // Start with the SSR count; increment when the view-tracking event fires
+  const [liveViewCount, setLiveViewCount] = useState(viewCountOverride ?? article.viewCount);
+  useEffect(() => {
+    const onTracked = () => setLiveViewCount((c) => c + 1);
+    window.addEventListener('article-view-tracked', onTracked);
+    return () => window.removeEventListener('article-view-tracked', onTracked);
+  }, []);
   const publishedDate = new Date(article.publishedAt).toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
 
-  const handleBack = () => {
-    router.back();
-  };
+  /* ─── Shared: badges row ─── */
+  const Badges = ({ overlay = false }: { overlay?: boolean }) => (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span
+        className={`px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest rounded border ${
+          overlay
+            ? 'bg-primary/20 text-primary border-primary/40 backdrop-blur-sm'
+            : 'bg-primary/10 text-primary border-primary/25'
+        }`}
+      >
+        {article.category}
+      </span>
+      {article.status === 'DRAFT' && (
+        <span
+          className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded border ${
+            overlay
+              ? 'bg-card/60 text-muted-foreground/80 border-border/50 backdrop-blur-sm'
+              : 'bg-muted text-muted-foreground border-border/60'
+          }`}
+        >
+          Draft
+        </span>
+      )}
+      {article.featured && (
+        <span
+          className={`px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded border ${
+            overlay
+              ? 'bg-accent/20 text-accent border-accent/40 backdrop-blur-sm'
+              : 'bg-accent/10 text-accent border-accent/30'
+          }`}
+        >
+          Featured
+        </span>
+      )}
+    </div>
+  );
 
-  return (
-    <div className="border-b border-gray-200 bg-gradient-to-b from-white to-gray-50">
-      <div className="mx-auto max-w-4xl px-4 py-8">
-        <div className="flex items-center justify-between mb-4">
-          <Button variant="ghost" onClick={handleBack} className="-ml-2">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
+  /* ─── Shared: meta row ─── */
+  const Meta = ({ overlay = false }: { overlay?: boolean }) => (
+    <div
+      className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] ${
+        overlay ? 'text-white/60' : 'text-muted-foreground/45'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <Avatar src={article.author.avatarUrl} name={article.author.name} size="xs" />
+        <span className={`font-medium ${overlay ? 'text-white/60' : 'text-muted-foreground/80'}`}>
+          {article.author.name || 'Anonymous'}
+        </span>
+      </div>
+      <span className="opacity-30">·</span>
+      <Calendar className="h-3 w-3 flex-shrink-0" />
+      <span>{publishedDate}</span>
+      <span className="opacity-30">·</span>
+      <Clock className="h-3 w-3 flex-shrink-0" />
+      <span>{readingTime} min read</span>
+      {liveViewCount > 0 && (
+        <>
+          <span className="opacity-30">·</span>
+          <Eye className="h-3 w-3 flex-shrink-0" />
+          <span>{liveViewCount.toLocaleString()} views</span>
+        </>
+      )}
+    </div>
+  );
 
-          {article.status === 'DRAFT' && isOwner && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={onEdit}>
-                <Edit2 className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button variant="default" size="sm" onClick={onPublish}>
-                <Check className="mr-2 h-4 w-4" />
-                Publish Now
-              </Button>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{article.category}</Badge>
-            {article.status === 'DRAFT' && (
-              <Badge className="bg-secondary-100 text-secondary-800 hover:bg-secondary-100 border border-secondary-300">
-                Draft
-              </Badge>
-            )}
-            {article.featured && (
-              <Badge className="bg-primary-100 text-primary-800 hover:bg-primary-100 border border-primary-300">
-                Featured
-              </Badge>
-            )}
-          </div>
-
-          <h1 className="text-4xl font-bold leading-tight text-foreground md:text-5xl">
-            {article.title}
-          </h1>
-
-          <p className="text-xl text-muted-foreground leading-relaxed">{article.description}</p>
-
-          {article.featuredImage ? (
-            <div className="relative w-full rounded-[2px] overflow-hidden">
-              <Image
-                src={article.featuredImage}
-                alt={article.title}
-                width={1200}
-                height={630}
-                className="w-full h-auto object-cover"
-                priority
-                unoptimized
-              />
-            </div>
-          ) : (
-            <div className="relative w-full aspect-[1200/630] rounded-[2px] overflow-hidden bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500">
-              <div className="absolute inset-0 flex items-center justify-center p-12">
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-center leading-tight">
-                  {article.title}
-                </h2>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-secondary/40 to-transparent"></div>
-            </div>
-          )}
-
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <Avatar src={article.author.avatarUrl} name={article.author.name} size="sm" />
-              <span>{article.author.name || 'Anonymous'}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              <time dateTime={article.publishedAt}>{publishedDate}</time>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
-              <span>{readingTime} min read</span>
-            </div>
-            {article.viewCount > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Eye className="h-4 w-4" />
-                <span>{article.viewCount.toLocaleString()} views</span>
-              </div>
-            )}
-          </div>
-
-          {article.tags && article.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {article.tags.map((t) => (
-                <Badge key={t.tag.id} variant="outline">
-                  {t.tag.name}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
+  /* ─── Shared: top nav bar ─── */
+  const Nav = ({ overlay = false }: { overlay?: boolean }) => (
+    <div
+      className={`${overlay ? 'absolute top-0 left-0 right-0 z-20' : 'border-b border-border/20'} px-4 sm:px-6 py-5`}
+    >
+      <div className="mx-auto max-w-4xl flex items-center justify-between">
+        <button
+          onClick={handleBack}
+          className={`group flex items-center gap-2 text-sm font-medium transition-colors duration-200 ${
+            overlay
+              ? 'text-white/50 hover:text-white'
+              : 'text-muted-foreground/60 hover:text-foreground'
+          }`}
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          Back
+        </button>
       </div>
     </div>
+  );
+
+  return (
+    <header>
+      {article.featuredImage ? (
+        /* ══════════════════════════════════════════════════════
+           CINEMATIC HERO — full-bleed image, content overlaid
+           ══════════════════════════════════════════════════════ */
+        <div className="relative h-[65vh] min-h-[440px] max-h-[720px] overflow-hidden">
+          {/* Image */}
+          <Image
+            src={article.featuredImage}
+            alt={article.title}
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
+          />
+          {/* Scrim layers */}
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/98 via-black/30 to-transparent" />
+          {/* Gold edge hairline */}
+          <div className="absolute left-0 top-0 w-[2px] h-full bg-gradient-to-b from-transparent via-primary/35 to-transparent" />
+
+          {/* Nav */}
+          <Nav overlay />
+
+          {/* Content anchor to bottom */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55 }}
+            className="absolute bottom-0 left-0 right-0 z-10 px-4 sm:px-6 pb-10"
+          >
+            <div className="mx-auto max-w-4xl space-y-4">
+              <Badges overlay />
+              <h1 className="text-[30px] sm:text-[44px] lg:text-[54px] font-black text-white leading-[0.92] tracking-tighter max-w-3xl">
+                {article.title}
+              </h1>
+              {article.description && (
+                <p className="text-white/50 text-[15px] sm:text-base leading-relaxed max-w-2xl">
+                  {article.description}
+                </p>
+              )}
+              <Meta overlay />
+            </div>
+          </motion.div>
+        </div>
+      ) : (
+        /* ══════════════════════════════════════════════════════
+           TYPOGRAPHIC HERO — no image, dark + grid atmosphere
+           ══════════════════════════════════════════════════════ */
+        <div className="relative overflow-hidden border-b border-border/20">
+          {/* Ambient grid */}
+          <div className="absolute inset-0 grid-bg opacity-[0.1]" />
+          {/* Ghost first-letter watermark */}
+          <div className="absolute right-0 top-0 bottom-0 overflow-hidden pointer-events-none select-none flex items-center pr-4">
+            <span
+              className="font-black text-foreground/[0.03] leading-none"
+              style={{ fontSize: 'clamp(160px, 28vw, 300px)' }}
+            >
+              {article.title.charAt(0).toUpperCase()}
+            </span>
+          </div>
+          {/* Gold left accent */}
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-transparent via-primary/45 to-transparent" />
+
+          <Nav />
+
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.08 }}
+            className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6 pt-9 pb-12 space-y-5"
+          >
+            <Badges />
+            <h1 className="text-[34px] sm:text-[50px] lg:text-[62px] font-black text-foreground leading-[0.92] tracking-tighter max-w-3xl">
+              {article.title}
+            </h1>
+            {article.description && (
+              <p className="text-muted-foreground text-[15px] sm:text-[17px] leading-relaxed max-w-2xl">
+                {article.description}
+              </p>
+            )}
+            <Meta />
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Tags strip ────────────────────────────────────────── */}
+      {hasTags && (
+        <div className="border-b border-border/20 bg-card/10">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 py-3.5 flex flex-wrap gap-2">
+            {article.tags.map((t) => (
+              <span
+                key={t.tag.id}
+                className="px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground/35 border border-border/30 rounded-full hover:border-primary/30 hover:text-primary/55 transition-colors duration-200 cursor-default"
+              >
+                #{t.tag.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </header>
   );
 }

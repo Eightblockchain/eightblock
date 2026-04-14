@@ -34,7 +34,7 @@ export function useArticleInteractions({
   const toast = useToast?.() || { toast: () => {} };
 
   // Check if user liked the article
-  const { data: userLiked = false } = useQuery({
+  const { data: userLiked = false, isLoading: isUserLikedLoading } = useQuery({
     queryKey: ['article-like', articleId, userId],
     queryFn: () => checkUserLike(articleId),
     enabled: !!articleId && !!userId && isPublished,
@@ -130,10 +130,9 @@ export function useArticleInteractions({
       queryClient.invalidateQueries({ queryKey: ['article', articleSlug] });
       queryClient.invalidateQueries({ queryKey: ['article-like', articleId, userId] });
 
-      // Invalidate all article list queries for real-time updates on homepage
-      // This catches: ['articles', 'infinite'], ['trending-articles', ...], etc.
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-      queryClient.invalidateQueries({ queryKey: ['trending-articles'] });
+      // Reset feeds so mounted components refetch immediately with fresh score ordering
+      queryClient.resetQueries({ queryKey: ['articles', 'infinite'] });
+      queryClient.resetQueries({ queryKey: ['trending-articles'] });
 
       // Use previousLiked from context to show correct message
       // If previousLiked was false, user just liked. If true, user just unliked.
@@ -166,10 +165,9 @@ export function useArticleInteractions({
       queryClient.invalidateQueries({ queryKey: ['article-comments', articleId] });
       queryClient.invalidateQueries({ queryKey: ['article', articleSlug] });
 
-      // Invalidate all article list queries for real-time updates on homepage
-      // This catches: ['articles', 'infinite'], ['trending-articles', ...], etc.
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-      queryClient.invalidateQueries({ queryKey: ['trending-articles'] });
+      // Reset feeds so mounted components refetch immediately with fresh score ordering
+      queryClient.resetQueries({ queryKey: ['articles', 'infinite'] });
+      queryClient.resetQueries({ queryKey: ['trending-articles'] });
 
       toast.toast?.({
         title: 'Comment posted!',
@@ -280,6 +278,7 @@ export function useArticleInteractions({
   return {
     // State
     userLiked,
+    isUserLikedLoading,
     bookmarked,
     comments,
     totalComments,
