@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Code, BookOpen } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Card } from '@eightblock/ui/components/card';
 import { GitHubRepository } from '@/types/github';
 
 interface RepositoryHeaderProps {

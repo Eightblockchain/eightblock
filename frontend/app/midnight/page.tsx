@@ -1,41 +1,46 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Shield, Code2, Zap, Lock, BookOpen, ArrowRight, Layers, Eye, Globe } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@eightblock/ui/components/button';
+import { siteConfig } from '@/lib/site-config';
 
 export const metadata: Metadata = {
   title: 'Midnight Hub – Privacy-First Blockchain',
   description:
     'Your comprehensive resource for Midnight Network. Learn about privacy-preserving smart contracts, Zero-Knowledge proofs, Compact language, and more.',
+  alternates: { canonical: '/midnight' },
   openGraph: {
     title: 'Midnight Hub | Eightblock',
     description:
       'Privacy-first blockchain education. Deep-dive into Midnight Network, ZK proofs, and the Compact language.',
+    url: '/midnight',
+    siteName: siteConfig.name,
+    images: [{ url: siteConfig.ogImage, width: 1200, height: 630, alt: siteConfig.name }],
   },
 };
 
 const ecosystemPillars = [
   {
-    icon:        Shield,
-    title:       'Privacy by Design',
+    icon: Shield,
+    title: 'Privacy by Design',
     description:
       'Midnight uses ZK proofs to allow smart contracts to process private data without exposing it on-chain.',
   },
   {
-    icon:        Code2,
-    title:       'Compact Language',
+    icon: Code2,
+    title: 'Compact Language',
     description:
       'A TypeScript-inspired language designed specifically for writing privacy-preserving smart contracts.',
   },
   {
-    icon:        Layers,
-    title:       'Shielded UTXO',
+    icon: Layers,
+    title: 'Shielded UTXO',
     description:
       'Built on a shielded UTXO model that enables selective disclosure and granular privacy control.',
   },
   {
-    icon:        Eye,
-    title:       'Selective Disclosure',
+    icon: Eye,
+    title: 'Selective Disclosure',
     description:
       'Prove facts about data without revealing the underlying data itself using ZK circuits.',
   },
@@ -43,10 +48,10 @@ const ecosystemPillars = [
 
 const learningPaths = [
   {
-    level:  'Beginner',
-    badge:  'Start Here',
-    icon:   BookOpen,
-    color:  'gold' as const,
+    level: 'Beginner',
+    badge: 'Start Here',
+    icon: BookOpen,
+    color: 'gold' as const,
     topics: [
       'What is Midnight Network?',
       'Blockchain Privacy Basics',
@@ -55,10 +60,10 @@ const learningPaths = [
     ],
   },
   {
-    level:  'Intermediate',
-    badge:  'Builder',
-    icon:   Code2,
-    color:  'blue' as const,
+    level: 'Intermediate',
+    badge: 'Builder',
+    icon: Code2,
+    color: 'blue' as const,
     topics: [
       'Compact Language Primer',
       'Building Private DApps',
@@ -67,10 +72,10 @@ const learningPaths = [
     ],
   },
   {
-    level:  'Advanced',
-    badge:  'Expert',
-    icon:   Zap,
-    color:  'gold' as const,
+    level: 'Advanced',
+    badge: 'Expert',
+    icon: Zap,
+    color: 'gold' as const,
     topics: [
       'ZK Circuit Design Patterns',
       'Midnight Protocol Deep-Dive',
@@ -80,20 +85,22 @@ const learningPaths = [
   },
 ];
 
+// Brand colours tint borders, backgrounds and icons; text stays in the foreground colour because
+// gold and blue text fall below readable contrast on the light theme.
 const colorMap = {
   gold: {
-    text:   'text-primary',
-    bg:     'bg-primary/10',
-    border: 'border-primary/25',
-    badge:  'bg-primary/10 text-primary border border-primary/25',
-    dot:    'bg-primary/60',
+    icon: 'text-foreground',
+    bg: 'bg-brand-gold/15',
+    border: 'border-brand-gold/40',
+    badge: 'bg-brand-gold/15 text-foreground border border-brand-gold/50',
+    dot: 'bg-brand-gold',
   },
   blue: {
-    text:   'text-accent',
-    bg:     'bg-accent/10',
-    border: 'border-accent/25',
-    badge:  'bg-accent/10 text-accent border border-accent/25',
-    dot:    'bg-accent/60',
+    icon: 'text-brand-blue',
+    bg: 'bg-brand-blue/10',
+    border: 'border-brand-blue/40',
+    badge: 'bg-brand-blue/10 text-foreground border border-brand-blue/40',
+    dot: 'bg-brand-blue',
   },
 };
 
@@ -112,20 +119,18 @@ export default function MidnightPage() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6">
-            <span className="text-primary">
-              Midnight Hub
-            </span>
+            <span className="text-primary">Midnight Hub</span>
           </h1>
 
           <p className="max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground leading-relaxed mb-10">
-            Your comprehensive resource for learning Midnight Network — from first principles
-            to advanced privacy-preserving smart contract development with Compact.
+            Your comprehensive resource for learning Midnight Network, from first principles to
+            advanced privacy-preserving smart contract development with Compact.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-primary-foreground px-8"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
               asChild
             >
               <Link href="/#articles">
@@ -180,7 +185,7 @@ export default function MidnightPage() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-foreground mb-3">Learning Paths</h2>
             <p className="text-muted-foreground">
-              Structured guides from zero to advanced — follow the path that fits you
+              Structured guides from zero to advanced. Follow the path that fits you
             </p>
           </div>
 
@@ -195,21 +200,26 @@ export default function MidnightPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div className={`inline-flex p-2.5 rounded-lg ${c.bg}`}>
-                      <Icon className={`h-5 w-5 ${c.text}`} />
+                      <Icon className={`h-5 w-5 ${c.icon}`} />
                     </div>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${c.badge}`}>
+                    <span
+                      className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${c.badge}`}
+                    >
                       {path.badge}
                     </span>
                   </div>
 
                   <div>
-                    <h3 className={`text-lg font-bold mb-1 ${c.text}`}>{path.level} Track</h3>
+                    <h3 className="text-lg font-bold mb-1 text-foreground">{path.level} Track</h3>
                     <p className="text-xs text-muted-foreground">Topics covered:</p>
                   </div>
 
                   <ul className="space-y-2.5 flex-1">
                     {path.topics.map((topic) => (
-                      <li key={topic} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <li
+                        key={topic}
+                        className="flex items-start gap-2.5 text-sm text-muted-foreground"
+                      >
                         <span className={`mt-2 flex-shrink-0 w-1.5 h-1.5 rounded-full ${c.dot}`} />
                         {topic}
                       </li>
@@ -240,7 +250,7 @@ export default function MidnightPage() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button
                   size="lg"
-                  className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-primary-foreground px-8"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
                   asChild
                 >
                   <Link href="/">
@@ -253,7 +263,11 @@ export default function MidnightPage() {
                   className="border-border hover:border-primary/40 hover:bg-primary/5"
                   asChild
                 >
-                  <a href="https://github.com/Eightblockchain/eightblock" target="_blank" rel="noopener noreferrer">
+                  <a
+                    href="https://github.com/Eightblockchain/eightblock"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     Contribute on GitHub
                   </a>
                 </Button>

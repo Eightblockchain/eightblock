@@ -2,14 +2,34 @@
 
 import Link from 'next/link';
 import {
-  Github, ExternalLink, Star, GitFork, Eye, AlertCircle, Loader2,
-  Code, BookOpen, GitPullRequest, Users, ArrowUpRight, Copy, Check,
+  Github,
+  ExternalLink,
+  Star,
+  GitFork,
+  Eye,
+  AlertCircle,
+  Loader2,
+  Code,
+  BookOpen,
+  GitPullRequest,
+  Users,
+  ArrowUpRight,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useGitHubRepository } from '@/hooks/useGitHubRepository';
 import { githubService } from '@/lib/services/github-service';
 
-function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: number }) {
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: number;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border bg-card dark:border-border/40 px-5 py-4">
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 dark:bg-primary/10">
@@ -17,7 +37,9 @@ function StatCard({ icon: Icon, label, value }: { icon: React.ElementType; label
       </div>
       <div>
         <p className="text-xl font-black text-foreground leading-none">{value.toLocaleString()}</p>
-        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50 mt-0.5">{label}</p>
+        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+          {label}
+        </p>
       </div>
     </div>
   );
@@ -37,7 +59,7 @@ function CopyableCommand({ children }: { children: string }) {
       <button
         onClick={handleCopy}
         className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-lg
-          text-muted-foreground/40 hover:text-foreground hover:bg-muted/50
+          text-muted-foreground hover:text-foreground hover:bg-muted/50
           transition-all duration-150"
         title="Copy"
       >
@@ -87,7 +109,6 @@ export default function GitHubRepositoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden border-b border-border/50 dark:border-border/20">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_80%_-10%,hsl(var(--primary)/0.07),transparent)]" />
@@ -112,7 +133,7 @@ export default function GitHubRepositoryPage() {
               <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground leading-none mb-3">
                 GitHub Repository
               </h1>
-              <p className="text-[14px] text-muted-foreground/60 max-w-xl leading-relaxed">
+              <p className="text-[14px] text-muted-foreground max-w-xl leading-relaxed">
                 EightBlock is fully open-source. Explore the code, report issues, submit pull
                 requests, or fork the project to build your own.
               </p>
@@ -124,12 +145,9 @@ export default function GitHubRepositoryPage() {
               rel="noopener noreferrer"
               className="group relative flex items-center gap-2 overflow-hidden rounded-xl
                 bg-primary px-4 py-2.5 text-[13px] font-bold text-primary-foreground
-                shadow-md shadow-primary/20 hover:brightness-105 active:scale-[0.97]
+                hover:brightness-105 active:scale-[0.97]
                 transition-all duration-150 self-start sm:self-auto flex-shrink-0"
             >
-              <span className="pointer-events-none absolute inset-0 -translate-x-full
-                bg-gradient-to-r from-transparent via-white/20 to-transparent
-                group-hover:translate-x-full transition-transform duration-500" />
               <Github className="h-3.5 w-3.5" />
               View on GitHub
               <ExternalLink className="h-3 w-3 opacity-70" />
@@ -139,15 +157,16 @@ export default function GitHubRepositoryPage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 space-y-8">
-
         {/* Loading */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl
-              border border-border bg-card dark:border-border/30">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl
+              border border-border bg-card dark:border-border/30"
+            >
               <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
             </div>
-            <p className="font-mono text-[11px] text-muted-foreground/40 tracking-widest uppercase">
+            <p className="font-mono text-[11px] text-muted-foreground tracking-widest uppercase">
               Loading repository…
             </p>
           </div>
@@ -156,11 +175,13 @@ export default function GitHubRepositoryPage() {
         {/* Error */}
         {error && (
           <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl
-              border border-rose-500/20 bg-rose-500/5">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl
+              border border-rose-500/20 bg-rose-500/5"
+            >
               <AlertCircle className="h-6 w-6 text-rose-500/60" />
             </div>
-            <p className="text-[14px] text-muted-foreground/60 max-w-sm">
+            <p className="text-[14px] text-muted-foreground max-w-sm">
               Unable to load repository information. Please try again later.
             </p>
             <Link
@@ -181,11 +202,11 @@ export default function GitHubRepositoryPage() {
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <Github className="h-4 w-4 text-muted-foreground/40" />
+                    <Github className="h-4 w-4 text-muted-foreground" />
                     <h2 className="text-xl font-black text-foreground">{repo.full_name}</h2>
                   </div>
                   {repo.description && (
-                    <p className="text-[14px] text-muted-foreground/70 leading-relaxed mb-4">
+                    <p className="text-[14px] text-muted-foreground leading-relaxed mb-4">
                       {repo.description}
                     </p>
                   )}
@@ -195,7 +216,7 @@ export default function GitHubRepositoryPage() {
                         <span
                           key={topic}
                           className="inline-flex items-center rounded-full border border-border/60 dark:border-border/30
-                            bg-muted/40 px-2.5 py-0.5 font-mono text-[10px] text-muted-foreground/60"
+                            bg-muted/40 px-2.5 py-0.5 font-mono text-[10px] text-muted-foreground"
                         >
                           {topic}
                         </span>
@@ -206,7 +227,7 @@ export default function GitHubRepositoryPage() {
               </div>
 
               {/* Meta row */}
-              <div className="flex flex-wrap gap-4 text-[12px] text-muted-foreground/50 pt-4 border-t border-border/50 dark:border-border/25">
+              <div className="flex flex-wrap gap-4 text-[12px] text-muted-foreground pt-4 border-t border-border/50 dark:border-border/25">
                 {repo.language && (
                   <span className="flex items-center gap-1.5">
                     <Code className="h-3.5 w-3.5" />
@@ -222,7 +243,9 @@ export default function GitHubRepositoryPage() {
                 <span>
                   Updated{' '}
                   {new Date(repo.updated_at).toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'short', day: 'numeric',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
                   })}
                 </span>
               </div>
@@ -244,12 +267,9 @@ export default function GitHubRepositoryPage() {
                 rel="noopener noreferrer"
                 className="group relative flex items-center gap-2 overflow-hidden rounded-xl
                   bg-primary px-4 py-2.5 text-[13px] font-bold text-primary-foreground
-                  shadow-md shadow-primary/20 hover:brightness-105 active:scale-[0.97]
+                  hover:brightness-105 active:scale-[0.97]
                   transition-all duration-150"
               >
-                <span className="pointer-events-none absolute inset-0 -translate-x-full
-                  bg-gradient-to-r from-transparent via-white/20 to-transparent
-                  group-hover:translate-x-full transition-transform duration-500" />
                 <Github className="h-3.5 w-3.5" />
                 View on GitHub
               </Link>
@@ -259,7 +279,7 @@ export default function GitHubRepositoryPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-xl border border-border/60 dark:border-border/30
                   bg-muted/30 px-4 py-2.5 text-[13px] font-semibold
-                  text-muted-foreground/70 hover:text-foreground hover:border-border
+                  text-muted-foreground hover:text-foreground hover:border-border
                   transition-all duration-150"
               >
                 <GitFork className="h-3.5 w-3.5" />
@@ -271,7 +291,7 @@ export default function GitHubRepositoryPage() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 rounded-xl border border-border/60 dark:border-border/30
                   bg-muted/30 px-4 py-2.5 text-[13px] font-semibold
-                  text-muted-foreground/70 hover:text-foreground hover:border-border
+                  text-muted-foreground hover:text-foreground hover:border-border
                   transition-all duration-150"
               >
                 <AlertCircle className="h-3.5 w-3.5" />
@@ -282,15 +302,19 @@ export default function GitHubRepositoryPage() {
             {/* Quick links */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {quickLinks.map(({ icon: Icon, label, desc, cta, href, external }) => (
-                <div key={label}
+                <div
+                  key={label}
                   className="rounded-2xl border border-border bg-card dark:border-border/40 p-6
-                    hover:border-primary/25 transition-colors duration-200">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl
-                    border border-border/60 dark:border-border/30 bg-muted/40 mb-4">
+                    hover:border-primary/25 transition-colors duration-200"
+                >
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-xl
+                    border border-border/60 dark:border-border/30 bg-muted/40 mb-4"
+                  >
                     <Icon className="h-4 w-4 text-primary/60" />
                   </div>
                   <h3 className="text-[15px] font-bold text-foreground mb-1.5">{label}</h3>
-                  <p className="text-[13px] text-muted-foreground/60 mb-4 leading-relaxed">{desc}</p>
+                  <p className="text-[13px] text-muted-foreground mb-4 leading-relaxed">{desc}</p>
                   {external ? (
                     <Link
                       href={href}
@@ -301,8 +325,10 @@ export default function GitHubRepositoryPage() {
                       {cta} <ArrowUpRight className="h-3.5 w-3.5" />
                     </Link>
                   ) : (
-                    <Link href={href}
-                      className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary/70 hover:text-primary">
+                    <Link
+                      href={href}
+                      className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary/70 hover:text-primary"
+                    >
                       {cta} <ArrowUpRight className="h-3.5 w-3.5" />
                     </Link>
                   )}
@@ -321,20 +347,26 @@ export default function GitHubRepositoryPage() {
                   </span>
                 </div>
                 <h2 className="text-xl font-black text-foreground mb-1.5">Getting Started</h2>
-                <p className="text-[14px] text-muted-foreground/60 mb-6">
+                <p className="text-[14px] text-muted-foreground mb-6">
                   Clone and run EightBlock in minutes.
                 </p>
 
                 <div className="space-y-2">
-                  <p className="font-mono text-[11px] text-muted-foreground/40 px-1"># Clone the repository</p>
+                  <p className="font-mono text-[11px] text-muted-foreground px-1">
+                    # Clone the repository
+                  </p>
                   <CopyableCommand>{`git clone ${repo.html_url}.git`}</CopyableCommand>
-                  <p className="font-mono text-[11px] text-muted-foreground/40 px-1 pt-1"># Install dependencies</p>
+                  <p className="font-mono text-[11px] text-muted-foreground px-1 pt-1">
+                    # Install dependencies
+                  </p>
                   <CopyableCommand>pnpm install</CopyableCommand>
-                  <p className="font-mono text-[11px] text-muted-foreground/40 px-1 pt-1"># Start dev server</p>
+                  <p className="font-mono text-[11px] text-muted-foreground px-1 pt-1">
+                    # Start dev server
+                  </p>
                   <CopyableCommand>pnpm dev</CopyableCommand>
                 </div>
 
-                <p className="mt-5 text-[13px] text-muted-foreground/50">
+                <p className="mt-5 text-[13px] text-muted-foreground">
                   For full setup instructions, see the{' '}
                   <Link
                     href={`${repo.html_url}#readme`}
@@ -351,8 +383,10 @@ export default function GitHubRepositoryPage() {
         )}
 
         {/* Footer links */}
-        <div className="pt-4 border-t border-border/50 dark:border-border/25
-          flex flex-wrap gap-5 text-[12px] text-muted-foreground/50">
+        <div
+          className="pt-4 border-t border-border/50 dark:border-border/25
+          flex flex-wrap gap-5 text-[12px] text-muted-foreground"
+        >
           {[
             { href: '/contributors', label: 'Contributors' },
             { href: '/privacy', label: 'Privacy Policy' },

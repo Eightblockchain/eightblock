@@ -12,7 +12,7 @@ export interface Article {
   publishedAt: string;
   author: {
     id: string;
-    walletAddress: string;
+    walletAddress?: string | null;
     name: string | null;
     avatarUrl: string | null;
   };
@@ -44,12 +44,58 @@ export interface UpdateArticleData {
   status: 'DRAFT' | 'PUBLISHED';
 }
 
-// Fetch article by slug
+export type ArticleStatus = 'DRAFT' | 'REVIEW' | 'PUBLISHED';
+
+export interface MyArticle {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  featuredImage: string | null;
+  status: ArticleStatus;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  viewCount: number;
+  tags: Array<{ tag: { id: string; name: string } }>;
+  _count: { likes: number; comments: number };
+}
+
+export interface MyArticlesResponse {
+  articles: MyArticle[];
+  counts: Record<'ALL' | ArticleStatus, number>;
+  pagination: { page: number; limit: number; total: number; totalPages: number; hasMore: boolean };
+}
+
+// The signed-in author's own articles, drafts included.
+export async function fetchMyArticles(params: {
+  page: number;
+  limit: number;
+  status?: ArticleStatus;
+}): Promise<MyArticlesResponse> {
+  const query = new URLSearchParams({ page: String(params.page), limit: String(params.limit) });
+  if (params.status) query.set('status', params.status);
+  const response = await fetch(`${API_URL}/articles/mine?${query}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error('Could not load your articles');
+  return response.json();
+}
+
+// Fetch article by slug. Sends the session cookie so authors can load their own drafts.
 export async function fetchArticleBySlug(slug: string): Promise<Article> {
-  const response = await fetch(`${API_URL}/articles/${slug}`);
+  const response = await fetch(`${API_URL}/articles/${encodeURIComponent(slug)}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch article');
+    throw new Error(
+      response.status === 404
+        ? 'This article does not exist, or it is a draft that belongs to someone else.'
+        : 'Failed to fetch article'
+    );
   }
 
   return response.json();
@@ -101,7 +147,7 @@ export async function deleteArticle(articleId: string): Promise<void> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json().catch(() => ({}));
     throw new Error(error.error || 'Failed to delete article');
   }
 }

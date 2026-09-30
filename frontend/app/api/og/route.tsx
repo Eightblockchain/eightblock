@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const title = searchParams.get('title') || 'Eightblock';
   const description =
     searchParams.get('description') ||
-    'Open-source platform for the Cardano community - education, collaboration, and knowledge sharing.';
+    'Notes on blockchain, smart contracts, and decentralized technology.';
 
   return new ImageResponse(
     (
@@ -18,97 +18,80 @@ export async function GET(request: NextRequest) {
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#0f172a',
-          backgroundImage: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+          backgroundColor: '#fafafa',
+          padding: '60px 72px',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '60px',
-            maxWidth: '1000px',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 72,
-              fontWeight: 900,
-              color: '#f8fafc',
-              textAlign: 'center',
-              marginBottom: 20,
-              lineHeight: 1.1,
-            }}
-          >
-            {title}
-          </h1>
-          <p
-            style={{
-              fontSize: 32,
-              color: '#cbd5e1',
-              textAlign: 'center',
-              marginTop: 0,
-              lineHeight: 1.4,
-            }}
-          >
-            {description}
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 48 }}>
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginTop: 40,
-              gap: 12,
+              width: 40,
+              height: 40,
+              background: '#1b9dd9',
+              borderRadius: 4,
+            }}
+          />
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              background: '#fcbd1b',
+              borderRadius: 2,
+              marginLeft: -20,
+              marginTop: 16,
+            }}
+          />
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              color: '#070808',
+              letterSpacing: '-0.02em',
             }}
           >
-            <div
-              style={{
-                fontSize: 24,
-                fontWeight: 700,
-                color: '#fbbf24',
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em',
-              }}
-            >
-              Eightblock
-            </div>
-            <div
-              style={{
-                fontSize: 24,
-                color: '#94a3b8',
-              }}
-            >
-              •
-            </div>
-            <div
-              style={{
-                fontSize: 24,
-                color: '#94a3b8',
-              }}
-            >
-              Cardano Community Hub
-            </div>
-          </div>
+            Eightblock
+          </span>
         </div>
+
+        <h1
+          style={{
+            fontSize: 56,
+            fontWeight: 700,
+            color: '#0a0a0a',
+            lineHeight: 1.15,
+            marginBottom: 20,
+            maxWidth: 900,
+          }}
+        >
+          {title.length > 80 ? title.slice(0, 77) + '…' : title}
+        </h1>
+
+        {description && (
+          <p
+            style={{
+              fontSize: 24,
+              color: '#737373',
+              lineHeight: 1.5,
+              maxWidth: 800,
+            }}
+          >
+            {description.length > 120 ? description.slice(0, 117) + '…' : description}
+          </p>
+        )}
+
         <div
           style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 8,
-            background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%)',
+            marginTop: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
           }}
-        />
+        >
+          <div style={{ width: 48, height: 3, background: '#1b9dd9', borderRadius: 2 }} />
+          <div style={{ width: 24, height: 3, background: '#fcbd1b', borderRadius: 2 }} />
+        </div>
       </div>
     ),
-    {
-      width: 1200,
-      height: 630,
-    }
+    { width: 1200, height: 630 }
   );
 }

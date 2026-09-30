@@ -74,22 +74,22 @@ export function TagInput({ value, onChange }: TagInputProps) {
 
   return (
     <div className="space-y-3">
-
       {/* Selected pills */}
       {selectedTags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {selectedTags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1 rounded-full border border-accent/30
-                bg-accent/10 px-2.5 py-0.5 text-[12px] font-semibold text-accent/80"
+              className="inline-flex items-center gap-1 rounded-full border border-brand-blue/40
+                bg-brand-blue/10 px-2.5 py-0.5 text-[12px] font-semibold text-foreground"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
+                aria-label={`Remove ${tag}`}
                 className="flex h-3.5 w-3.5 items-center justify-center rounded-full
-                  hover:bg-accent/20 text-accent/60 hover:text-accent transition-colors"
+                  text-muted-foreground hover:bg-brand-blue/20 hover:text-foreground transition-colors"
               >
                 <X className="h-2.5 w-2.5" />
               </button>
@@ -113,7 +113,7 @@ export function TagInput({ value, onChange }: TagInputProps) {
           placeholder={selectedTags.length === 0 ? 'cardano, web3, defi…' : 'Add more…'}
           disabled={isLoading}
           className="w-full bg-transparent text-[13px] text-foreground
-            placeholder:text-muted-foreground/30
+            placeholder:text-muted-foreground
             focus:outline-none border-none p-0"
         />
 
@@ -128,8 +128,10 @@ export function TagInput({ value, onChange }: TagInputProps) {
           >
             {inputValue && suggestions.length > 0 && (
               <>
-                <div className="font-mono text-[9px] tracking-[0.18em] uppercase
-                  text-muted-foreground/40 px-4 py-2.5 border-b border-border/40 dark:border-border/20">
+                <div
+                  className="font-mono text-[9px] tracking-[0.18em] uppercase
+                  text-muted-foreground px-4 py-2.5 border-b border-border/40 dark:border-border/20"
+                >
                   Suggestions
                 </div>
                 {suggestions.map((tag) => (
@@ -143,32 +145,37 @@ export function TagInput({ value, onChange }: TagInputProps) {
                       transition-colors duration-100 first-of-type:mt-0"
                   >
                     {tag.name}
-                    <Check className="h-3.5 w-3.5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Check className="h-3.5 w-3.5 text-brand-blue opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 ))}
               </>
             )}
 
-            {inputValue && !allTags.find((t) => t.name.toLowerCase() === inputValue.toLowerCase()) && (
-              <>
-                {suggestions.length > 0 && <div className="border-t border-border/40 dark:border-border/20" />}
-                <button
-                  type="button"
-                  onClick={() => addTag(inputValue)}
-                  className="w-full flex items-center gap-2.5 px-4 py-2.5
+            {inputValue &&
+              !allTags.find((t) => t.name.toLowerCase() === inputValue.toLowerCase()) && (
+                <>
+                  {suggestions.length > 0 && (
+                    <div className="border-t border-border/40 dark:border-border/20" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => addTag(inputValue)}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5
                     text-[13px] font-semibold text-primary/70 hover:text-primary
                     hover:bg-primary/5 transition-colors duration-100"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Create &quot;{inputValue}&quot;
-                </button>
-              </>
-            )}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create &quot;{inputValue}&quot;
+                  </button>
+                </>
+              )}
 
             {!inputValue && allTags.length > 0 && (
               <>
-                <div className="font-mono text-[9px] tracking-[0.18em] uppercase
-                  text-muted-foreground/40 px-4 py-2.5 border-b border-border/40 dark:border-border/20">
+                <div
+                  className="font-mono text-[9px] tracking-[0.18em] uppercase
+                  text-muted-foreground px-4 py-2.5 border-b border-border/40 dark:border-border/20"
+                >
                   All Tags
                 </div>
                 {allTags
@@ -184,20 +191,20 @@ export function TagInput({ value, onChange }: TagInputProps) {
                         hover:bg-muted/40 dark:hover:bg-muted/20 transition-colors duration-100"
                     >
                       {tag.name}
-                      <Check className="h-3.5 w-3.5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Check className="h-3.5 w-3.5 text-brand-blue opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                   ))}
               </>
             )}
 
             {!inputValue && allTags.length === 0 && !isLoading && (
-              <div className="px-4 py-6 text-center font-mono text-[10px] text-muted-foreground/40">
+              <div className="px-4 py-6 text-center font-mono text-[10px] text-muted-foreground">
                 No tags yet. Type to create one.
               </div>
             )}
 
             {isLoading && (
-              <div className="px-4 py-6 text-center font-mono text-[10px] text-muted-foreground/40">
+              <div className="px-4 py-6 text-center font-mono text-[10px] text-muted-foreground">
                 Loading…
               </div>
             )}
@@ -205,7 +212,7 @@ export function TagInput({ value, onChange }: TagInputProps) {
         )}
       </div>
 
-      <p className="font-mono text-[10px] text-muted-foreground/35">
+      <p className="font-mono text-[10px] text-muted-foreground">
         Enter or comma to add · Backspace to remove last
       </p>
     </div>

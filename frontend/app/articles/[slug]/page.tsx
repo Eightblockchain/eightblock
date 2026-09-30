@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArticleHeader } from '@/components/articles/article-header';
@@ -5,9 +6,15 @@ import { ArticleContent } from '@/components/articles/article-content';
 import { ArticleAuthor } from '@/components/articles/article-author';
 import { ArticleClientWrapper } from '@/components/articles/article-client-wrapper';
 import { RelatedArticles } from '@/components/articles/related-articles';
+import { siteConfig } from '@/lib/site-config';
+import { readingTime } from '@/lib/chain';
+import { jsonLd as toJsonLd } from '@/lib/json-ld';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev';
+
+const authorUrl = (author?: { username?: string | null } | null) =>
+  author?.username ? `${BASE_URL}/authors/${author.username}` : `${BASE_URL}/about`;
 
 /**
  * Returns a publicly accessible absolute image URL, or null.
@@ -20,12 +27,13 @@ function sanitizeOgImageUrl(url: string | null | undefined): string | null {
     if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return null;
     return url;
   } catch {
-    // relative path — not usable directly for OG
+    // relative path: not usable directly for OG
     return null;
   }
 }
 
-export const revalidate = 3600; // Re-generate pages every hour
+// Short, because on-demand revalidation only reaches the PM2 instance that handled the save.
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   // Pre-generate only the 1,000 most-recently-published articles at build time.
@@ -38,7 +46,7 @@ export async function generateStaticParams() {
       const res = await fetch(`${API_URL}/articles?page=${page}&limit=100&status=PUBLISHED`);
       if (!res.ok) break;
       const data = await res.json();
-      const articles = Array.isArray(data) ? data : data.articles ?? [];
+      const articles = Array.isArray(data) ? data : (data.articles ?? []);
       if (articles.length === 0) break;
       slugs = slugs.concat(articles.map((a: { slug: string }) => ({ slug: a.slug })));
       if (!data.pagination || page >= data.pagination.totalPages) break;
@@ -50,18 +58,36 @@ export async function generateStaticParams() {
   }
 }
 
+/**
+ * Null only when the article does not exist. Other failures throw, so a revalidation during an
+ * API outage keeps serving the last good page instead of caching a 404.
+ */
+const fetchArticle = cache(async (slug: string) => {
+  const response = await fetch(`${API_URL}/articles/${slug}`, {
+    next: { revalidate: 60 },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Failed to fetch article ${slug}: ${response.status}`);
+  return response.json();
+});
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   try {
-    const res = await fetch(`${API_URL}/articles/${slug}`, { next: { revalidate: 3600 } });
-    if (!res.ok) return {};
-    const article = await res.json();
+    const article = await fetchArticle(slug);
+    if (!article) return {};
 
     const title = article.title;
-    const rawDesc = article.description || article.content?.slice(0, 200) || '';
-    const description = rawDesc.length > 160
-      ? rawDesc.slice(0, rawDesc.lastIndexOf(' ', 160)) + '…'
-      : rawDesc.trim();
+    const rawDesc =
+      article.description ||
+      article.content
+        ?.replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .slice(0, 200) ||
+      '';
+    const description =
+      rawDesc.length > 160 ? rawDesc.slice(0, rawDesc.lastIndexOf(' ', 160)) + '…' : rawDesc.trim();
     const url = `${BASE_URL}/articles/${slug}`;
 
     // Use article's featured image if it's a public https URL, otherwise generate a dynamic OG image.
@@ -87,7 +113,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         type: 'article',
         publishedTime: article.publishedAt,
         modifiedTime: article.updatedAt || article.publishedAt,
-        authors: [`${BASE_URL}/profile/${article.author?.walletAddress}`],
+        authors: [authorUrl(article.author)],
         siteName: 'Eightblock',
       },
       twitter: {
@@ -109,30 +135,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 }
 
-async function fetchArticle(slug: string) {
-  const response = await fetch(`${API_URL}/articles/${slug}`, { next: { revalidate: 3600 } });
-  if (!response.ok) {
-    if (response.status === 404) throw new Error('Article not found');
-    throw new Error('Failed to fetch article');
-  }
-  return response.json();
-}
-
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  let article: any;
-  try {
-    article = await fetchArticle(slug);
-  } catch (e) {
-    notFound();
-  }
+  const article = await fetchArticle(slug);
 
   if (!article || article.status !== 'PUBLISHED') {
     // For SEO, return 404 if not published
     notFound();
   }
 
-  const readingTime = article ? Math.ceil(article.content.split(' ').length / 200) : 0;
+  const minutes = readingTime(article.content);
 
   // JSON-LD structured data
   const canonicalUrl = `${BASE_URL}/articles/${slug}`;
@@ -151,7 +163,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     author: {
       '@type': 'Person',
       name: article.author?.name || 'Anonymous',
-      url: `${BASE_URL}/profile/${article.author?.walletAddress}`,
+      url: authorUrl(article.author),
     },
     publisher: {
       '@type': 'Organization',
@@ -171,34 +183,52 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Home', item: BASE_URL },
-      { '@type': 'ListItem', position: 2, name: 'Articles', item: `${BASE_URL}/articles` },
+      { '@type': 'ListItem', position: 2, name: 'Articles', item: `${BASE_URL}/writing` },
       { '@type': 'ListItem', position: 3, name: article.title },
     ],
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-      <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
+      <script type="application/ld+json" dangerouslySetInnerHTML={toJsonLd(jsonLd)} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={toJsonLd(breadcrumbLd)} />
 
-      <ArticleHeader article={article} readingTime={readingTime} />
+      <ArticleHeader
+        article={{
+          id: article.id,
+          slug: article.slug,
+          title: article.title,
+          description: article.description,
+          category: article.category,
+          status: article.status,
+          featured: article.featured,
+          featuredImage: article.featuredImage,
+          publishedAt: article.publishedAt,
+          viewCount: article.viewCount,
+          author: article.author
+            ? { name: article.author.name, username: article.author.username }
+            : null,
+          tags: article.tags,
+        }}
+        readingTime={minutes}
+        likesCount={article._count?.likes || 0}
+        commentsCount={article._count?.comments || 0}
+      />
 
       <ArticleContent content={article.content} />
 
-      {/* Engagement and comments with proper cookie-based authentication */}
       <ArticleClientWrapper
         articleId={article.id}
         articleSlug={slug}
+        articleTitle={article.title}
         authorId={article.author?.id ?? null}
         initialLikesCount={article._count?.likes || 0}
         initialCommentsCount={article._count?.comments || 0}
-        initialViewCount={article.viewCount || 0}
         isPublished={article.status === 'PUBLISHED'}
       />
 
-      <ArticleAuthor author={article.author} />
+      {siteConfig.showWrittenBy && <ArticleAuthor author={article.author} />}
 
-      {/* Related Articles Section */}
       <RelatedArticles articleSlug={slug} />
     </div>
   );

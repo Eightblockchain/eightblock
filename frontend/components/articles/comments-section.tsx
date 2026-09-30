@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Avatar } from '@/components/ui/avatar';
+import { Button } from '@eightblock/ui/components/button';
+import { Avatar } from '@eightblock/ui/components/avatar';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,9 +12,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@eightblock/ui/components/alert-dialog';
 import { MessageCircle, Loader2, Send, Edit2, Trash2, X, Check, AlertTriangle } from 'lucide-react';
 import type { Comment } from '@/lib/article-api';
+import { GoogleButton } from '@/components/auth/google-button';
 
 interface CommentsSectionProps {
   comments: Comment[];
@@ -23,6 +24,7 @@ interface CommentsSectionProps {
   isLoadingMoreComments: boolean;
   isAuthenticated: boolean;
   currentUserId: string | null;
+  canModerate?: boolean;
   isPostingComment: boolean;
   isUpdatingComment: boolean;
   deletingCommentId: string | null;
@@ -39,6 +41,7 @@ export function CommentsSection({
   isLoadingMoreComments,
   isAuthenticated,
   currentUserId,
+  canModerate = false,
   isPostingComment,
   isUpdatingComment,
   deletingCommentId,
@@ -91,67 +94,49 @@ export function CommentsSection({
   };
 
   return (
-    <div id="comments" className="bg-background">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 py-14">
-
-        {/* ── Section header ── */}
-        <div className="mb-10">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="h-px w-6 bg-primary/60" />
-            <span className="font-mono text-[11px] tracking-[0.18em] uppercase text-primary/70">
-              Community
-            </span>
-          </div>
-          <div className="flex items-end gap-4">
-            <h3 className="text-3xl font-black tracking-tight text-foreground leading-none">
-              Discussion
-            </h3>
-            {totalComments > 0 && (
-              <span className="mb-0.5 font-mono text-[13px] text-muted-foreground/35 tabular-nums">
-                {totalComments}
-              </span>
-            )}
-          </div>
+    <div id="comments" className="scroll-mt-20 bg-background">
+      <div className="container-read py-14">
+        <div className="mb-8 flex items-center gap-4">
+          <p className="ledger-label shrink-0">
+            Replies
+            {totalComments > 0 && <span className="ml-2 text-foreground">{totalComments}</span>}
+          </p>
+          <span className="h-px flex-1 bg-border" aria-hidden="true" />
         </div>
+        <h3 className="-mt-2 mb-8 font-display text-2xl font-semibold tracking-tight text-foreground">
+          Discussion
+        </h3>
 
         <div className="space-y-8">
-
-          {/* ── Comment input / auth prompt ── */}
           {!isAuthenticated ? (
-            <div className="relative overflow-hidden rounded-2xl border border-border/30 bg-card/20 p-8 text-center">
-              {/* subtle radial glow */}
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,hsl(var(--primary)/0.06),transparent)]" />
-              <MessageCircle className="mx-auto mb-4 h-10 w-10 text-muted-foreground/25" />
-              <p className="mb-1.5 font-semibold text-foreground/80 text-[15px]">
-                Join the conversation
-              </p>
-              <p className="mb-6 text-[13px] text-muted-foreground/45 max-w-sm mx-auto leading-relaxed">
-                Connect your wallet to share your thoughts and engage with the community
-              </p>
-              <Button
-                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold px-6 text-[13px]"
-                onClick={() => window.dispatchEvent(new CustomEvent('open-wallet-picker'))}
-              >
-                Connect Wallet
-              </Button>
+            <div className="flex flex-col items-start gap-4 border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-medium text-foreground">Join the discussion</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  Sign in with Google to reply. You will come straight back to this article.
+                </p>
+              </div>
+              <GoogleButton label="Sign in with Google" className="shrink-0" />
             </div>
           ) : (
             <form
               onSubmit={handleCommentSubmit}
-              className="rounded-2xl border border-border bg-card p-5 transition-colors focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/15"
+              className="border border-border bg-card p-5 transition-colors focus-within:border-brand-blue"
             >
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="Share your thoughts…"
+                aria-label="Write a comment"
+                maxLength={5000}
                 className="w-full resize-none bg-transparent border-0 p-0 text-[15px] text-foreground
-                  placeholder:text-muted-foreground/50 focus:outline-none leading-relaxed"
+                  placeholder:text-muted-foreground focus:outline-none leading-relaxed"
                 rows={3}
                 disabled={isPostingComment}
               />
-              <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-4">
-                <span className="font-mono text-[11px] text-muted-foreground/25 tabular-nums select-none">
-                  {commentText.length} chars
+              <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
+                <span className="ledger-label select-none normal-case tracking-normal tabular-nums">
+                  {commentText.length} characters
                 </span>
                 <div className="flex gap-2">
                   {commentText.trim() && (
@@ -159,16 +144,15 @@ export function CommentsSection({
                       type="button"
                       onClick={() => setCommentText('')}
                       disabled={isPostingComment}
-                      className="text-[12px] font-medium text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors"
+                      className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
                     >
                       Clear
                     </button>
                   )}
-                  <Button
+                  <button
                     type="submit"
-                    size="sm"
                     disabled={!commentText.trim() || isPostingComment}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 text-[13px] font-semibold px-4"
+                    className="btn-pill"
                   >
                     {isPostingComment ? (
                       <>
@@ -181,7 +165,7 @@ export function CommentsSection({
                         Post
                       </>
                     )}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </form>
@@ -189,44 +173,39 @@ export function CommentsSection({
 
           {/* ── Comments list ── */}
           {totalComments === 0 ? (
-            <div className="py-16 text-center">
-              <MessageCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground/15" />
-              <p className="text-[14px] font-medium text-muted-foreground/40 mb-1">No comments yet</p>
-              <p className="text-[13px] text-muted-foreground/25">
+            <div className="border border-dashed border-border py-12 text-center">
+              <MessageCircle className="mx-auto mb-3 h-6 w-6 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">No replies yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
                 {isAuthenticated
-                  ? 'Be the first to share your thoughts!'
-                  : 'Connect your wallet to be the first to comment!'}
+                  ? 'Start the discussion with the first reply.'
+                  : 'Sign in with Google to start the discussion.'}
               </p>
             </div>
           ) : (
             <div>
               {comments.map((comment, index) => {
-                const isOwner = currentUserId === comment.author.id;
+                const isOwner = !!comment.author && currentUserId === comment.author.id;
+                const authorName = comment.author?.name || comment.authorName || 'Reader';
                 const isEditing = editingCommentId === comment.id;
 
                 return (
                   <div
                     key={comment.id}
                     className={`group py-6 ${
-                      index < comments.length - 1
-                        ? 'border-b border-border/15'
-                        : ''
+                      index < comments.length - 1 ? 'border-b border-border' : ''
                     }`}
                   >
                     <div className="flex items-start gap-4">
-                      <Avatar
-                        src={comment.author.avatarUrl}
-                        name={comment.author.name}
-                        size="md"
-                      />
+                      <Avatar src={comment.author?.avatarUrl} name={authorName} size="md" />
                       <div className="flex-1 min-w-0">
                         {/* Meta row */}
                         <div className="flex items-center justify-between gap-2 mb-2.5">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="font-semibold text-foreground truncate text-[14px]">
-                              {comment.author.name || 'Anonymous'}
+                            <span className="truncate text-sm font-medium text-foreground">
+                              {authorName}
                             </span>
-                            <span className="text-[11px] font-mono text-muted-foreground/30 flex-shrink-0 tabular-nums">
+                            <span className="ledger-label shrink-0 normal-case tracking-normal tabular-nums">
                               {new Date(comment.createdAt).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
@@ -234,22 +213,22 @@ export function CommentsSection({
                               })}
                             </span>
                           </div>
-                          {isOwner && !isEditing && (
-                            <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                              <button
-                                onClick={() => handleEditComment(comment)}
-                                className="h-7 w-7 flex items-center justify-center rounded-lg
-                                  text-muted-foreground/35 hover:text-accent hover:bg-accent/10
-                                  transition-all duration-150"
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </button>
+                          {(isOwner || canModerate) && !isEditing && (
+                            <div className="flex shrink-0 items-center gap-0.5 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                              {isOwner && (
+                                <button
+                                  onClick={() => handleEditComment(comment)}
+                                  aria-label="Edit reply"
+                                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleDeleteComment(comment.id)}
                                 disabled={deletingCommentId === comment.id}
-                                className="h-7 w-7 flex items-center justify-center rounded-lg
-                                  text-muted-foreground/35 hover:text-rose-400/80 hover:bg-rose-400/8
-                                  transition-all duration-150 disabled:opacity-40"
+                                aria-label="Delete reply"
+                                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive disabled:opacity-40"
                               >
                                 {deletingCommentId === comment.id ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -267,9 +246,9 @@ export function CommentsSection({
                             <textarea
                               value={editingCommentText}
                               onChange={(e) => setEditingCommentText(e.target.value)}
-                              className="w-full resize-none rounded-xl border border-border/35 bg-card/25
-                                p-3 text-[14px] text-foreground/80 leading-relaxed
-                                focus:outline-none focus:border-accent/50 focus:ring-2 focus:ring-accent/15
+                              className="w-full resize-none border border-border bg-card
+                                p-3 text-[15px] text-foreground leading-relaxed
+                                focus:outline-none focus:border-brand-blue
                                 transition-colors"
                               rows={3}
                               disabled={isUpdatingComment}
@@ -279,7 +258,7 @@ export function CommentsSection({
                                 size="sm"
                                 onClick={() => handleUpdateComment(comment.id)}
                                 disabled={!editingCommentText.trim() || isUpdatingComment}
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 text-[13px] font-semibold px-4"
+                                className="rounded-full bg-brand-blue hover:bg-brand-blue/90 text-white h-9 px-4"
                               >
                                 {isUpdatingComment ? (
                                   <>
@@ -298,7 +277,7 @@ export function CommentsSection({
                                 variant="ghost"
                                 onClick={handleCancelEdit}
                                 disabled={isUpdatingComment}
-                                className="text-[13px] text-muted-foreground/50 hover:text-foreground/70 hover:bg-card/40"
+                                className="h-9 rounded-full px-4 text-muted-foreground hover:bg-muted hover:text-foreground"
                               >
                                 <X className="mr-1.5 h-3.5 w-3.5" />
                                 Cancel
@@ -306,7 +285,7 @@ export function CommentsSection({
                             </div>
                           </div>
                         ) : (
-                          <p className="text-foreground/70 leading-[1.75] whitespace-pre-wrap break-words text-[15px]">
+                          <p className="whitespace-pre-wrap break-words text-[15px] leading-[1.75] text-foreground/85">
                             {comment.body}
                           </p>
                         )}
@@ -318,13 +297,11 @@ export function CommentsSection({
 
               {/* Load more */}
               {hasMoreComments && (
-                <div className="pt-8 text-center border-t border-border/15 mt-2">
+                <div className="mt-2 border-t border-border pt-8 text-center">
                   <button
                     onClick={onLoadMoreComments}
                     disabled={isLoadingMoreComments}
-                    className="inline-flex items-center gap-2 font-mono text-[12px] tracking-wide
-                      text-muted-foreground/35 hover:text-muted-foreground/70
-                      transition-colors duration-150 disabled:opacity-40"
+                    className="btn-pill-outline text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
                     {isLoadingMoreComments ? (
                       <>
@@ -332,10 +309,7 @@ export function CommentsSection({
                         Loading…
                       </>
                     ) : (
-                      <>
-                        <span>Load more comments</span>
-                        <span className="opacity-40">↓</span>
-                      </>
+                      <>Load more replies</>
                     )}
                   </button>
                 </div>
@@ -347,29 +321,29 @@ export function CommentsSection({
 
       {/* ── Delete confirmation dialog ── */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-card border-border/40 text-foreground">
+        <AlertDialogContent className="border-border bg-card text-foreground">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-400/10 border border-rose-400/20">
-                <AlertTriangle className="h-4.5 w-4.5 text-rose-400" />
-              </div>
-              <AlertDialogTitle className="text-[18px] font-black">Delete Comment</AlertDialogTitle>
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <AlertDialogTitle className="font-display text-lg font-semibold">
+                Delete reply
+              </AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="text-[14px] text-muted-foreground/55 leading-relaxed">
-              Are you sure you want to delete this comment? This action cannot be undone.
+            <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground">
+              This permanently removes your reply from the discussion.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
               disabled={deletingCommentId !== null}
-              className="border-border/40 text-muted-foreground/60 hover:text-foreground/80 hover:bg-card/60"
+              className="h-9 rounded-full border-border px-4 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteComment}
               disabled={deletingCommentId !== null}
-              className="bg-rose-500/90 hover:bg-rose-500 text-white border-0 font-semibold"
+              className="h-9 rounded-full border-0 bg-destructive px-4 font-medium text-white hover:bg-destructive/90"
             >
               {deletingCommentId !== null ? 'Deleting…' : 'Delete'}
             </AlertDialogAction>

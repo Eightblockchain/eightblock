@@ -15,7 +15,7 @@ export const PageHeader = ({ icon: Icon, title, description }: PageHeaderProps) 
           href="/"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          ← Back to Home
+          Back to home
         </Link>
       </div>
 
