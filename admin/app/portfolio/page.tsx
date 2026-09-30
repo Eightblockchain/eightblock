@@ -136,7 +136,11 @@ export default function PortfolioEditorPage() {
     try {
       const result = await savePortfolio(toPayload(form));
       queryClient.setQueryData(['portfolio'], result);
-      toast({ title: 'Portfolio saved', description: 'Your About page is up to date.' });
+      toast({
+        title: 'Portfolio saved',
+        description: 'Your About page is up to date.',
+        variant: 'success',
+      });
     } catch (error) {
       const message =
         error instanceof ApiError && error.status === 400

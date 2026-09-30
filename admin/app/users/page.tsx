@@ -85,6 +85,7 @@ export default function UsersAdmin() {
           updated.role === 'READER'
             ? 'They can no longer write or edit articles. Their existing articles stay online.'
             : 'The change applies right away. They may need to reload the page to see new options.',
+        variant: 'success',
       });
     },
     onError: (error) => {

@@ -81,12 +81,16 @@ function ProfileSettings({ user }: { user: CurrentUser }) {
         })
       );
       setUsernameError(null);
-      toast({ title: 'Profile saved' });
+      toast({ title: 'Profile saved', variant: 'success' });
     } catch (error) {
       const message = (error as Error).message;
       if (usernameChanged && /username/i.test(message))
         setUsernameError(message.replace(/^username: /, ''));
-      toast({ title: message || 'Could not save your profile', variant: 'destructive' });
+      toast({
+        title: 'Could not save your profile',
+        description: message || 'Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setSaving(false);
     }
@@ -97,16 +101,24 @@ function ProfileSettings({ user }: { user: CurrentUser }) {
     event.target.value = '';
     if (!file) return;
     if (file.size > MAX_UPLOAD_BYTES) {
-      toast({ title: 'That image is larger than 10 MB', variant: 'destructive' });
+      toast({
+        title: 'Image too large',
+        description: 'Choose a photo under 10 MB.',
+        variant: 'warning',
+      });
       return;
     }
     setPhotoBusy(true);
     try {
       const result = await uploadMyAvatar(file);
       applyUser(result.user);
-      toast({ title: 'Photo updated' });
+      toast({ title: 'Photo updated', variant: 'success' });
     } catch (error) {
-      toast({ title: (error as Error).message || 'Upload failed', variant: 'destructive' });
+      toast({
+        title: 'Could not upload your photo',
+        description: (error as Error).message || 'Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setPhotoBusy(false);
     }
@@ -116,9 +128,16 @@ function ProfileSettings({ user }: { user: CurrentUser }) {
     setPhotoBusy(true);
     try {
       applyUser(await updateMyProfile({ avatar }));
-      toast({ title: avatar === 'google' ? 'Using your Google photo' : 'Photo removed' });
+      toast({
+        title: avatar === 'google' ? 'Using your Google photo' : 'Photo removed',
+        variant: 'success',
+      });
     } catch {
-      toast({ title: 'Could not update your photo', variant: 'destructive' });
+      toast({
+        title: 'Could not update your photo',
+        description: 'Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setPhotoBusy(false);
     }

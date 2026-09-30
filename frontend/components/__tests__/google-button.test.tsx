@@ -60,12 +60,12 @@ describe('GoogleButton', () => {
     const { onSignedIn } = renderButton();
     fireEvent.click(screen.getByRole('button'));
 
-    await broadcast({ source: AUTH_CHANNEL, ok: false, error: 'cancelled' });
+    await broadcast({ source: AUTH_CHANNEL, ok: false, error: 'failed' });
 
     await waitFor(() =>
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: expect.stringMatching(/cancelled/),
+          title: 'Could not sign you in',
           variant: 'destructive',
         })
       )

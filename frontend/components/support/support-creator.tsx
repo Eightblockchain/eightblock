@@ -49,10 +49,15 @@ export function SupportCreator({
       toast({
         title: 'Address copied',
         description: `Paste into your ${wallet.network} wallet to send ${wallet.currency}.`,
+        variant: 'success',
       });
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast({ title: 'Copy failed', variant: 'destructive' });
+      toast({
+        title: 'Could not copy the address',
+        description: 'Select it and copy it manually.',
+        variant: 'destructive',
+      });
     }
   };
 

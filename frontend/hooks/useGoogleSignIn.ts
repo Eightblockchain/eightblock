@@ -59,11 +59,15 @@ export function useGoogleSignIn({ returnTo, onSignedIn }: UseGoogleSignInOptions
       stop();
       setWaiting(false);
       if (!message.ok) {
-        toast({ title: signInErrorMessage(message.error), variant: 'destructive' });
+        toast({
+          title: message.error === 'cancelled' ? 'Sign-in cancelled' : 'Could not sign you in',
+          description: signInErrorMessage(message.error),
+          variant: message.error === 'cancelled' ? 'default' : 'destructive',
+        });
         return;
       }
       await queryClient.invalidateQueries();
-      toast({ title: "You're signed in" });
+      toast({ title: "You're signed in", variant: 'success' });
       onSignedInRef.current?.();
     };
 

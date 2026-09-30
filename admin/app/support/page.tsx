@@ -160,7 +160,7 @@ export default function SupportWalletsPage() {
     event.preventDefault();
     const issue = problem(rows);
     if (issue) {
-      toast({ title: 'Check the wallets', description: issue, variant: 'destructive' });
+      toast({ title: 'Check the wallets', description: issue, variant: 'warning' });
       return;
     }
     setSaving(true);
@@ -171,6 +171,7 @@ export default function SupportWalletsPage() {
       toast({
         title: 'Support wallets saved',
         description: 'Readers see the change the next time they open a page.',
+        variant: 'success',
       });
     } catch (error) {
       toast({
