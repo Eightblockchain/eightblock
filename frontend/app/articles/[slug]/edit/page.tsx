@@ -352,7 +352,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
               text-[13px] font-bold text-primary-foreground
               hover:brightness-105 transition-all duration-150"
           >
-            Back to your articles
+            Back to my articles
           </Link>
         </div>
       </div>
@@ -374,7 +374,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
             <div className="flex items-center gap-3 min-w-0">
               <Link
                 href={exitHref}
-                aria-label={isPublished ? 'Back to the article' : 'Back to your articles'}
+                aria-label={isPublished ? 'Back to the article' : 'Back to my articles'}
                 className="flex h-8 w-8 items-center justify-center rounded-xl
                   border border-border/60 bg-card/40
                   text-muted-foreground hover:text-foreground hover:border-border

@@ -40,7 +40,7 @@ const actions = [
   },
   {
     href: siteHref('/my-articles'),
-    title: 'Your articles',
+    title: 'My articles',
     body: 'Drafts, published pieces and their numbers, on the blog.',
     icon: FileText,
   },

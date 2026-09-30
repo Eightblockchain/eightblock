@@ -31,7 +31,7 @@ const adminLinks = [
 
 const siteLinks = [
   { href: siteHref('/articles/new'), label: 'Write an article', icon: PenLine },
-  { href: siteHref('/my-articles'), label: 'Your articles', icon: FileText },
+  { href: siteHref('/my-articles'), label: 'My articles', icon: FileText },
   { href: siteConfig.siteUrl, label: 'View site', icon: ArrowUpRight },
 ];
 

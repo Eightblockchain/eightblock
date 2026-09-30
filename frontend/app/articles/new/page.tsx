@@ -231,7 +231,7 @@ function NewArticlePageEditor() {
             <div className="flex items-center gap-3 min-w-0">
               <Link
                 href="/my-articles"
-                aria-label="Back to your articles"
+                aria-label="Back to my articles"
                 className="flex h-8 w-8 items-center justify-center rounded-xl
                   border border-border/60 dark:border-border/30 bg-muted/40 dark:bg-card/40
                   text-muted-foreground hover:text-foreground hover:border-border

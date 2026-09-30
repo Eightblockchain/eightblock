@@ -107,7 +107,7 @@ export function UserMenu() {
                 </Link>
                 <Link href="/my-articles" role="menuitem" className={itemClass}>
                   <FileText className="h-4 w-4" />
-                  Your articles
+                  My articles
                 </Link>
               </>
             )}
