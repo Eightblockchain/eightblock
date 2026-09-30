@@ -9,6 +9,8 @@ import { RelatedArticles } from '@/components/articles/related-articles';
 import { siteConfig } from '@/lib/site-config';
 import { readingTime } from '@/lib/chain';
 import { jsonLd as toJsonLd } from '@/lib/json-ld';
+import { OG_SIZE, feedAlternates, ogImagePath } from '@/lib/page-metadata';
+import { fetchSupportWallets } from '@/lib/support-wallets';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev';
@@ -90,20 +92,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       rawDesc.length > 160 ? rawDesc.slice(0, rawDesc.lastIndexOf(' ', 160)) + '…' : rawDesc.trim();
     const url = `${BASE_URL}/articles/${slug}`;
 
-    // Use article's featured image if it's a public https URL, otherwise generate a dynamic OG image.
-    // Use a relative path for the dynamic OG so Next.js resolves it via metadataBase
-    // (guarantees correct production domain regardless of NEXT_PUBLIC_SITE_URL env var).
-    const safeFeaturedImage = sanitizeOgImageUrl(article.featuredImage);
-    const ogImageUrl = safeFeaturedImage
-      ? safeFeaturedImage
-      : `/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description.slice(0, 100))}`;
+    const tags: string[] = article.tags?.map((t: any) => t.tag.name) ?? [];
+    const ogImageUrl =
+      sanitizeOgImageUrl(article.featuredImage) ??
+      ogImagePath({ title, description, eyebrow: article.category || 'Article', topics: tags });
 
-    const ogImageEntry = { url: ogImageUrl, width: 1200, height: 630, alt: title };
+    const ogImageEntry = { url: ogImageUrl, ...OG_SIZE, alt: title };
 
     return {
       title,
       description,
-      keywords: article.tags?.map((t: any) => t.tag.name).join(', ') || '',
+      keywords: tags.join(', '),
       authors: [{ name: article.author?.name || 'Anonymous' }],
       openGraph: {
         title,
@@ -118,13 +117,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       },
       twitter: {
         card: 'summary_large_image',
+        site: siteConfig.twitterHandle,
         title,
         description,
         images: [ogImageUrl],
       },
-      alternates: {
-        canonical: url,
-      },
+      alternates: { canonical: url, ...feedAlternates },
       robots: {
         index: article.status === 'PUBLISHED',
         follow: article.status === 'PUBLISHED',
@@ -137,7 +135,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = await fetchArticle(slug);
+  const [article, supportWallets] = await Promise.all([fetchArticle(slug), fetchSupportWallets()]);
 
   if (!article || article.status !== 'PUBLISHED') {
     // For SEO, return 404 if not published
@@ -148,7 +146,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   // JSON-LD structured data
   const canonicalUrl = `${BASE_URL}/articles/${slug}`;
-  const safeImage = sanitizeOgImageUrl(article.featuredImage) || `${BASE_URL}/og.png`;
+  const safeImage =
+    sanitizeOgImageUrl(article.featuredImage) ??
+    `${BASE_URL}${ogImagePath({ title: article.title, description: article.description || undefined, eyebrow: article.category || 'Article' })}`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -167,10 +167,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     },
     publisher: {
       '@type': 'Organization',
-      name: 'Eightblock',
+      '@id': `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
       logo: {
         '@type': 'ImageObject',
-        url: `${BASE_URL}/logo.svg`,
+        url: `${siteConfig.url}/apple-icon`,
       },
     },
     datePublished: article.publishedAt,
@@ -225,6 +226,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         initialLikesCount={article._count?.likes || 0}
         initialCommentsCount={article._count?.comments || 0}
         isPublished={article.status === 'PUBLISHED'}
+        supportWallets={supportWallets}
       />
 
       {siteConfig.showWrittenBy && <ArticleAuthor author={article.author} />}

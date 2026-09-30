@@ -16,7 +16,7 @@ export function OwnerActions({ authorId }: { authorId: string }) {
         Edit profile
       </Link>
       <Link href="/my-articles" className="btn-pill-outline">
-        Your articles
+        My articles
       </Link>
     </>
   );

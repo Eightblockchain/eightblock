@@ -58,32 +58,26 @@
 
 ### 3. ✅ Open Graph Images
 
-#### Static Fallback
+#### Share Card Generator
 
-- **Location**: `frontend/public/og.png`
-- **Status**: ✅ Created
-- **Specs**: 1200x630px, branded with Eightblock colors
-- **URL**: `https://eightblock.dev/og.png`
-
-#### Dynamic OG Image Generator
-
-- **Location**: `frontend/app/api/og/route.tsx`
-- **Status**: ✅ Implemented
+- **Location**: `frontend/app/api/og/route.tsx`, rendering `frontend/lib/og-card.tsx`
 - **Features**:
-  - Edge runtime for fast generation
-  - Accepts `title` and `description` query params
+  - Real logo (`public/logo.svg`), Space Grotesk and Inter (`frontend/assets/og/`)
+  - Accepts `title`, `description`, `eyebrow` and `topics` (comma-separated) query params
+  - Without params, returns the site card used by the home page and as the default
   - Generates 1200x630px images
-  - Branded design with gradient background
-  - Automatic fallback for articles without featured images
-- **Example**: `https://eightblock.dev/api/og?title=Article+Title&description=Brief+description`
+- **Examples**: `https://eightblock.dev/api/og`,
+  `https://eightblock.dev/api/og?title=Article+Title&description=Brief+description`
+
+Page metadata comes from `pageMetadata()` in `frontend/lib/page-metadata.ts`, which sets the
+title, description, canonical URL, Open Graph and Twitter tags together.
 
 #### Article OG Image Logic
 
 Articles now use:
 
 1. **First choice**: Article's uploaded featured image
-2. **Fallback**: Dynamically generated OG image with title/description
-3. **Global fallback**: Static `/og.png`
+2. **Fallback**: Generated card with the category, title, description and tags
 
 ### 4. ✅ JSON-LD Structured Data
 
@@ -260,10 +254,10 @@ curl https://eightblock.dev/sitemap.xml | head -20
 # Check robots.txt (should show sitemap URL)
 curl https://eightblock.dev/robots.txt
 
-# Check OG image exists
-curl -I https://eightblock.dev/og.png
+# Check the site share card
+curl -I https://eightblock.dev/api/og
 
-# Check dynamic OG generator
+# Check an article-style card
 curl -I "https://eightblock.dev/api/og?title=Test"
 
 # Verify article has metadata (should see og: tags)

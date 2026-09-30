@@ -121,7 +121,7 @@ export function MyArticles({ eyebrow = 'Your account' }: MyArticlesProps) {
         <div>
           <Eyebrow>{eyebrow}</Eyebrow>
           <h1 className="mt-5 font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
-            Your articles
+            My articles
           </h1>
           <p className="mt-3 max-w-xl text-muted-foreground">
             Drafts are private to you. Published articles are live for everyone.

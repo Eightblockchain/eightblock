@@ -5,11 +5,11 @@ export const siteConfig = {
   tagline:
     'Notes on blockchain, smart contracts, and the systems shaping decentralized technology.',
   description:
-    'Personal writing on web3, smart contracts, zero-knowledge, Cardano, Midnight, Safrochain, and decentralized infrastructure.',
+    'Research notes, tutorials and field reports on web3, smart contracts, zero-knowledge, Cardano, Midnight and Safrochain, from building on real networks.',
   url: 'https://eightblock.dev',
   /** The separate admin app, for accounts with the ADMIN role. */
   adminUrl: (process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001').replace(/\/$/, ''),
-  ogImage: 'https://eightblock.dev/og.png',
+  twitterHandle: '@Eightblock66103',
   showWrittenBy: false,
   links: {
     twitter: 'https://x.com/Eightblock66103',
@@ -52,12 +52,6 @@ export const siteConfig = {
     title: 'New blocks, straight to your inbox.',
     description:
       'New articles on web3, smart contracts and decentralized systems, plus a short weekly roundup when there is something new. No spam, and you can unsubscribe in one click.',
-  },
-  support: {
-    walletAddress:
-      'addr1qy7w8dvq0fddt7yefqeeju420f9sdq57xgrezvvdz9dwe620pqsxeefd6xxanuht9dupwph0l3lr3r73x80m0tlxp9gquyz5en',
-    label: 'Support with ADA',
-    note: 'On-chain tips via smart contract coming soon.',
   },
   about: {
     bio: 'I build and write about web3. My work sits at the intersection of smart contracts, blockchain infrastructure, and the ecosystems trying to make decentralized systems practical.',

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { Article, ArticlesResponse } from '@/hooks/useInfiniteArticles';
 import { siteConfig } from '@/lib/site-config';
+import { ogImagePath, pageMetadata } from '@/lib/page-metadata';
 import { NewsletterSignup } from '@/components/newsletter-signup';
 import {
   FeaturedBlocks,
@@ -10,13 +11,13 @@ import {
   TopicsGrid,
 } from '@/components/home/home-sections';
 
-export const metadata: Metadata = {
-  title: {
-    absolute: `${siteConfig.name} | ${siteConfig.hero.titleLead} ${siteConfig.hero.titleTrail}`,
-  },
-  description: siteConfig.hero.subtitle,
-  alternates: { canonical: '/' },
-};
+export const metadata: Metadata = pageMetadata({
+  title: `${siteConfig.name} | ${siteConfig.hero.titleLead} ${siteConfig.hero.titleTrail}`,
+  absoluteTitle: true,
+  description: siteConfig.description,
+  path: '/',
+  image: ogImagePath(),
+});
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 

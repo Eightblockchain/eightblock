@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Shield, ExternalLink } from 'lucide-react';
+import { pageMetadata } from '@/lib/page-metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Privacy Policy',
   description: 'How Eightblock collects, uses and protects your information.',
-  alternates: { canonical: '/privacy' },
-};
+  path: '/privacy',
+});
 
 const sections = [
   { id: 'introduction', title: 'Introduction' },

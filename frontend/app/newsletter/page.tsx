@@ -2,12 +2,18 @@ import type { Metadata } from 'next';
 import { NewsletterSignup } from '@/components/newsletter-signup';
 import { Eyebrow } from '@eightblock/ui/components/section-header';
 import { siteConfig } from '@/lib/site-config';
+import { ogImagePath, pageMetadata } from '@/lib/page-metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Newsletter',
   description: siteConfig.newsletter.description,
-  alternates: { canonical: '/newsletter' },
-};
+  path: '/newsletter',
+  image: ogImagePath({
+    title: siteConfig.newsletter.title,
+    description: siteConfig.newsletter.description,
+    eyebrow: 'Newsletter',
+  }),
+});
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 

@@ -48,6 +48,8 @@ describe('authentication', () => {
     ['get', '/api/newsletters'],
     ['get', '/api/articles/mine'],
     ['put', '/api/portfolio'],
+    ['put', '/api/support-wallets'],
+    ['get', '/api/support-wallets/manage'],
     ['post', '/api/tags'],
     ['delete', '/api/tags/some-id'],
     ['post', '/api/articles'],

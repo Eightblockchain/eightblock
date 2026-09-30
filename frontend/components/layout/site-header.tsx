@@ -54,7 +54,7 @@ function MobileAccount({ onNavigate }: { onNavigate: () => void }) {
     { href: '/settings', label: 'Profile settings', show: true },
     { href: '/bookmarks', label: 'Saved articles', show: true },
     { href: '/articles/new', label: 'Write an article', show: canWrite(user.role) },
-    { href: '/my-articles', label: 'Your articles', show: canWrite(user.role) },
+    { href: '/my-articles', label: 'My articles', show: canWrite(user.role) },
     { href: siteConfig.adminUrl, label: 'Admin', show: isAdmin(user.role) },
   ].filter((link) => link.show);
 

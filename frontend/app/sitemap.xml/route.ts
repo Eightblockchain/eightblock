@@ -50,10 +50,16 @@ export async function GET() {
   const articles = await fetchAllPublishedArticles();
 
   const now = new Date().toISOString();
+  const newestArticle = articles.reduce<string | undefined>((newest, a) => {
+    const date = a.updatedAt || a.publishedAt;
+    return date && (!newest || date > newest) ? date : newest;
+  }, undefined);
+  const listingLastmod = newestArticle ? new Date(newestArticle).toISOString() : undefined;
 
-  const staticPages = [
-    { path: '', priority: '1.0', changefreq: 'daily' },
-    { path: 'writing', priority: '0.9', changefreq: 'daily' },
+  // Only pages that list articles get a lastmod; a date that changes on every fetch is ignored.
+  const staticPages: { path: string; priority: string; changefreq: string; lastmod?: string }[] = [
+    { path: '', priority: '1.0', changefreq: 'daily', lastmod: listingLastmod },
+    { path: 'writing', priority: '0.9', changefreq: 'daily', lastmod: listingLastmod },
     { path: 'about', priority: '0.7', changefreq: 'monthly' },
     { path: 'newsletter', priority: '0.6', changefreq: 'monthly' },
     { path: 'midnight', priority: '0.5', changefreq: 'monthly' },
@@ -65,10 +71,9 @@ export async function GET() {
 
   const staticEntries = staticPages
     .map(
-      ({ path, priority, changefreq }) =>
+      ({ path, priority, changefreq, lastmod }) =>
         `<url>
-  <loc>${BASE_URL}${path ? `/${path}` : ''}</loc>
-  <lastmod>${now}</lastmod>
+  <loc>${BASE_URL}${path ? `/${path}` : ''}</loc>${lastmod ? `\n  <lastmod>${lastmod}</lastmod>` : ''}
   <changefreq>${changefreq}</changefreq>
   <priority>${priority}</priority>
 </url>`
