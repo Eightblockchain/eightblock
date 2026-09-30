@@ -113,7 +113,7 @@ export function CommentsSection({
               <div>
                 <p className="font-medium text-foreground">Join the discussion</p>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  Sign in with Google to reply. You will come straight back to this article.
+                  Sign in with Google to reply. You stay on this article while you sign in.
                 </p>
               </div>
               <GoogleButton label="Sign in with Google" className="shrink-0" />

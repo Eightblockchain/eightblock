@@ -7,7 +7,7 @@ import { SupportCreator } from '@/components/support/support-creator';
 import type { SupportWallet } from '@/lib/support-wallets';
 import { useArticleInteractions } from '@/hooks/useArticleInteractions';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { SignInDialog } from '@/components/auth/sign-in-dialog';
+import { useSignInDialog } from '@/components/auth/sign-in-dialog';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Edit2 } from 'lucide-react';
@@ -34,7 +34,7 @@ export function ArticleClientWrapper({
   supportWallets,
 }: ArticleClientWrapperProps) {
   const [likesCount, setLikesCount] = useState(initialLikesCount);
-  const [signInOpen, setSignInOpen] = useState(false);
+  const openSignIn = useSignInDialog();
 
   // Get authenticated user using React Query
   const { data: currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
@@ -63,7 +63,12 @@ export function ArticleClientWrapper({
     userId,
     articleSlug,
     isPublished,
-    onAuthRequired: () => setSignInOpen(true),
+    onAuthRequired: () =>
+      openSignIn({
+        title: 'Sign in to save articles',
+        description:
+          'Saved articles live in your account so you can pick them up on any device. You stay on this article while you sign in.',
+      }),
   });
 
   // Once we know the user's like status, correct the count if the ISR-cached
@@ -156,13 +161,6 @@ export function ArticleClientWrapper({
         onUpdateComment={handleUpdateComment}
         onDeleteComment={handleDeleteComment}
         onLoadMoreComments={loadMoreComments}
-      />
-
-      <SignInDialog
-        open={signInOpen}
-        onOpenChange={setSignInOpen}
-        title="Sign in to save articles"
-        description="Saved articles live in your account so you can pick them up on any device."
       />
 
       <div className="container-read space-y-6 pb-16">

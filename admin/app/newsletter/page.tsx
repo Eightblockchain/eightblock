@@ -82,6 +82,7 @@ export default function NewsletterAdmin() {
           c.status === 'SENT'
             ? {
                 title: `“${c.subject}” was delivered to ${c.recipientCount.toLocaleString()} subscribers`,
+                variant: 'success',
               }
             : {
                 title: `“${c.subject}” could not be sent`,
@@ -113,6 +114,7 @@ export default function NewsletterAdmin() {
       toast({
         title: `Test email sent to ${to}`,
         description: 'Check your inbox and spam folder.',
+        variant: 'success',
       }),
     onError: fail('Test email not sent'),
   });
@@ -136,6 +138,7 @@ export default function NewsletterAdmin() {
       toast({
         title: resumed ? 'Sending resumed' : 'Sending started',
         description: 'Delivery runs in the background. You can leave this page.',
+        variant: 'success',
       });
       if (!resumed) startNew();
       queryClient.setQueryData<Campaign[]>(['newsletter', 'campaigns'], (list) =>
@@ -155,7 +158,7 @@ export default function NewsletterAdmin() {
     onMutate: (campaign) => setBusyId(campaign.id),
     onSuccess: (_, campaign) => {
       if (campaign.id === draftId) startNew();
-      toast({ title: 'Draft deleted' });
+      toast({ title: 'Draft deleted', variant: 'success' });
     },
     onError: fail('Could not delete the draft'),
     onSettled: () => {
@@ -315,7 +318,7 @@ export default function NewsletterAdmin() {
               type="button"
               onClick={() =>
                 save.mutate(undefined, {
-                  onSuccess: () => toast({ title: 'Draft saved' }),
+                  onSuccess: () => toast({ title: 'Draft saved', variant: 'success' }),
                   onError: fail('Could not save the draft'),
                 })
               }

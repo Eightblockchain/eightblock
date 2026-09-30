@@ -42,9 +42,10 @@ export function ShareButton({ url, title, label = 'Share', className }: ShareBut
       toast({
         title: 'Link copied',
         description: 'Anyone with the link can open it, no sign-in needed.',
+        variant: 'success',
       });
     } catch {
-      toast({ title: 'Copy this link', description: link });
+      toast({ title: 'Copy this link manually', description: link });
     }
   };
 

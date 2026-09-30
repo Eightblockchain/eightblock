@@ -75,14 +75,18 @@ function NewArticlePageEditor() {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: 'Invalid file type',
-        description: 'JPEG, PNG, WebP, or GIF only',
-        variant: 'destructive',
+        title: 'Unsupported image type',
+        description: 'Use a JPEG, PNG, WebP or GIF image.',
+        variant: 'warning',
       });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Max 10MB', variant: 'destructive' });
+      toast({
+        title: 'Image too large',
+        description: 'Choose an image under 10 MB.',
+        variant: 'warning',
+      });
       return;
     }
     setFeaturedImageFile(file);
@@ -119,8 +123,8 @@ function NewArticlePageEditor() {
       return data.imageUrl;
     } catch {
       toast({
-        title: 'Upload failed',
-        description: 'Failed to upload featured image',
+        title: 'Could not upload the cover image',
+        description: 'Please try again.',
         variant: 'destructive',
       });
       return null;
@@ -151,9 +155,9 @@ function NewArticlePageEditor() {
   const handleSubmit = async (status: 'DRAFT' | 'PUBLISHED') => {
     if (!formData.title || !formData.content) {
       toast({
-        title: 'Missing fields',
-        description: 'Title and content are required',
-        variant: 'destructive',
+        title: 'Add a title and some content',
+        description: 'Both are needed before the article can be saved.',
+        variant: 'warning',
       });
       return;
     }
@@ -194,6 +198,7 @@ function NewArticlePageEditor() {
           status === 'PUBLISHED'
             ? 'Your article is now live.'
             : 'Only you can see it. Keep editing, or publish it when it is ready.',
+        variant: 'success',
       });
       // Drafts are not public, so keep the author in the editor instead of the public (404) page.
       router.push(
@@ -201,8 +206,8 @@ function NewArticlePageEditor() {
       );
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create article',
+        title: 'Could not save the article',
+        description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
     } finally {

@@ -3,18 +3,12 @@ import Link from 'next/link';
 import { Panel } from '@eightblock/ui/components/panel';
 import { BrandMark } from '@eightblock/ui/components/brand-mark';
 import { GoogleButton } from '@/components/auth/google-button';
+import { signInErrorMessage } from '@/lib/auth';
 import { SignedInRedirect } from './signed-in-redirect';
 
 export const metadata: Metadata = {
   title: 'Sign in',
   robots: { index: false },
-};
-
-const ERRORS: Record<string, string> = {
-  cancelled: 'Sign-in was cancelled. You can try again whenever you like.',
-  state: 'Your sign-in session expired. Please try again.',
-  failed: 'We could not sign you in with Google. Please try again.',
-  not_configured: 'Google sign-in is not configured on the server yet.',
 };
 
 function safeReturnTo(value: string | string[] | undefined) {
@@ -32,7 +26,7 @@ export default async function LoginPage({
   const params = await searchParams;
   const returnTo = safeReturnTo(params.returnTo ?? params.redirect);
   const errorKey = Array.isArray(params.error) ? params.error[0] : params.error;
-  const error = errorKey ? (ERRORS[errorKey] ?? ERRORS.failed) : null;
+  const error = errorKey ? signInErrorMessage(errorKey) : null;
   return (
     <div className="container-page flex min-h-[calc(100vh-4rem)] items-center justify-center py-16">
       <SignedInRedirect to={returnTo} />

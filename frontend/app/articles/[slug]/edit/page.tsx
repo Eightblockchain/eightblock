@@ -114,9 +114,9 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
 
         if (!response.ok) {
           toast({
-            title: 'Authentication required',
-            description: 'Please sign in to edit articles',
-            variant: 'destructive',
+            title: 'Sign in to edit articles',
+            description: 'Your session may have expired.',
+            variant: 'warning',
           });
           router.push(exit);
           return;
@@ -125,8 +125,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
         const user = await response.json();
         if (article.author.id !== user.id) {
           toast({
-            title: 'Unauthorized',
-            description: 'You can only edit your own articles',
+            title: 'You can only edit your own articles',
             variant: 'destructive',
           });
           router.push(exit);
@@ -134,8 +133,8 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
         }
       } catch (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to verify authorization',
+          title: 'Could not check your access',
+          description: 'Please try again in a moment.',
           variant: 'destructive',
         });
         router.push(exit);
@@ -204,6 +203,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
         toast({
           title: isPublished ? 'Changes saved' : 'Article published',
           description: 'Your article is live.',
+          variant: 'success',
         });
         router.push(`/articles/${data.slug}`);
         return;
@@ -212,6 +212,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
       toast({
         title: isPublished ? 'Moved to drafts' : 'Draft saved',
         description: 'Only you can see it until you publish it.',
+        variant: 'success',
       });
       // Drafts have no public page, so stay in the editor with the saved version loaded.
       queryClient.setQueryData(['article', data.slug], data);
@@ -219,8 +220,8 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
     },
     onError: (error: Error) => {
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to save article',
+        title: 'Could not save the article',
+        description: error.message || 'Please try again.',
         variant: 'destructive',
       });
     },
@@ -250,9 +251,9 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: 'Invalid file type',
-        description: 'Please select a JPEG, PNG, WebP, or GIF image',
-        variant: 'destructive',
+        title: 'Unsupported image type',
+        description: 'Use a JPEG, PNG, WebP or GIF image.',
+        variant: 'warning',
       });
       return;
     }
@@ -260,9 +261,9 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
     // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
       toast({
-        title: 'File too large',
-        description: 'Please select an image smaller than 10MB',
-        variant: 'destructive',
+        title: 'Image too large',
+        description: 'Choose an image under 10 MB.',
+        variant: 'warning',
       });
       return;
     }
@@ -308,9 +309,9 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
   const handleSubmit = (status: 'DRAFT' | 'PUBLISHED') => {
     if (!formData.title || !formData.content) {
       toast({
-        title: 'Missing fields',
-        description: 'Title and content are required',
-        variant: 'destructive',
+        title: 'Add a title and some content',
+        description: 'Both are needed before the article can be saved.',
+        variant: 'warning',
       });
       return;
     }

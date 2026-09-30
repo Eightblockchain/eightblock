@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { CommentsSection } from '@/components/articles/comments-section';
 import type { Comment } from '@/lib/article-api';
 
@@ -26,22 +27,24 @@ const comments: Comment[] = [
 
 function renderSection(props: Partial<ComponentProps<typeof CommentsSection>> = {}) {
   return render(
-    <CommentsSection
-      comments={comments}
-      totalComments={comments.length}
-      hasMoreComments={false}
-      isLoadingMoreComments={false}
-      isAuthenticated
-      currentUserId="me"
-      isPostingComment={false}
-      isUpdatingComment={false}
-      deletingCommentId={null}
-      onPostComment={vi.fn()}
-      onUpdateComment={vi.fn()}
-      onDeleteComment={vi.fn()}
-      onLoadMoreComments={vi.fn()}
-      {...props}
-    />
+    <QueryClientProvider client={new QueryClient()}>
+      <CommentsSection
+        comments={comments}
+        totalComments={comments.length}
+        hasMoreComments={false}
+        isLoadingMoreComments={false}
+        isAuthenticated
+        currentUserId="me"
+        isPostingComment={false}
+        isUpdatingComment={false}
+        deletingCommentId={null}
+        onPostComment={vi.fn()}
+        onUpdateComment={vi.fn()}
+        onDeleteComment={vi.fn()}
+        onLoadMoreComments={vi.fn()}
+        {...props}
+      />
+    </QueryClientProvider>
   );
 }
 

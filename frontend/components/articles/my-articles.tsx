@@ -100,7 +100,11 @@ export function MyArticles({ eyebrow = 'Your account' }: MyArticlesProps) {
         await revalidateArticle([article.slug]).catch(() => undefined);
       await queryClient.invalidateQueries({ queryKey: ['my-articles'] });
       if (data && data.articles.length === 1 && page > 1) setPage((p) => p - 1);
-      toast({ title: 'Article deleted', description: `"${article.title}" is gone for good.` });
+      toast({
+        title: 'Article deleted',
+        description: `"${article.title}" is gone for good.`,
+        variant: 'success',
+      });
     },
     onError: (error) => {
       toast({

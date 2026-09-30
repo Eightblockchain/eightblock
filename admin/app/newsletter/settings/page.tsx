@@ -142,6 +142,7 @@ export default function NewsletterSettingsPage() {
       toast({
         title: 'Newsletter settings saved',
         description: 'Changes apply within a few seconds.',
+        variant: 'success',
       });
     },
     onError: (err: Error) =>
@@ -158,6 +159,7 @@ export default function NewsletterSettingsPage() {
       toast({
         title: 'Digest is sending',
         description: `${outcome.articles} article${outcome.articles === 1 ? '' : 's'} going out now. Progress shows on the newsletter page.`,
+        variant: 'success',
       });
       void queryClient.invalidateQueries({ queryKey: ['newsletter'] });
     },

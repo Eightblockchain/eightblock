@@ -1,18 +1,8 @@
 'use client';
 
-import {
-  CheckCircle2,
-  AlertCircle,
-  Info,
-  Heart,
-  Bookmark,
-  MessageCircle,
-  Share2,
-  Trash2,
-  Edit,
-  Upload,
-} from 'lucide-react';
+import { CircleAlert, CircleCheck, Info, TriangleAlert } from 'lucide-react';
 
+import { cn } from '../utils';
 import {
   Toast,
   ToastClose,
@@ -20,95 +10,67 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
+  toastTone,
+  type ToastVariant,
 } from './toast';
-import type { ToastVariant } from './toast';
 import { useToast } from '../hooks/use-toast';
 
-/** Auto-dismiss duration shared between Radix and the progress bar */
-const DURATION = 4500;
-
-type VariantConfig = {
-  accent: string; // left bar + icon ring color class
-  iconBg: string;
-  iconColor: string;
-  progressColor: string;
-  icon: React.ElementType;
+const ICONS: Record<ToastVariant, React.ElementType> = {
+  default: Info,
+  success: CircleCheck,
+  warning: TriangleAlert,
+  destructive: CircleAlert,
 };
 
-const variantConfig: Record<NonNullable<ToastVariant>, VariantConfig> = {
-  default: {
-    accent: 'bg-primary',
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    progressColor: 'bg-primary/50',
-    icon: CheckCircle2,
-  },
-  destructive: {
-    accent: 'bg-rose-500',
-    iconBg: 'bg-rose-500/10',
-    iconColor: 'text-rose-400',
-    progressColor: 'bg-rose-500/50',
-    icon: AlertCircle,
-  },
+/** Problems stay up longer so there is time to read what went wrong. */
+const DURATIONS: Record<ToastVariant, number> = {
+  default: 4500,
+  success: 4500,
+  warning: 6500,
+  destructive: 7000,
 };
-
-/** Pick an icon based on the title keyword for richer defaults */
-function resolveIcon(title: React.ReactNode, fallback: React.ElementType): React.ElementType {
-  if (typeof title !== 'string') return fallback;
-  const t = title.toLowerCase();
-  if (t.includes('like') || t.includes('heart')) return Heart;
-  if (t.includes('bookmark') || t.includes('saved')) return Bookmark;
-  if (t.includes('comment')) return MessageCircle;
-  if (t.includes('shar')) return Share2;
-  if (t.includes('delet') || t.includes('remov')) return Trash2;
-  if (t.includes('updat') || t.includes('edit')) return Edit;
-  if (t.includes('publish') || t.includes('upload')) return Upload;
-  if (t.includes('error') || t.includes('fail')) return AlertCircle;
-  if (t.includes('info')) return Info;
-  return fallback;
-}
 
 export function Toaster() {
   const { toasts } = useToast();
 
   return (
-    <ToastProvider duration={DURATION}>
-      {toasts.map(({ id, title, description, action, variant, duration, ...props }) => {
-        const cfg = variantConfig[variant ?? 'default'] ?? variantConfig.default;
-        const Icon = resolveIcon(title, cfg.icon);
-        const toastDuration = (duration as number | undefined) ?? DURATION;
+    <ToastProvider>
+      {toasts.map(({ id, title, description, action, variant = 'default', duration, ...props }) => {
+        const tone = toastTone[variant];
+        const Icon = ICONS[variant];
+        const toastDuration = duration ?? DURATIONS[variant];
+        const urgent = variant === 'destructive' || variant === 'warning';
 
         return (
-          <Toast key={id} variant={variant} duration={toastDuration} {...props}>
-            {/* ── Left accent bar ── */}
-            <div className={`absolute left-0 inset-y-0 w-[3px] ${cfg.accent} rounded-l-2xl`} />
-
-            {/* ── Main content ── */}
-            <div className="flex items-start gap-3 pl-5 pr-3 py-3.5">
-              {/* Icon badge */}
-              <div
-                className={`flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl ${cfg.iconBg}`}
-              >
-                <Icon className={`h-4 w-4 ${cfg.iconColor}`} />
+          <Toast
+            key={id}
+            variant={variant}
+            duration={toastDuration}
+            type={urgent ? 'foreground' : 'background'}
+            {...props}
+          >
+            <div className="flex items-start gap-3 py-3.5 pl-4 pr-2.5">
+              <Icon
+                className={cn('mt-px h-[18px] w-[18px] flex-shrink-0', tone.icon)}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                {title && <ToastTitle className={tone.title}>{title}</ToastTitle>}
+                {description && (
+                  <ToastDescription className={tone.description}>{description}</ToastDescription>
+                )}
+                {action && <div className="mt-3">{action}</div>}
               </div>
-
-              {/* Text */}
-              <div className="flex-1 min-w-0 pt-[3px]">
-                {title && <ToastTitle>{title}</ToastTitle>}
-                {description && <ToastDescription>{description}</ToastDescription>}
-              </div>
-
-              {/* Optional action */}
-              {action && <div className="flex-shrink-0 self-center ml-1">{action}</div>}
-
-              {/* Close */}
-              <ToastClose className="self-start mt-[1px]" />
+              <ToastClose className={cn('-mt-1', tone.title)} />
             </div>
 
-            {/* ── Progress bar ── */}
-            <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-border">
+            {/* Radix pauses the timer on hover and focus, so the countdown does too. */}
+            <div className="absolute inset-x-0 bottom-0 h-0.5" aria-hidden>
               <div
-                className={`h-full ${cfg.progressColor} origin-left`}
+                className={cn(
+                  'h-full origin-left group-focus-within:[animation-play-state:paused] group-hover:[animation-play-state:paused]',
+                  tone.progress
+                )}
                 style={{ animation: `toast-progress ${toastDuration}ms linear forwards` }}
               />
             </div>

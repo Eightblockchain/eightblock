@@ -77,6 +77,7 @@ export function useArticleInteractions({
           action === 'add'
             ? 'Find it any time under Saved articles in your account menu.'
             : 'This article is no longer in your saved list.',
+        variant: 'success',
       });
     },
     onError: (error, _action, context) => {
@@ -168,12 +169,13 @@ export function useArticleInteractions({
       toast.toast?.({
         title: 'Comment posted',
         description: 'Thanks for joining the discussion.',
+        variant: 'success',
       });
     },
     onError: (error) => {
       toast.toast?.({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to post comment',
+        title: 'Could not post your comment',
+        description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
     },
@@ -190,12 +192,13 @@ export function useArticleInteractions({
       toast.toast?.({
         title: 'Comment updated',
         description: 'Your changes are live.',
+        variant: 'success',
       });
     },
     onError: (error) => {
       toast.toast?.({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update comment',
+        title: 'Could not update your comment',
+        description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
     },
@@ -220,12 +223,13 @@ export function useArticleInteractions({
       toast.toast?.({
         title: 'Comment deleted',
         description: 'Your comment has been removed.',
+        variant: 'success',
       });
     },
     onError: (error) => {
       toast.toast?.({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to delete comment',
+        title: 'Could not delete your comment',
+        description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
     },
