@@ -4,7 +4,7 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
   {
-    ignores: ['dist/**', 'prisma/**', 'node_modules/**', 'eslint.config.js', 'vitest.config.ts'],
+    ignores: ['dist/**', 'dist-build/**', 'dist-prev/**', 'uploads/**', 'prisma/**', 'node_modules/**', 'eslint.config.js', 'vitest.config.ts'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
