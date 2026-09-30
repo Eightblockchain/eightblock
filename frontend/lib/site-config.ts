@@ -5,11 +5,11 @@ export const siteConfig = {
   tagline:
     'Notes on blockchain, smart contracts, and the systems shaping decentralized technology.',
   description:
-    'Personal writing on web3, smart contracts, zero-knowledge, Cardano, Midnight, Safrochain, and decentralized infrastructure.',
+    'Research notes, tutorials and field reports on web3, smart contracts, zero-knowledge, Cardano, Midnight and Safrochain, from building on real networks.',
   url: 'https://eightblock.dev',
   /** The separate admin app, for accounts with the ADMIN role. */
   adminUrl: (process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001').replace(/\/$/, ''),
-  ogImage: 'https://eightblock.dev/og.png',
+  twitterHandle: '@Eightblock66103',
   showWrittenBy: false,
   links: {
     twitter: 'https://x.com/Eightblock66103',

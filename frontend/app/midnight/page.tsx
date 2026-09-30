@@ -2,22 +2,23 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Shield, Code2, Zap, Lock, BookOpen, ArrowRight, Layers, Eye, Globe } from 'lucide-react';
 import { Button } from '@eightblock/ui/components/button';
-import { siteConfig } from '@/lib/site-config';
+import { ogImagePath, pageMetadata } from '@/lib/page-metadata';
 
-export const metadata: Metadata = {
+const description =
+  'Your comprehensive resource for Midnight Network. Learn about privacy-preserving smart contracts, Zero-Knowledge proofs, Compact language, and more.';
+
+export const metadata: Metadata = pageMetadata({
   title: 'Midnight Hub – Privacy-First Blockchain',
-  description:
-    'Your comprehensive resource for Midnight Network. Learn about privacy-preserving smart contracts, Zero-Knowledge proofs, Compact language, and more.',
-  alternates: { canonical: '/midnight' },
-  openGraph: {
-    title: 'Midnight Hub | Eightblock',
+  description,
+  path: '/midnight',
+  image: ogImagePath({
+    title: 'Midnight Hub',
     description:
       'Privacy-first blockchain education. Deep-dive into Midnight Network, ZK proofs, and the Compact language.',
-    url: '/midnight',
-    siteName: siteConfig.name,
-    images: [{ url: siteConfig.ogImage, width: 1200, height: 630, alt: siteConfig.name }],
-  },
-};
+    eyebrow: 'Privacy-first blockchain',
+    topics: ['Midnight', 'Zero-Knowledge', 'Compact', 'Smart Contracts'],
+  }),
+});
 
 const ecosystemPillars = [
   {

@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Scale, ExternalLink } from 'lucide-react';
+import { pageMetadata } from '@/lib/page-metadata';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Terms of Service',
   description: 'The rules and guidelines for using Eightblock.',
-  alternates: { canonical: '/terms' },
-};
+  path: '/terms',
+});
 
 const sections = [
   { id: 'agreement', title: 'Agreement to Terms' },

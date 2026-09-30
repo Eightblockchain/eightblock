@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { PublishedTopic } from '@/lib/api';
 import { topicLabel, topicSlug } from '@/lib/topics';
+import { pageMetadata } from '@/lib/page-metadata';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev';
@@ -55,17 +56,11 @@ export function listingMetadata({
   title: string;
   description: string;
 }): Metadata {
-  const url = `${BASE_URL}${path}${tag ? `?tag=${encodeURIComponent(tag)}` : ''}`;
-  const image = `/api/og?title=${encodeURIComponent(title)}&description=${encodeURIComponent(description.slice(0, 100))}`;
-  const card = { url: image, width: 1200, height: 630, alt: title };
-
-  return {
+  return pageMetadata({
     title,
     description,
-    alternates: { canonical: url },
-    openGraph: { title, description, url, type: 'website', siteName: 'Eightblock', images: [card] },
-    twitter: { card: 'summary_large_image', title, description, images: [image] },
-  };
+    path: `${BASE_URL}${path}${tag ? `?tag=${encodeURIComponent(tag)}` : ''}`,
+  });
 }
 
 export async function tagLabel(tag: string, author?: string): Promise<string> {
