@@ -1,10 +1,10 @@
-import Redis, { Redis as RedisType } from 'ioredis';
+import { Redis } from 'ioredis';
 import { logger } from './logger.js';
 
 // Redis client instance
-let redisClient: RedisType | null = null;
+let redisClient: Redis | null = null;
 
-export function getRedisClient(): RedisType | null {
+export function getRedisClient(): Redis | null {
   if (redisClient) {
     return redisClient;
   }
