@@ -1,6 +1,11 @@
 import sharp from 'sharp';
 import fs from 'fs';
 
+// A small, highly compressed upload can decode to gigabytes; cap it well above any real photo
+// (40 MP) and decode one image at a time so a burst of uploads cannot exhaust memory.
+const MAX_INPUT_PIXELS = 40_000_000;
+sharp.concurrency(1);
+
 interface OptimizeImageOptions {
   width?: number;
   height?: number;
@@ -23,7 +28,7 @@ export async function optimizeImage(
 
   try {
     // Process the image
-    const image = sharp(inputPath);
+    const image = sharp(inputPath, { limitInputPixels: MAX_INPUT_PIXELS });
     await image.metadata();
 
     // Resize and optimize

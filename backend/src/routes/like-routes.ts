@@ -1,11 +1,15 @@
-import { Router } from 'express';
+import { createRouter } from '../utils/async-router.js';
 import { removeLike, upsertLike, checkUserLike } from '../controllers/like-controller.js';
-import { requireAuth, optionalAuth } from '../middleware/auth.js';
+import { optionalAuth } from '../middleware/auth.js';
+import { ensureVisitorId } from '../middleware/visitor.js';
+import { clapLimiter } from '../middleware/rate-limit.js';
 
-const router = Router({ mergeParams: true });
+const router = createRouter({ mergeParams: true });
 
-router.get('/', optionalAuth, checkUserLike);
-router.post('/', requireAuth, upsertLike);
-router.delete('/', requireAuth, removeLike);
+router.use(optionalAuth, ensureVisitorId);
+
+router.get('/', checkUserLike);
+router.post('/', clapLimiter, upsertLike);
+router.delete('/', clapLimiter, removeLike);
 
 export default router;

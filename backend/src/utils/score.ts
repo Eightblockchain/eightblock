@@ -1,6 +1,7 @@
 import { prisma } from '../prisma/client.js';
 import { cacheDelPattern } from './redis.js';
 import { logger } from './logger.js';
+import { VISIBLE_COMMENTS } from '../utils/comments.js';
 
 /**
  * Balanced ranking formula using DAYS (not hours) with a gentler decay:
@@ -10,13 +11,13 @@ import { logger } from './logger.js';
  * Where:
  *   engagement = likes + comments*2 + views*0.1
  *   freshness  = max(0, 1 - daysAge/3)  → 1.0 at publish, 0 after 3 days
- *   exponent   = 1.2  (vs HN's 1.8 — gentler decay for small platforms)
+ *   exponent   = 1.2  (vs HN's 1.8 - gentler decay for small platforms)
  *
  * Effect:
  *   - Brand-new articles always start with score ≥ 0.5 (freshness bonus),
  *     so the feed never looks like a static publishedAt list.
  *   - An article from 6 weeks ago with 7 engagement scores similarly to a
- *     1-day-old article with 2 engagement — rewarding real discussion.
+ *     1-day-old article with 2 engagement - rewarding real discussion.
  *   - Between refreshes with no new activity, scores are stable (intentional).
  */
 export function computeScore(params: {
@@ -40,7 +41,7 @@ export async function refreshScore(articleId: string): Promise<void> {
   try {
     const [likesCount, commentsCount, article] = await Promise.all([
       prisma.like.count({ where: { articleId } }),
-      prisma.comment.count({ where: { articleId } }),
+      prisma.comment.count({ where: { articleId, ...VISIBLE_COMMENTS } }),
       prisma.article.findUnique({
         where: { id: articleId },
         select: { viewCount: true, publishedAt: true },
@@ -63,7 +64,7 @@ export async function refreshScore(articleId: string): Promise<void> {
 
     await cacheDelPattern('articles:page:*');
   } catch (err) {
-    // Non-fatal — a missed score update degrades gracefully
+    // Non-fatal - a missed score update degrades gracefully
     logger.warn(`refreshScore failed for ${articleId}: ${(err as Error).message}`);
   }
 }
@@ -86,6 +87,7 @@ export async function recomputeAllScores(): Promise<void> {
       }),
       prisma.comment.groupBy({
         by: ['articleId'],
+        where: VISIBLE_COMMENTS,
         _count: { id: true },
       }),
     ]);
@@ -107,9 +109,9 @@ export async function recomputeAllScores(): Promise<void> {
     const BATCH_SIZE = 500;
     for (let i = 0; i < updates.length; i += BATCH_SIZE) {
       await Promise.all(
-        updates.slice(i, i + BATCH_SIZE).map(({ id, score }) =>
-          prisma.article.update({ where: { id }, data: { score } })
-        )
+        updates
+          .slice(i, i + BATCH_SIZE)
+          .map(({ id, score }) => prisma.article.update({ where: { id }, data: { score } }))
       );
     }
 

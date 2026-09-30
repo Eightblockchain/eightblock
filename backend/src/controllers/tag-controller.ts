@@ -47,7 +47,10 @@ export async function createTag(req: Request, res: Response) {
     await cache.delete(cache.tagsKey());
 
     return res.status(201).json(tag);
-  } catch (_error) {
+  } catch (error) {
+    if ((error as { code?: string }).code === 'P2002') {
+      return res.status(409).json({ error: 'A tag with this name or slug already exists' });
+    }
     return res.status(500).json({ error: 'Failed to create tag' });
   }
 }
@@ -55,7 +58,15 @@ export async function createTag(req: Request, res: Response) {
 export async function deleteTag(req: Request, res: Response) {
   try {
     const { tagId } = req.params;
-    await prisma.tag.delete({ where: { id: tagId } });
+    const tag = await prisma.tag.findUnique({ where: { id: tagId }, select: { id: true } });
+    if (!tag) {
+      return res.status(404).json({ error: 'Tag not found' });
+    }
+
+    await prisma.$transaction([
+      prisma.tagOnArticle.deleteMany({ where: { tagId } }),
+      prisma.tag.delete({ where: { id: tagId } }),
+    ]);
 
     // Invalidate tags cache
     await cache.delete(cache.tagsKey());
