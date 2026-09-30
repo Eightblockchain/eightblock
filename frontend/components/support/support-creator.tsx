@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Copy, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from '@eightblock/ui/hooks/use-toast';
 import { cn } from '@eightblock/ui/utils';
 import { Panel, PanelBar } from '@eightblock/ui/components/panel';
-import type { SupportWallet } from '@/lib/support-wallets';
+import { loadSupportWallets, type SupportWallet } from '@/lib/support-wallets';
 
 function truncateAddress(addr: string): string {
   if (addr.length <= 28) return addr;
@@ -14,13 +15,22 @@ function truncateAddress(addr: string): string {
 }
 
 export function SupportCreator({
-  wallets,
+  wallets: initialWallets,
   className,
 }: {
   wallets: SupportWallet[];
   className?: string;
 }) {
   const { toast } = useToast();
+  // The server-rendered list comes from cached pages and can miss a recent admin change,
+  // so it is only the first paint: the current list is fetched once the page loads.
+  const { data: wallets = initialWallets } = useQuery({
+    queryKey: ['support-wallets'],
+    queryFn: loadSupportWallets,
+    initialData: initialWallets,
+    initialDataUpdatedAt: 0,
+    retry: 1,
+  });
   const [selectedId, setSelectedId] = useState(wallets[0]?.id);
   const [copied, setCopied] = useState(false);
 

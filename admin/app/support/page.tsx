@@ -170,7 +170,7 @@ export default function SupportWalletsPage() {
       setRows(toRows(result));
       toast({
         title: 'Support wallets saved',
-        description: 'The blog shows the change within a minute.',
+        description: 'Readers see the change the next time they open a page.',
       });
     } catch (error) {
       toast({
