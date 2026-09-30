@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { app } from '../app.js';
@@ -199,5 +199,54 @@ describe('Google sign-in return targets', () => {
       if (saved.id !== undefined) process.env.GOOGLE_CLIENT_ID = saved.id;
       if (saved.secret !== undefined) process.env.GOOGLE_CLIENT_SECRET = saved.secret;
     }
+  });
+
+  describe('popup sign-in', () => {
+    const saved = { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET };
+    const oauthCookie = (value: object) =>
+      `oauth_google=${encodeURIComponent(JSON.stringify(value))}`;
+
+    afterEach(() => {
+      process.env.GOOGLE_CLIENT_ID = saved.id;
+      process.env.GOOGLE_CLIENT_SECRET = saved.secret;
+      if (saved.id === undefined) delete process.env.GOOGLE_CLIENT_ID;
+      if (saved.secret === undefined) delete process.env.GOOGLE_CLIENT_SECRET;
+    });
+
+    it('remembers popup mode for the callback', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'test-client';
+      process.env.GOOGLE_CLIENT_SECRET = 'test-secret';
+      const res = await request(app).get('/api/auth/google').query({ mode: 'popup' });
+      expect(res.status).toBe(302);
+      expect(res.headers.location).toMatch(/^https:\/\/accounts\.google\.com\//);
+      const cookie = String(res.headers['set-cookie']).match(/oauth_google=([^;]+)/)?.[1];
+      expect(JSON.parse(decodeURIComponent(cookie ?? '{}'))).toMatchObject({ popup: true });
+    });
+
+    it('ends on /auth/done with the reason when sign-in fails', async () => {
+      delete process.env.GOOGLE_CLIENT_ID;
+      const notConfigured = await request(app).get('/api/auth/google').query({ mode: 'popup' });
+      expect(notConfigured.headers.location).toBe(`${SITE}/auth/done?error=not_configured`);
+
+      const cancelled = await request(app)
+        .get('/api/auth/google/callback')
+        .query({ error: 'access_denied' })
+        .set('Cookie', oauthCookie({ state: 's', verifier: 'v', returnTo: '/', popup: true }));
+      expect(cancelled.headers.location).toBe(`${SITE}/auth/done?error=cancelled`);
+
+      const forged = await request(app)
+        .get('/api/auth/google/callback')
+        .query({ code: 'c', state: 'other' })
+        .set('Cookie', oauthCookie({ state: 's', verifier: 'v', returnTo: '/', popup: true }));
+      expect(forged.headers.location).toBe(`${SITE}/auth/done?error=state`);
+    });
+
+    it('keeps full-page redirects for sign-ins started without popup mode', async () => {
+      const res = await request(app)
+        .get('/api/auth/google/callback')
+        .query({ error: 'access_denied' })
+        .set('Cookie', oauthCookie({ state: 's', verifier: 'v', returnTo: '/writing' }));
+      expect(res.headers.location).toBe(`${SITE}/auth/login?error=cancelled&returnTo=%2Fwriting`);
+    });
   });
 });

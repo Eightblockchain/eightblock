@@ -73,26 +73,47 @@ function loginErrorRedirect(res: Response, code: string, returnTo = '/') {
   return res.redirect(`${login}?${params.toString()}`);
 }
 
+/**
+ * Popup sign-in ends on /auth/done of the app that opened it, which tells the page underneath
+ * and closes the popup. Without `error` the sign-in succeeded.
+ */
+function popupDoneRedirect(res: Response, returnTo: string, error?: string) {
+  const app = isAdminTarget(returnTo) ? adminUrl() : siteUrl();
+  const query = error ? `?${new URLSearchParams({ error }).toString()}` : '';
+  return res.redirect(`${app}/auth/done${query}`);
+}
+
+interface OAuthCookie {
+  state?: string;
+  verifier?: string;
+  returnTo?: string;
+  popup?: boolean;
+}
+
 function base64Url(buffer: Buffer) {
   return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 export function googleStart(req: Request, res: Response) {
   const returnTo = safeReturnTo(req.query.returnTo);
+  const popup = req.query.mode === 'popup';
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
   if (!clientId || !process.env.GOOGLE_CLIENT_SECRET) {
     logger.error(
       'Google sign-in requested but GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not set'
     );
-    return loginErrorRedirect(res, 'not_configured', returnTo);
+    return popup
+      ? popupDoneRedirect(res, returnTo, 'not_configured')
+      : loginErrorRedirect(res, 'not_configured', returnTo);
   }
 
   const state = base64Url(crypto.randomBytes(24));
   const verifier = base64Url(crypto.randomBytes(48));
   const challenge = base64Url(crypto.createHash('sha256').update(verifier).digest());
 
-  res.cookie(OAUTH_COOKIE, JSON.stringify({ state, verifier, returnTo }), oauthCookieOptions);
+  const saved: OAuthCookie = { state, verifier, returnTo, ...(popup && { popup: true }) };
+  res.cookie(OAUTH_COOKIE, JSON.stringify(saved), oauthCookieOptions);
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -226,7 +247,7 @@ async function findOrCreateGoogleUser(profile: GoogleProfile) {
 }
 
 export async function googleCallback(req: Request, res: Response) {
-  let saved: { state?: string; verifier?: string; returnTo?: string } = {};
+  let saved: OAuthCookie = {};
   try {
     saved = JSON.parse(req.cookies[OAUTH_COOKIE] || '{}');
   } catch {
@@ -235,10 +256,14 @@ export async function googleCallback(req: Request, res: Response) {
   res.clearCookie(OAUTH_COOKIE, { ...oauthCookieOptions, maxAge: undefined });
 
   const returnTo = safeReturnTo(saved.returnTo);
+  const fail = (reason: string) =>
+    saved.popup
+      ? popupDoneRedirect(res, returnTo, reason)
+      : loginErrorRedirect(res, reason, returnTo);
   const { code, state, error } = req.query;
 
   if (error === 'access_denied') {
-    return loginErrorRedirect(res, 'cancelled', returnTo);
+    return fail('cancelled');
   }
 
   if (
@@ -248,7 +273,7 @@ export async function googleCallback(req: Request, res: Response) {
     !saved.verifier ||
     state !== saved.state
   ) {
-    return loginErrorRedirect(res, 'state', returnTo);
+    return fail('state');
   }
 
   try {
@@ -264,10 +289,11 @@ export async function googleCallback(req: Request, res: Response) {
     res.cookie('auth_token', token, { ...authCookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
     res.cookie(CSRF_COOKIE_NAME, generateCsrfToken(), csrfCookieOptions);
 
+    if (saved.popup) return popupDoneRedirect(res, returnTo);
     return res.redirect(isAdminTarget(returnTo) ? returnTo : `${siteUrl()}${returnTo}`);
   } catch (err) {
     logger.error(`Google sign-in failed: ${(err as Error).message}`);
-    return loginErrorRedirect(res, 'failed', returnTo);
+    return fail('failed');
   }
 }
 
