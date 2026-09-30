@@ -105,6 +105,9 @@ they are skipped.
 
 ## Production Deployment
 
+Upgrading the server from the wallet release? Follow [PRODUCTION_UPGRADE.md](./PRODUCTION_UPGRADE.md)
+once; after that, deploys are automatic as described below.
+
 Every push to `main` runs CI (lint, typecheck, tests against Postgres + Redis, migration drift
 check, both builds). When CI is green, the deploy workflow SSHes into the server and runs
 `deploy.sh` on the exact commit that passed. You can also trigger it manually from the Actions tab.
