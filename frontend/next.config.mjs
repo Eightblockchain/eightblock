@@ -1,8 +1,14 @@
-import { withContentlayer } from 'next-contentlayer';
+const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api');
+const adminUrl = (process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+
+  // deploy.sh builds into a staging directory and swaps it in, so the live site keeps serving.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
+
+  transpilePackages: ['@eightblock/ui'],
 
   // Prevent webpack from bundling jsdom (used by isomorphic-dompurify on the server).
   // When bundled, jsdom cannot resolve its own browser/default-stylesheet.css at build time.
@@ -18,9 +24,29 @@ const config = {
     ignoreBuildErrors: false,
   },
 
+  poweredByHeader: false,
+
+  // PM2 runs several instances; reading ISR pages from disk lets one pick up the other's re-renders.
+  cacheMaxMemorySize: 0,
+
   // Compiler optimizations
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+        ],
+      },
+    ];
   },
 
   // Image optimization
@@ -30,9 +56,9 @@ const config = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8080',
+        protocol: apiUrl.protocol.replace(':', ''),
+        hostname: apiUrl.hostname,
+        port: apiUrl.port,
         pathname: '/uploads/**',
       },
       {
@@ -40,26 +66,34 @@ const config = {
         hostname: 'api.eightblock.dev',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+      },
     ],
+  },
+
+  async redirects() {
+    return [
+      // The dashboard moved to its own app
+      { source: '/admin/articles', destination: '/my-articles', permanent: true },
+      { source: '/admin', destination: adminUrl, permanent: false },
+      { source: '/admin/:path*', destination: `${adminUrl}/:path*`, permanent: false },
+      // Wallet-era profile pages were replaced by Google accounts
+      { source: '/profile/bookmarks', destination: '/bookmarks', permanent: true },
+      { source: '/profile/articles', destination: '/my-articles', permanent: true },
+      { source: '/profile', destination: '/settings', permanent: true },
+      { source: '/articles', destination: '/writing', permanent: true },
+      { source: '/profile/:path*', destination: '/about', permanent: true },
+    ];
   },
 
   // Performance optimizations
   experimental: {
-    mdxRs: true,
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    optimizePackageImports: ['lucide-react'],
   },
 
-  // Webpack configuration to suppress MeshSDK warnings
   webpack: (config, { isServer }) => {
-    // Suppress specific warnings for MeshSDK
-    config.ignoreWarnings = [
-      ...(config.ignoreWarnings || []),
-      {
-        module: /@meshsdk\/core-cst/,
-        message: /Critical dependency/,
-      },
-    ];
-
     // Ensure client-only code doesn't run on server
     if (!isServer) {
       config.resolve.fallback = {
@@ -77,4 +111,4 @@ const config = {
   turbopack: {},
 };
 
-export default withContentlayer(config);
+export default config;

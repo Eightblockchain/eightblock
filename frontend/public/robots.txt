@@ -7,3 +7,7 @@ Sitemap: https://eightblock.dev/sitemap.xml
 # Disallow admin or auth paths
 Disallow: /auth/
 Disallow: /admin/
+Disallow: /my-articles
+Disallow: /articles/new
+Disallow: /newsletter/confirm
+Disallow: /newsletter/unsubscribe

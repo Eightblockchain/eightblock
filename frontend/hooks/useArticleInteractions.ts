@@ -15,13 +15,15 @@ import {
   deleteBookmark,
   shareArticle,
 } from '@/lib/article-api';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@eightblock/ui/hooks/use-toast';
 
 interface UseArticleInteractionsProps {
   articleId: string;
   userId: string | null;
   articleSlug: string;
   isPublished: boolean;
+  /** Called when a signed-out reader tries something that needs an account (saving). */
+  onAuthRequired?: () => void;
 }
 
 export function useArticleInteractions({
@@ -29,15 +31,17 @@ export function useArticleInteractions({
   userId,
   articleSlug,
   isPublished,
+  onAuthRequired,
 }: UseArticleInteractionsProps) {
   const queryClient = useQueryClient();
   const toast = useToast?.() || { toast: () => {} };
 
-  // Check if user liked the article
+  // Claps work for signed-in readers and anonymous visitors (tracked by a backend cookie)
+  const likeKey = ['article-like', articleId, userId ?? 'visitor'];
   const { data: userLiked = false, isLoading: isUserLikedLoading } = useQuery({
-    queryKey: ['article-like', articleId, userId],
+    queryKey: likeKey,
     queryFn: () => checkUserLike(articleId),
-    enabled: !!articleId && !!userId && isPublished,
+    enabled: !!articleId && isPublished,
   });
 
   const { data: bookmarkIds = [] } = useQuery({
@@ -68,9 +72,11 @@ export function useArticleInteractions({
     },
     onSuccess: (_data, action) => {
       toast.toast?.({
-        title: action === 'add' ? 'Article saved!' : 'Bookmark removed',
+        title: action === 'add' ? 'Saved' : 'Removed from saved',
         description:
-          action === 'add' ? 'Added to your bookmarks' : 'Article removed from your saved items',
+          action === 'add'
+            ? 'Find it any time under Saved articles in your account menu.'
+            : 'This article is no longer in your saved list.',
       });
     },
     onError: (error, _action, context) => {
@@ -78,8 +84,8 @@ export function useArticleInteractions({
         queryClient.setQueryData(['bookmark-ids'], context.previousIds);
       }
       toast.toast?.({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update bookmark',
+        title: 'Could not update saved articles',
+        description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
     },
@@ -116,39 +122,29 @@ export function useArticleInteractions({
   // Like mutation
   const likeMutation = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error('Not authenticated');
       return userLiked ? removeLike(articleId) : toggleLike(articleId);
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['article-like', articleId, userId] });
-      const previousLiked = queryClient.getQueryData(['article-like', articleId, userId]);
-      queryClient.setQueryData(['article-like', articleId, userId], !userLiked);
+      await queryClient.cancelQueries({ queryKey: likeKey });
+      const previousLiked = queryClient.getQueryData<boolean>(likeKey);
+      queryClient.setQueryData(likeKey, !userLiked);
       return { previousLiked };
     },
-    onSuccess: (data, variables, context) => {
-      // Invalidate the specific article query
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['article', articleSlug] });
-      queryClient.invalidateQueries({ queryKey: ['article-like', articleId, userId] });
+      queryClient.invalidateQueries({ queryKey: likeKey });
 
       // Reset feeds so mounted components refetch immediately with fresh score ordering
       queryClient.resetQueries({ queryKey: ['articles', 'infinite'] });
       queryClient.resetQueries({ queryKey: ['trending-articles'] });
-
-      // Use previousLiked from context to show correct message
-      // If previousLiked was false, user just liked. If true, user just unliked.
-      const wasLiked = context?.previousLiked;
-      toast.toast?.({
-        title: wasLiked ? 'Like removed' : 'Article liked!',
-        description: wasLiked ? 'You unliked this article' : 'Thanks for your support!',
-      });
     },
-    onError: (error, variables, context) => {
+    onError: (_error, _variables, context) => {
       if (context?.previousLiked !== undefined) {
-        queryClient.setQueryData(['article-like', articleId, userId], context.previousLiked);
+        queryClient.setQueryData(likeKey, context.previousLiked);
       }
       toast.toast?.({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to update like',
+        title: 'Could not register your clap',
+        description: 'Please try again in a moment.',
         variant: 'destructive',
       });
     },
@@ -170,8 +166,8 @@ export function useArticleInteractions({
       queryClient.resetQueries({ queryKey: ['trending-articles'] });
 
       toast.toast?.({
-        title: 'Comment posted!',
-        description: 'Your comment has been added successfully.',
+        title: 'Comment posted',
+        description: 'Thanks for joining the discussion.',
       });
     },
     onError: (error) => {
@@ -192,8 +188,8 @@ export function useArticleInteractions({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['article-comments', articleId] });
       toast.toast?.({
-        title: 'Comment updated!',
-        description: 'Your comment has been updated successfully.',
+        title: 'Comment updated',
+        description: 'Your changes are live.',
       });
     },
     onError: (error) => {
@@ -222,7 +218,7 @@ export function useArticleInteractions({
       queryClient.invalidateQueries({ queryKey: ['trending-articles'] });
 
       toast.toast?.({
-        title: 'Comment deleted!',
+        title: 'Comment deleted',
         description: 'Your comment has been removed.',
       });
     },
@@ -237,22 +233,12 @@ export function useArticleInteractions({
 
   // Handlers
   const handleLike = () => {
-    if (!userId) {
-      toast.toast?.({
-        title: 'Authentication required',
-        description: 'Please connect your wallet to like this article',
-      });
-      return;
-    }
     likeMutation.mutate();
   };
 
   const handleBookmark = () => {
     if (!userId) {
-      toast.toast?.({
-        title: 'Authentication required',
-        description: 'Please connect your wallet to save this article',
-      });
+      onAuthRequired?.();
       return;
     }
     if (bookmarked) {
@@ -263,16 +249,7 @@ export function useArticleInteractions({
   };
 
   const handleShare = async (title: string, description: string) => {
-    const success = await shareArticle(title, description, window.location.href);
-    if (success) {
-      toast.toast?.({
-        title: 'Shared!',
-        description:
-          typeof navigator.share !== 'undefined'
-            ? 'Article shared successfully'
-            : 'Link copied to clipboard',
-      });
-    }
+    return shareArticle(title, description, window.location.href);
   };
 
   return {

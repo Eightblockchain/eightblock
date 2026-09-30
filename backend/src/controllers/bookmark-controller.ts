@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
+import { VISIBLE_COMMENTS } from '../utils/comments.js';
 
 const BOOKMARK_ARTICLE_SELECT = {
   id: true,
@@ -30,7 +31,7 @@ const BOOKMARK_ARTICLE_SELECT = {
   _count: {
     select: {
       likes: true,
-      comments: true,
+      comments: { where: VISIBLE_COMMENTS },
     },
   },
 };
@@ -43,7 +44,7 @@ export async function listBookmarks(req: Request, res: Response) {
 
   try {
     const bookmarks = await prisma.bookmark.findMany({
-      where: { userId },
+      where: { userId, article: { status: 'PUBLISHED' } },
       orderBy: { createdAt: 'desc' },
       include: {
         article: {

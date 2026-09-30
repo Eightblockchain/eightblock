@@ -93,7 +93,7 @@ pnpm prisma db seed
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22.22+ or 24.15+
 - pnpm 9+
 - Docker Desktop
 

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { AlertCircle, ExternalLink } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Card } from '@eightblock/ui/components/card';
 
 interface ErrorStateProps {
   message: string;

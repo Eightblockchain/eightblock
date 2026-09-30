@@ -18,6 +18,13 @@ const articleDir = path.join(__dirname, '../../uploads/articles');
   }
 });
 
+/**
+ * Raw uploads are re-encoded to WebP next to themselves and then deleted. A fixed extension keeps
+ * the output path distinct from the input, and keeps the browser-supplied name out of the public
+ * uploads folder.
+ */
+const RAW_EXT = '.upload';
+
 // Storage for avatars
 const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -25,8 +32,7 @@ const avatarStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `avatar-${uniqueSuffix}${ext}`);
+    cb(null, `avatar-${uniqueSuffix}${RAW_EXT}`);
   },
 });
 
@@ -37,8 +43,7 @@ const articleStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `article-${uniqueSuffix}${ext}`);
+    cb(null, `article-${uniqueSuffix}${RAW_EXT}`);
   },
 });
 

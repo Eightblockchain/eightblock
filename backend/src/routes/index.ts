@@ -1,16 +1,20 @@
-import { Router } from 'express';
+import { createRouter } from '../utils/async-router.js';
 import articleRoutes from '../routes/article-routes.js';
 import commentRoutes from '../routes/comment-routes.js';
 import likeRoutes from '../routes/like-routes.js';
 import subscriptionRoutes from '../routes/subscription-routes.js';
+import newsletterRoutes from '../routes/newsletter-routes.js';
 import tagRoutes from '../routes/tag-routes.js';
 import authRoutes from '../routes/auth-routes.js';
 import userRoutes from '../routes/user-routes.js';
-import viewRoutes from '../routes/view-routes.js';
 import uploadRoutes from '../routes/upload-routes.js';
 import bookmarkRoutes from '../routes/bookmark-routes.js';
+import portfolioRoutes from '../routes/portfolio-routes.js';
+import authorRoutes from '../routes/author-routes.js';
+import analyticsRoutes from '../routes/analytics-routes.js';
+import webhookRoutes from '../routes/webhook-routes.js';
 
-const router = Router();
+const router = createRouter();
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -20,7 +24,11 @@ router.use('/articles/:articleId/likes', likeRoutes);
 router.use('/articles', articleRoutes);
 router.use('/tags', tagRoutes);
 router.use('/subscriptions', subscriptionRoutes);
-router.use('/views', viewRoutes);
+router.use('/newsletters', newsletterRoutes);
 router.use('/bookmarks', bookmarkRoutes);
+router.use('/portfolio', portfolioRoutes);
+router.use('/authors', authorRoutes);
+router.use('/analytics', analyticsRoutes);
+router.use('/webhooks', webhookRoutes);
 
 export default router;

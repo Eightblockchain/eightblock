@@ -8,16 +8,18 @@ export function SearchTrigger({ onClick }: SearchTriggerProps) {
   return (
     <button
       onClick={onClick}
-      className="group flex items-center gap-2 rounded-xl border border-border/50 bg-card/40
-        px-3 py-1.5 text-[13px] text-muted-foreground/60
-        hover:border-border hover:bg-card hover:text-foreground/80
-        transition-all duration-150 cursor-pointer"
+      className="group flex h-9 items-center gap-2 rounded-full border border-border
+        px-3 text-[13px] text-muted-foreground
+        hover:border-foreground/40 hover:text-foreground
+        transition-colors duration-150 cursor-pointer"
       aria-label="Open search"
     >
       <Search className="h-3.5 w-3.5 flex-shrink-0" />
       <span className="hidden sm:inline font-medium">Search</span>
-      <kbd className="hidden sm:inline ml-1 rounded-md border border-border/60 bg-background/60
-        px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/40 leading-none">
+      <kbd
+        className="hidden sm:inline ml-1 rounded-full border border-border
+        px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground leading-none"
+      >
         ⌘K
       </kbd>
     </button>
@@ -29,13 +31,7 @@ interface SearchOverlayProps {
 }
 
 export function SearchOverlay({ onClose }: SearchOverlayProps) {
-  return (
-    <div
-      className="absolute inset-0 bg-background/75 backdrop-blur-md"
-      onClick={onClose}
-      aria-hidden="true"
-    />
-  );
+  return <div className="absolute inset-0 bg-background/90" onClick={onClose} aria-hidden="true" />;
 }
 
 interface SearchInputProps {
@@ -53,26 +49,28 @@ export function SearchInput({ value, onChange, onClose, inputRef }: SearchInputP
   };
 
   return (
-    <div className="relative flex items-center rounded-2xl border border-border bg-card
-      shadow-2xl shadow-black/50
-      focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/12
-      transition-all duration-150">
-      <Search className="absolute left-4 h-5 w-5 text-muted-foreground/50 flex-shrink-0 pointer-events-none" />
+    <div
+      className="relative flex items-center rounded-full border border-border bg-card
+      focus-within:border-brand-blue
+      transition-colors duration-150"
+    >
+      <Search className="absolute left-4 h-5 w-5 text-muted-foreground flex-shrink-0 pointer-events-none" />
       <input
         ref={inputRef}
         type="text"
+        aria-label="Search articles"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search articles, topics, tags…"
         className="w-full bg-transparent py-4 pl-12 pr-12 text-[17px] text-foreground
-          placeholder:text-muted-foreground/35 outline-none leading-none"
+          placeholder:text-muted-foreground outline-none leading-none"
       />
       <button
         type="button"
         onClick={handleCloseClick}
         onMouseDown={(e) => e.preventDefault()}
-        className="absolute right-3 flex h-7 w-7 items-center justify-center rounded-lg
-          text-muted-foreground/40 hover:text-foreground/70 hover:bg-card/80
+        className="absolute right-3 flex h-8 w-8 items-center justify-center rounded-full
+          text-muted-foreground hover:text-foreground hover:bg-muted
           transition-all duration-150"
         aria-label="Close search"
       >
@@ -84,14 +82,15 @@ export function SearchInput({ value, onChange, onClose, inputRef }: SearchInputP
 
 export function SearchHint() {
   return (
-    <p className="mt-3 text-center text-[12px] text-muted-foreground/35">
+    <p className="mt-3 text-center text-[12px] text-muted-foreground">
       Press{' '}
-      <kbd className="mx-0.5 rounded-md border border-border/50 bg-card
-        px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/50">
+      <kbd
+        className="mx-0.5 rounded-full border border-border bg-card
+        px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+      >
         ESC
       </kbd>{' '}
       to close
     </p>
   );
 }
-

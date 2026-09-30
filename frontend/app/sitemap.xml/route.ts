@@ -53,7 +53,10 @@ export async function GET() {
 
   const staticPages = [
     { path: '', priority: '1.0', changefreq: 'daily' },
-    { path: 'articles', priority: '0.9', changefreq: 'daily' },
+    { path: 'writing', priority: '0.9', changefreq: 'daily' },
+    { path: 'about', priority: '0.7', changefreq: 'monthly' },
+    { path: 'newsletter', priority: '0.6', changefreq: 'monthly' },
+    { path: 'midnight', priority: '0.5', changefreq: 'monthly' },
     { path: 'contributors', priority: '0.6', changefreq: 'weekly' },
     { path: 'github', priority: '0.5', changefreq: 'weekly' },
     { path: 'privacy', priority: '0.3', changefreq: 'monthly' },

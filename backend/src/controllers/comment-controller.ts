@@ -3,6 +3,7 @@ import { prisma } from '../prisma/client.js';
 import { cacheDelPattern } from '../utils/redis.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
 import { refreshScore } from '../utils/score.js';
+import { VISIBLE_COMMENTS } from '../utils/comments.js';
 
 export async function listComments(req: Request, res: Response) {
   const { articleId } = req.params;
@@ -14,7 +15,7 @@ export async function listComments(req: Request, res: Response) {
 
   const [commentResults, totalCount] = await Promise.all([
     prisma.comment.findMany({
-      where: { articleId },
+      where: { articleId, ...VISIBLE_COMMENTS },
       orderBy: { createdAt: 'desc' },
       take: limit + 1,
       skip: cursor ? 1 : undefined,
@@ -30,7 +31,7 @@ export async function listComments(req: Request, res: Response) {
         },
       },
     }),
-    prisma.comment.count({ where: { articleId } }),
+    prisma.comment.count({ where: { articleId, ...VISIBLE_COMMENTS } }),
   ]);
 
   let nextCursor: string | null = null;
@@ -44,10 +45,9 @@ export async function listComments(req: Request, res: Response) {
   // Format author avatar URLs
   comments = comments.map((comment) => ({
     ...comment,
-    author: {
-      ...comment.author,
-      avatarUrl: getFullImageUrl(comment.author.avatarUrl || ''),
-    },
+    author: comment.author
+      ? { ...comment.author, avatarUrl: getFullImageUrl(comment.author.avatarUrl || '') }
+      : null,
   }));
 
   return res.json({ comments, nextCursor, totalCount });
@@ -60,6 +60,14 @@ export async function createComment(req: Request, res: Response) {
 
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const article = await prisma.article.findUnique({
+    where: { id: articleId },
+    select: { status: true },
+  });
+  if (!article || article.status !== 'PUBLISHED') {
+    return res.status(404).json({ error: 'Article not found' });
   }
 
   const comment = await prisma.comment.create({
@@ -80,7 +88,9 @@ export async function createComment(req: Request, res: Response) {
   await refreshScore(articleId);
 
   // Format author avatar URLs
-  comment.author.avatarUrl = getFullImageUrl(comment.author.avatarUrl || '');
+  if (comment.author) {
+    comment.author.avatarUrl = getFullImageUrl(comment.author.avatarUrl || '');
+  }
 
   return res.status(201).json(comment);
 }
@@ -128,7 +138,9 @@ export async function updateComment(req: Request, res: Response) {
     await cacheDelPattern('articles:page:*');
 
     // Format author avatar URLs
-    updated.author.avatarUrl = getFullImageUrl(updated.author.avatarUrl || '');
+    if (updated.author) {
+      updated.author.avatarUrl = getFullImageUrl(updated.author.avatarUrl || '');
+    }
 
     return res.json(updated);
   } catch (error) {
@@ -156,7 +168,13 @@ export async function deleteComment(req: Request, res: Response) {
     }
 
     if (comment.authorId !== userId) {
-      return res.status(403).json({ error: 'You can only delete your own comments' });
+      const actor = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (actor?.role !== 'ADMIN' && actor?.role !== 'EDITOR') {
+        return res.status(403).json({ error: 'You can only delete your own comments' });
+      }
     }
 
     // Delete comment
@@ -166,6 +184,7 @@ export async function deleteComment(req: Request, res: Response) {
 
     // Invalidate article list cache for real-time updates
     await cacheDelPattern('articles:page:*');
+    void refreshScore(comment.articleId);
 
     return res.status(204).send();
   } catch (error) {
@@ -181,5 +200,7 @@ export async function moderateComment(req: Request, res: Response) {
     where: { id: commentId },
     data: { status },
   });
+  await cacheDelPattern('articles:page:*');
+  void refreshScore(updated.articleId);
   return res.json(updated);
 }

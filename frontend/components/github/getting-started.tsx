@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
+import { Card } from '@eightblock/ui/components/card';
 import { GitHubRepository } from '@/types/github';
 
 interface GettingStartedProps {
@@ -8,7 +8,7 @@ interface GettingStartedProps {
 
 export const GettingStarted = ({ repo }: GettingStartedProps) => {
   return (
-    <Card className="p-8 bg-gradient-to-br from-[#080808]/5 to-[#080808]/10 dark:from-primary/5 dark:to-primary/10 border-[#080808]/20 dark:border-primary/20">
+    <Card className="p-8 bg-muted/40">
       <h2 className="text-2xl font-bold mb-4">Getting Started</h2>
       <p className="text-muted-foreground mb-6">
         Clone the repository and start contributing in minutes:

@@ -1,163 +1,13 @@
 import type { Request, Response } from 'express';
+import type { Prisma, Role } from '@prisma/client';
 import { prisma } from '../prisma/client.js';
 import { logger } from '../utils/logger.js';
-import { cache } from '../utils/cache.js';
+import { isConfiguredAdmin } from '../config/admins.js';
+import { generateUsername, isReservedUsername } from '../utils/username.js';
 import { optimizeImage, deleteImage, getExtensionForFormat } from '../utils/image-optimizer.js';
 import path from 'path';
 import fs from 'fs';
 import { getFullImageUrl } from '../utils/imgUrl.js';
-
-function normalizeEmailInput(value: unknown): string | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null) return null;
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed === '' ? null : trimmed.toLowerCase();
-}
-
-/**
- * Get user by wallet address
- */
-export async function getUserByWallet(req: Request, res: Response) {
-  const { walletAddress } = req.params;
-
-  try {
-    // Try cache first
-    const cacheKey = cache.userProfileKey(walletAddress);
-    const cached = await cache.get<unknown>(cacheKey);
-
-    if (cached) {
-      return res.json(cached);
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { walletAddress },
-      select: {
-        id: true,
-        walletAddress: true,
-        name: true,
-        bio: true,
-        avatarUrl: true,
-        email: true,
-        createdAt: true,
-        _count: {
-          select: {
-            articles: true,
-            likes: true,
-            comments: true,
-          },
-        },
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Cache for 5 minutes
-    await cache.set(cacheKey, user, 300);
-
-    const userResponse = {
-      ...user,
-      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
-    };
-
-    return res.json(userResponse);
-  } catch (error) {
-    logger.error(`getUserByWallet: ${(error as Error).message}`);
-    return res.status(500).json({ error: 'Failed to fetch user' });
-  }
-}
-
-/**
- * Create or update user (upsert)
- */
-export async function upsertUser(req: Request, res: Response) {
-  const { walletAddress, name, bio, avatarUrl, email } = req.body;
-  const normalizedEmail = normalizeEmailInput(email);
-
-  if (!walletAddress) {
-    return res.status(400).json({ error: 'Wallet address is required' });
-  }
-
-  try {
-    const user = await prisma.user.upsert({
-      where: { walletAddress },
-      update: {
-        ...(name && { name }),
-        ...(bio !== undefined && { bio }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
-        ...(normalizedEmail !== undefined && { email: normalizedEmail }),
-      },
-      create: {
-        walletAddress,
-        name: name || null,
-        bio: bio || null,
-        avatarUrl: avatarUrl || null,
-        email: normalizedEmail ?? null,
-      },
-      include: {
-        _count: {
-          select: {
-            articles: true,
-            likes: true,
-            comments: true,
-          },
-        },
-      },
-    });
-
-    const userResponse = {
-      ...user,
-      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
-    };
-
-    return res.json(userResponse);
-  } catch (error) {
-    logger.error(`upsertUser: ${(error as Error).message}`);
-    return res.status(500).json({ error: 'Failed to create/update user' });
-  }
-}
-
-/**
- * Update user profile
- */
-export async function updateUser(req: Request, res: Response) {
-  const { walletAddress } = req.params;
-  const { name, bio, avatarUrl, email } = req.body;
-  const normalizedEmail = normalizeEmailInput(email);
-
-  try {
-    const user = await prisma.user.update({
-      where: { walletAddress },
-      data: {
-        ...(name !== undefined && { name }),
-        ...(bio !== undefined && { bio }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
-        ...(normalizedEmail !== undefined && { email: normalizedEmail }),
-      },
-      include: {
-        _count: {
-          select: {
-            articles: true,
-            likes: true,
-            comments: true,
-          },
-        },
-      },
-    });
-
-    const userResponse = {
-      ...user,
-      avatarUrl: getFullImageUrl(user.avatarUrl || ''),
-    };
-
-    return res.json(userResponse);
-  } catch (error) {
-    logger.error(`updateUser: ${(error as Error).message}`);
-    return res.status(500).json({ error: 'Failed to update user' });
-  }
-}
 
 /**
  * Get current user's profile
@@ -204,21 +54,47 @@ export async function getMyProfile(req: Request, res: Response) {
  */
 export async function updateMyProfile(req: Request, res: Response) {
   const userId = req.user?.userId;
-  const { name, bio, avatarUrl, email } = req.body;
-  const normalizedEmail = normalizeEmailInput(email);
+  const { name, bio, avatar, username } = req.body as {
+    name?: string;
+    bio?: string;
+    avatar?: 'google' | 'none';
+    username?: string;
+  };
 
   if (!userId) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
   try {
+    const current = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true, googleAvatarUrl: true, username: true },
+    });
+    if (!current) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (username !== undefined && username !== current.username) {
+      if (isReservedUsername(username)) {
+        return res.status(400).json({ error: 'That username is reserved. Pick another one.' });
+      }
+      const taken = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+      if (taken) {
+        return res.status(409).json({ error: 'That username is taken. Pick another one.' });
+      }
+    }
+
+    let avatarUrl: string | null | undefined;
+    if (avatar === 'google') avatarUrl = current.googleAvatarUrl;
+    if (avatar === 'none') avatarUrl = null;
+
     const user = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(name !== undefined && { name }),
-        ...(bio !== undefined && { bio }),
+        ...(username !== undefined && { username }),
+        ...(bio !== undefined && { bio: bio.trim() || null }),
         ...(avatarUrl !== undefined && { avatarUrl }),
-        ...(normalizedEmail !== undefined && { email: normalizedEmail }),
       },
       include: {
         _count: {
@@ -231,6 +107,10 @@ export async function updateMyProfile(req: Request, res: Response) {
       },
     });
 
+    if (avatarUrl !== undefined && current.avatarUrl?.startsWith('/uploads/avatars/')) {
+      deleteImage(path.join(process.cwd(), current.avatarUrl.replace(/^\//, '')));
+    }
+
     const userResponse = {
       ...user,
       avatarUrl: getFullImageUrl(user.avatarUrl || ''),
@@ -238,8 +118,136 @@ export async function updateMyProfile(req: Request, res: Response) {
 
     return res.json(userResponse);
   } catch (error) {
+    // Two people claiming the same free username at the same moment.
+    if ((error as { code?: string }).code === 'P2002') {
+      return res.status(409).json({ error: 'That username is taken. Pick another one.' });
+    }
     logger.error(`updateMyProfile: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to update profile' });
+  }
+}
+
+const ROLES: Role[] = ['ADMIN', 'EDITOR', 'WRITER', 'READER'];
+
+const adminUserSelect = {
+  id: true,
+  name: true,
+  username: true,
+  email: true,
+  avatarUrl: true,
+  role: true,
+  createdAt: true,
+  _count: { select: { articles: true } },
+} satisfies Prisma.UserSelect;
+
+/**
+ * List users for role management (admins only).
+ * Query: q (name or email), role, page, limit (max 50).
+ */
+export async function listUsers(req: Request, res: Response) {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+  const q = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 100) : '';
+  const role = ROLES.find((r) => r === req.query.role);
+
+  const where: Prisma.UserWhereInput = {
+    ...(role && { role }),
+    ...(q && {
+      OR: [
+        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ],
+    }),
+  };
+
+  try {
+    const [users, total, byRole] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: adminUserSelect,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+      prisma.user.groupBy({ by: ['role'], _count: true }),
+    ]);
+
+    const counts = { ALL: 0, ADMIN: 0, EDITOR: 0, WRITER: 0, READER: 0 };
+    for (const row of byRole) {
+      counts[row.role] = row._count;
+      counts.ALL += row._count;
+    }
+
+    return res.json({
+      users: users.map((user) => ({
+        ...user,
+        avatarUrl: user.avatarUrl ? getFullImageUrl(user.avatarUrl) : null,
+        managedByConfig: isConfiguredAdmin(user.email),
+      })),
+      counts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page * limit < total,
+      },
+    });
+  } catch (error) {
+    logger.error(`listUsers: ${(error as Error).message}`);
+    return res.status(500).json({ error: 'Failed to fetch users' });
+  }
+}
+
+/**
+ * Change a user's role (admins only). Takes effect on the user's next request,
+ * because permissions are checked against the database.
+ */
+export async function updateUserRole(req: Request, res: Response) {
+  const actorId = req.user?.userId;
+  const { id } = req.params;
+  const { role } = req.body as { role: Role };
+
+  if (id === actorId) {
+    return res.status(400).json({ error: 'You cannot change your own role. Ask another admin.' });
+  }
+
+  try {
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { role: true, email: true, name: true, username: true },
+    });
+    if (!target) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (role !== 'ADMIN' && isConfiguredAdmin(target.email)) {
+      return res.status(409).json({
+        error:
+          'This account is listed in ADMIN_EMAILS and becomes admin again at every sign-in. Remove it there first.',
+      });
+    }
+
+    // Writers need a handle for their public author page.
+    const username =
+      target.username ??
+      (role !== 'READER' ? await generateUsername(target.name, target.email) : undefined);
+    const user = await prisma.user.update({
+      where: { id },
+      data: { role, ...(username && { username }) },
+      select: adminUserSelect,
+    });
+    logger.info(`Role of user ${id} changed from ${target.role} to ${role} by ${actorId}`);
+
+    return res.json({
+      ...user,
+      avatarUrl: user.avatarUrl ? getFullImageUrl(user.avatarUrl) : null,
+      managedByConfig: isConfiguredAdmin(user.email),
+    });
+  } catch (error) {
+    logger.error(`updateUserRole: ${(error as Error).message}`);
+    return res.status(500).json({ error: 'Failed to update role' });
   }
 }
 
@@ -326,117 +334,5 @@ export async function uploadAvatar(req: Request, res: Response) {
       fs.unlinkSync(req.file.path);
     }
     return res.status(500).json({ error: 'Failed to upload avatar' });
-  }
-}
-
-/**
- * Public profile for sharing (published articles only, no sensitive fields)
- */
-export async function getPublicProfile(req: Request, res: Response) {
-  const { walletAddress } = req.params;
-  const page = Math.max(parseInt(req.query.page as string, 10) || 1, 1);
-  const limit = Math.min(Math.max(parseInt(req.query.limit as string, 10) || 6, 1), 24);
-  const skip = (page - 1) * limit;
-
-  try {
-    const user = await prisma.user.findUnique({
-      where: { walletAddress },
-      select: {
-        id: true,
-        walletAddress: true,
-        name: true,
-        bio: true,
-        avatarUrl: true,
-        createdAt: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const articleWhere = {
-      authorId: user.id,
-      status: 'PUBLISHED' as const,
-    };
-
-    const [articles, totalPublished, aggregateStats, likesCount] = await Promise.all([
-      prisma.article.findMany({
-        where: articleWhere,
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          description: true,
-          content: true,
-          category: true,
-          featuredImage: true,
-          status: true,
-          featured: true,
-          publishedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          viewCount: true,
-          uniqueViews: true,
-          tags: { include: { tag: true } },
-          author: {
-            select: {
-              id: true,
-              walletAddress: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-          _count: { select: { likes: true, comments: true } },
-        },
-        orderBy: { publishedAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      prisma.article.count({ where: articleWhere }),
-      prisma.article.aggregate({
-        where: articleWhere,
-        _sum: {
-          viewCount: true,
-          uniqueViews: true,
-        },
-      }),
-      prisma.like.count({
-        where: {
-          article: {
-            authorId: user.id,
-            status: 'PUBLISHED',
-          },
-        },
-      }),
-    ]);
-
-    return res.json({
-      profile: {
-        id: user.id,
-        walletAddress: user.walletAddress,
-        name: user.name,
-        bio: user.bio,
-        avatarUrl: getFullImageUrl(user.avatarUrl || ''),
-        joinedAt: user.createdAt,
-        stats: {
-          articles: totalPublished,
-          views: aggregateStats._sum.viewCount ?? 0,
-          uniqueViews: aggregateStats._sum.uniqueViews ?? 0,
-          likes: likesCount,
-        },
-      },
-      articles,
-      pagination: {
-        page,
-        limit,
-        total: totalPublished,
-        totalPages: Math.max(Math.ceil(totalPublished / limit), 1),
-        hasMore: page * limit < totalPublished,
-      },
-    });
-  } catch (error) {
-    logger.error(`getPublicProfile: ${(error as Error).message}`);
-    return res.status(500).json({ error: 'Failed to fetch public profile' });
   }
 }

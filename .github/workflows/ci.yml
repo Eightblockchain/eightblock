@@ -6,34 +6,100 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: eightblock
+          POSTGRES_PASSWORD: eightblock
+          POSTGRES_DB: eightblock_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eightblock"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://eightblock:eightblock@localhost:5432/eightblock_ci
+      TEST_DATABASE_URL: postgresql://eightblock:eightblock@localhost:5432/eightblock_ci
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_SECRET: ci-only-secret-that-is-at-least-32-characters
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_ADMIN_URL: http://localhost:3001
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
+      - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client
-        run: cd backend && npx prisma generate
+      - name: Generate Prisma client
+        run: pnpm --dir backend exec prisma generate
 
-      - name: Build frontend
-        run: pnpm --filter ./frontend build
+      - name: Apply every migration to an empty database
+        run: pnpm --dir backend exec prisma migrate deploy
+
+      - name: Migrations match schema.prisma
+        run: |
+          pnpm --dir backend exec prisma migrate diff \
+            --from-schema-datasource prisma/schema.prisma \
+            --to-schema-datamodel prisma/schema.prisma \
+            --exit-code \
+            || { echo "::error::schema.prisma has changes without a migration. Run: npx prisma migrate dev --name <change>"; exit 1; }
+
+      - name: Deploy scripts
+        run: |
+          bash -n deploy.sh
+          bash -n backend/scripts/migrate.sh
+          shellcheck -S warning deploy.sh backend/scripts/migrate.sh
 
       - name: Lint
         run: pnpm lint
-        continue-on-error: true
+
+      - name: Typecheck
+        run: |
+          pnpm --dir backend typecheck
+          pnpm --dir frontend typecheck
+          pnpm --dir admin typecheck
+          pnpm --dir packages/ui typecheck
 
       - name: Test
         run: pnpm test
-        continue-on-error: true
+
+      - name: Build backend
+        run: pnpm --dir backend build
+
+      - name: Build frontend
+        run: pnpm --dir frontend build
+
+      - name: Build admin app
+        run: pnpm --dir admin build
