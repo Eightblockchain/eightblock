@@ -4,29 +4,41 @@ import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useToast } from '@eightblock/ui/hooks/use-toast';
-import { siteConfig } from '@/lib/site-config';
 import { cn } from '@eightblock/ui/utils';
 import { Panel, PanelBar } from '@eightblock/ui/components/panel';
+import type { SupportWallet } from '@/lib/support-wallets';
 
 function truncateAddress(addr: string): string {
   if (addr.length <= 28) return addr;
   return `${addr.slice(0, 14)}…${addr.slice(-10)}`;
 }
 
-export function SupportCreator({ className }: { className?: string }) {
+export function SupportCreator({
+  wallets,
+  className,
+}: {
+  wallets: SupportWallet[];
+  className?: string;
+}) {
   const { toast } = useToast();
+  const [selectedId, setSelectedId] = useState(wallets[0]?.id);
   const [copied, setCopied] = useState(false);
-  const { walletAddress, label, note } = siteConfig.support;
 
-  if (!walletAddress) return null;
+  const wallet = wallets.find((w) => w.id === selectedId) ?? wallets[0];
+  if (!wallet) return null;
+
+  const select = (id: string) => {
+    setSelectedId(id);
+    setCopied(false);
+  };
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(walletAddress);
+      await navigator.clipboard.writeText(wallet.address);
       setCopied(true);
       toast({
         title: 'Address copied',
-        description: 'Paste into your Cardano wallet to send ADA.',
+        description: `Paste into your ${wallet.network} wallet to send ${wallet.currency}.`,
       });
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -41,16 +53,46 @@ export function SupportCreator({ className }: { className?: string }) {
           <span className="h-1.5 w-1.5 bg-brand-gold" aria-hidden="true" />
           Support this work
         </span>
-        <span>Cardano · ADA</span>
+        <span>
+          {wallet.network} · {wallet.currency}
+        </span>
       </PanelBar>
+
+      {wallets.length > 1 && (
+        <div
+          role="tablist"
+          aria-label="Choose a network"
+          className="flex flex-wrap gap-2 border-b border-border px-5 py-3"
+        >
+          {wallets.map((w) => (
+            <button
+              key={w.id}
+              type="button"
+              role="tab"
+              aria-selected={w.id === wallet.id}
+              onClick={() => select(w.id)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                w.id === wallet.id
+                  ? 'border-brand-blue bg-brand-blue text-white'
+                  : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+              )}
+            >
+              {w.network} · {w.currency}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center">
         <div className="shrink-0 self-start border border-border bg-white p-2.5">
-          <QRCodeSVG value={walletAddress} size={104} level="M" />
+          <QRCodeSVG value={wallet.address} size={104} level="M" />
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="font-display text-lg font-semibold text-foreground">{label}</p>
+          <p className="font-display text-lg font-semibold text-foreground">
+            {wallet.label || `Support with ${wallet.currency}`}
+          </p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             If a post saved you time, a small tip keeps the writing independent.
           </p>
@@ -58,13 +100,14 @@ export function SupportCreator({ className }: { className?: string }) {
           <div className="mt-4 flex items-center gap-1 rounded-full border border-border bg-background p-1 pl-4">
             <code
               className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/80"
-              title={walletAddress}
+              title={wallet.address}
             >
-              {truncateAddress(walletAddress)}
+              {truncateAddress(wallet.address)}
             </code>
             <button
               type="button"
               onClick={handleCopy}
+              aria-label={`Copy ${wallet.network} address`}
               className={cn(
                 'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors',
                 copied
@@ -77,7 +120,9 @@ export function SupportCreator({ className }: { className?: string }) {
             </button>
           </div>
 
-          {note && <p className="ledger-label mt-3 normal-case tracking-normal">{note}</p>}
+          {wallet.note && (
+            <p className="ledger-label mt-3 normal-case tracking-normal">{wallet.note}</p>
+          )}
         </div>
       </div>
     </Panel>

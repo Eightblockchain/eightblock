@@ -13,6 +13,7 @@ import portfolioRoutes from '../routes/portfolio-routes.js';
 import authorRoutes from '../routes/author-routes.js';
 import analyticsRoutes from '../routes/analytics-routes.js';
 import webhookRoutes from '../routes/webhook-routes.js';
+import supportWalletRoutes from '../routes/support-wallet-routes.js';
 
 const router = createRouter();
 
@@ -27,6 +28,7 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/newsletters', newsletterRoutes);
 router.use('/bookmarks', bookmarkRoutes);
 router.use('/portfolio', portfolioRoutes);
+router.use('/support-wallets', supportWalletRoutes);
 router.use('/authors', authorRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/webhooks', webhookRoutes);

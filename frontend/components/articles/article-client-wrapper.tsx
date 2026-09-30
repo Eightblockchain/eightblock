@@ -4,6 +4,7 @@ import { ArticleEngagement } from '@/components/articles/article-engagement';
 import { CommentsSection } from '@/components/articles/comments-section';
 import { NewsletterSignup } from '@/components/newsletter-signup';
 import { SupportCreator } from '@/components/support/support-creator';
+import type { SupportWallet } from '@/lib/support-wallets';
 import { useArticleInteractions } from '@/hooks/useArticleInteractions';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { SignInDialog } from '@/components/auth/sign-in-dialog';
@@ -19,6 +20,7 @@ interface ArticleClientWrapperProps {
   initialLikesCount: number;
   initialCommentsCount: number;
   isPublished: boolean;
+  supportWallets: SupportWallet[];
 }
 
 export function ArticleClientWrapper({
@@ -29,6 +31,7 @@ export function ArticleClientWrapper({
   initialLikesCount,
   initialCommentsCount,
   isPublished,
+  supportWallets,
 }: ArticleClientWrapperProps) {
   const [likesCount, setLikesCount] = useState(initialLikesCount);
   const [signInOpen, setSignInOpen] = useState(false);
@@ -163,7 +166,7 @@ export function ArticleClientWrapper({
       />
 
       <div className="container-read space-y-6 pb-16">
-        <SupportCreator />
+        <SupportCreator wallets={supportWallets} />
         <NewsletterSignup className="lg:grid-cols-1 lg:gap-6 sm:p-8" />
       </div>
     </>

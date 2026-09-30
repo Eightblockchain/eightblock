@@ -9,6 +9,7 @@ import { Avatar } from '@eightblock/ui/components/avatar';
 import { siteConfig } from '@/lib/site-config';
 import { getPortfolio, paragraphs, type PortfolioLinks } from '@/lib/portfolio';
 import { ogImagePath, pageMetadata } from '@/lib/page-metadata';
+import { fetchSupportWallets } from '@/lib/support-wallets';
 
 export async function generateMetadata(): Promise<Metadata> {
   const portfolio = await getPortfolio();
@@ -50,7 +51,7 @@ function displayHost(url?: string) {
 }
 
 export default async function AboutPage() {
-  const portfolio = await getPortfolio();
+  const [portfolio, supportWallets] = await Promise.all([getPortfolio(), fetchSupportWallets()]);
   const story = paragraphs(portfolio.story);
   const links = (Object.keys(linkMeta) as (keyof PortfolioLinks)[])
     .filter((key) => portfolio.links[key])
@@ -174,7 +175,7 @@ export default async function AboutPage() {
           </div>
 
           <div className="space-y-6 lg:col-span-5">
-            <SupportCreator />
+            <SupportCreator wallets={supportWallets} />
 
             <Panel marks={false}>
               <PanelBar>

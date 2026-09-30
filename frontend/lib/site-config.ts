@@ -53,12 +53,6 @@ export const siteConfig = {
     description:
       'New articles on web3, smart contracts and decentralized systems, plus a short weekly roundup when there is something new. No spam, and you can unsubscribe in one click.',
   },
-  support: {
-    walletAddress:
-      'addr1qy7w8dvq0fddt7yefqeeju420f9sdq57xgrezvvdz9dwe620pqsxeefd6xxanuht9dupwph0l3lr3r73x80m0tlxp9gquyz5en',
-    label: 'Support with ADA',
-    note: 'On-chain tips via smart contract coming soon.',
-  },
   about: {
     bio: 'I build and write about web3. My work sits at the intersection of smart contracts, blockchain infrastructure, and the ecosystems trying to make decentralized systems practical.',
     extended:

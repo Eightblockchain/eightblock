@@ -635,6 +635,45 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
       const pub = await get('/api/portfolio');
       expect(pub.body).toMatchObject({ headline: 'Builder', name: 'Vitest admin' });
     });
+
+    it('manages support wallets', async () => {
+      const original = await prisma.supportWallet.findMany({ orderBy: { position: 'asc' } });
+      try {
+        expect((await put('/api/support-wallets', 'reader').send({ wallets: [] })).status).toBe(
+          403
+        );
+        expect((await get('/api/support-wallets/manage', 'reader')).status).toBe(403);
+        const bad = await put('/api/support-wallets', 'admin').send({
+          wallets: [{ network: 'Cardano', currency: 'ADA', address: 'addr1 <script>' }],
+        });
+        expect(bad.status).toBe(400);
+
+        const saved = await put('/api/support-wallets', 'admin').send({
+          wallets: [
+            { network: 'Cardano', currency: 'ADA', address: 'addr1qxyvitest000000' },
+            { network: 'Ethereum', currency: 'ETH', address: '0xVitest0000000000', enabled: false },
+          ],
+        });
+        expect(saved.status).toBe(200);
+        expect(saved.body.map((w: { position: number }) => w.position)).toEqual([0, 1]);
+        expect((await get('/api/support-wallets')).body).toEqual([
+          expect.objectContaining({ network: 'Cardano', address: 'addr1qxyvitest000000' }),
+        ]);
+
+        // Reorder, enable, and drop the first wallet in one save.
+        const [cardano, ethereum] = saved.body;
+        const next = await put('/api/support-wallets', 'admin').send({
+          wallets: [{ ...ethereum, enabled: true }],
+        });
+        expect(next.body).toHaveLength(1);
+        expect(next.body[0]).toMatchObject({ id: ethereum.id, position: 0, enabled: true });
+        expect(await prisma.supportWallet.findUnique({ where: { id: cardano.id } })).toBeNull();
+        expect((await get('/api/support-wallets', 'admin')).body[0].network).toBe('Ethereum');
+      } finally {
+        await prisma.supportWallet.deleteMany();
+        if (original.length) await prisma.supportWallet.createMany({ data: original });
+      }
+    });
   });
 
   describe('newsletter subscriptions', () => {

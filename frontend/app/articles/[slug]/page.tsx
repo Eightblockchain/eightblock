@@ -10,6 +10,7 @@ import { siteConfig } from '@/lib/site-config';
 import { readingTime } from '@/lib/chain';
 import { jsonLd as toJsonLd } from '@/lib/json-ld';
 import { OG_SIZE, ogImagePath } from '@/lib/page-metadata';
+import { fetchSupportWallets } from '@/lib/support-wallets';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev';
@@ -136,7 +137,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = await fetchArticle(slug);
+  const [article, supportWallets] = await Promise.all([fetchArticle(slug), fetchSupportWallets()]);
 
   if (!article || article.status !== 'PUBLISHED') {
     // For SEO, return 404 if not published
@@ -227,6 +228,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         initialLikesCount={article._count?.likes || 0}
         initialCommentsCount={article._count?.comments || 0}
         isPublished={article.status === 'PUBLISHED'}
+        supportWallets={supportWallets}
       />
 
       {siteConfig.showWrittenBy && <ArticleAuthor author={article.author} />}

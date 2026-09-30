@@ -314,6 +314,24 @@ model AuthorProfile {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/// Addresses readers can tip, shown under articles and on the About page. Managed from the admin app.
+model SupportWallet {
+  id        String   @id @default(uuid())
+  /// Display name of the chain, for example "Cardano".
+  network   String
+  /// Ticker, for example "ADA".
+  currency  String
+  address   String
+  label     String?
+  note      String?
+  enabled   Boolean  @default(true)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled, position])
+}
+
 enum ArticleStatus {
   DRAFT
   REVIEW

@@ -26,6 +26,7 @@ const adminLinks = [
   { href: '/analytics', label: 'Analytics' },
   { href: '/newsletter', label: 'Newsletter' },
   { href: '/portfolio', label: 'Portfolio' },
+  { href: '/support', label: 'Support' },
   { href: '/users', label: 'Users' },
 ];
 

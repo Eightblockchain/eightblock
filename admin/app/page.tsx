@@ -1,7 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowUpRight, BarChart3, FileText, Mail, PenLine, UserRound, Users } from 'lucide-react';
+import {
+  ArrowUpRight,
+  BarChart3,
+  FileText,
+  Mail,
+  PenLine,
+  UserRound,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { Panel } from '@eightblock/ui/components/panel';
 import { Eyebrow } from '@eightblock/ui/components/section-header';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -31,6 +40,12 @@ const actions = [
     title: 'Portfolio',
     body: 'Edit your story, projects and links on the About page.',
     icon: UserRound,
+  },
+  {
+    href: '/support',
+    title: 'Support wallets',
+    body: 'Add, hide or reorder the addresses readers can tip.',
+    icon: Wallet,
   },
   {
     href: siteHref('/articles/new'),
