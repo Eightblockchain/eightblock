@@ -1,5 +1,10 @@
 # 🚀 Deployment Checklist
 
+> **Outdated in parts.** The deploy script, CI workflow, migrations, ports (frontend 3006, admin 3007, backend from
+> `backend/.env`) and env files are documented in the "Production Deployment" section of `README.md`,
+> which takes precedence. Do not copy the deploy script or workflow snippets below; use the ones in
+> the repository.
+
 ## Pre-Deployment (Before VPS Setup)
 
 ### GitHub Repository
