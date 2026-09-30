@@ -26,7 +26,7 @@ deploy.sh   # Zero-downtime production deploy (run on the server)
 
 ## Getting Started
 
-Requirements: Node.js 20.9+, pnpm 9+, PostgreSQL 15+ and Redis 7+ (or Docker)
+Requirements: Node.js 22.22+ or 24.15+, pnpm 9+, PostgreSQL 15+ and Redis 7+ (or Docker)
 
 1. **Install dependencies**
 
@@ -114,7 +114,7 @@ check, both builds). When CI is green, the deploy workflow SSHes into the server
 
 `deploy.sh` never takes the site down:
 
-1. Checks the server (Node 20.9+, pnpm, pm2, env files) and installs the locked dependencies
+1. Checks the server (Node 22.22+ or 24.15+, pnpm, pm2, env files) and installs the locked dependencies
 2. Builds the backend, blog and admin app into staging directories while the old version keeps serving
 3. Boots the new builds on spare ports and checks them; a release that cannot start stops here,
    before the database or the live site is touched
@@ -143,7 +143,7 @@ Backups go to `~/backups/eightblock` (the last 14 are kept). Restore one with
 
 Everything below lives on the server only and is never overwritten by a deploy.
 
-1. **Packages:** Node.js 20.9+, pnpm 9, pm2 (`npm i -g pm2`), PostgreSQL client tools (`pg_dump`), git, curl
+1. **Packages:** Node.js 24 LTS (22.22+ also works), pnpm 9, pm2 (`npm i -g pm2`), PostgreSQL client tools (`pg_dump`), git, curl
 2. **Code:** clone the repo to `/var/www/eightblock`
 3. **`backend/.env`:** the Backend section of `.env.example` with `NODE_ENV=production`, the real
    `DATABASE_URL`, a 64-byte `JWT_SECRET`, `SITE_URL`, `API_URL`, `ADMIN_URL=https://admin.eightblock.dev`,

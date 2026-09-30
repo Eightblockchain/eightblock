@@ -249,8 +249,9 @@ for cmd in node curl git; do
 done
 command -v pnpm >/dev/null || fail "pnpm is not installed (corepack enable, or npm i -g pnpm@9)"
 "${PM2[@]}" --version >/dev/null 2>&1 || fail "pm2 is not installed (npm i -g pm2)"
-node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 20 || (a === 20 && b >= 9) ? 0 : 1)' ||
-  fail "Node.js >= 20.9 is required, found $(node -v)"
+# jsdom (article sanitising in the blog) supports Node ^22.22.2 || >=24.15.0.
+node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 24 || (a === 24 && b >= 15) || (a === 22 && b >= 22) ? 0 : 1)' ||
+  fail "Node.js 22.22+ or 24.15+ is required, found $(node -v)"
 [ -f "$BACKEND/.env" ] || fail "backend/.env is missing (copy the backend section of .env.example)"
 
 for app in frontend admin; do

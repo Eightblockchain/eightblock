@@ -145,15 +145,15 @@ sudo ufw status
 sudo apt update && sudo apt upgrade -y
 ```
 
-### Step 2: Install Node.js 20.x
+### Step 2: Install Node.js 24.x
 
 ```bash
-# Install Node.js 20.x via NodeSource
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+# Install Node.js 24.x via NodeSource
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install -y nodejs
 
 # Verify installation
-node --version  # Should show v20.x.x
+node --version  # Should show v24.x.x (24.15 or newer)
 npm --version
 
 # Install pnpm globally
@@ -905,7 +905,7 @@ git pull origin main
 - [ ] Non-root user created
 - [ ] SSH key authentication setup
 - [ ] Firewall configured
-- [ ] Node.js 20.x installed
+- [ ] Node.js 24.x installed
 - [ ] PostgreSQL & Redis installed/configured
 - [ ] Repository cloned
 - [ ] Environment variables set
