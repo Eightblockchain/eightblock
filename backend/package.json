@@ -63,6 +63,6 @@
     "seed": "tsx prisma/seed.ts"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "^22.22.2 || >=24.15.0"
   }
 }

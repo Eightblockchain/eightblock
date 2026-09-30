@@ -110,7 +110,7 @@ cd /var/www/eightblock
 ### B1. Check the tools
 
 ```bash
-node -v                      # v20.9 or newer (v22 is fine)
+node -v                      # v24.15+ or v22.22+ (see B1 below if older)
 pnpm -v                      # 9.x   (if missing or older: corepack enable && corepack prepare pnpm@9 --activate)
 pm2 -v                       # any recent version (npm i -g pm2)
 pg_dump --version            # must be >= the PostgreSQL server version below
@@ -125,6 +125,16 @@ git status --short           # local edits on the server are discarded by the de
   (for example `postgresql-client-16`; add the PostgreSQL apt repository if your Ubuntu does not
   ship that version). Without it the deploy stops before migrating, on purpose.
 - Redis must be running: the new API rejects sessions while Redis is unreachable.
+- Node older than 24.15 (or 22.22): the blog's build needs it. Upgrade to Node 24 LTS, then make
+  PM2 and pnpm use it:
+
+  ```bash
+  curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+  sudo apt install -y nodejs
+  node -v                                   # v24.x
+  sudo npm i -g pm2 && pm2 update           # restarts the running apps on the new Node
+  sudo corepack enable && corepack prepare pnpm@9 --activate
+  ```
 
 ### B2. Take your own backups
 

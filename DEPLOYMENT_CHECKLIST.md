@@ -133,12 +133,12 @@ sudo systemctl enable fail2ban
 
 ## Install Dependencies
 
-### 5. Install Node.js 20
+### 5. Install Node.js 24
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt install -y nodejs
-node --version  # Should be v20.x
+node --version  # Should be v24.x (24.15 or newer)
 ```
 
 ### 6. Install pnpm
@@ -188,7 +188,7 @@ sudo systemctl start nginx
 sudo systemctl enable nginx
 ```
 
-- [ ] Node.js 20.x installed
+- [ ] Node.js 24.x installed
 - [ ] pnpm installed globally
 - [ ] Git installed
 - [ ] PostgreSQL 15 installed and running
