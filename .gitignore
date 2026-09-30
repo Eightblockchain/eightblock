@@ -8,11 +8,20 @@ node_modules/
 
 # build output
 .next/
+.next-build/
+.next-prev/
 dist/
+dist-build/
+dist-prev/
 out/
 build/
 coverage/
-**/.contentlayer/
+logs/
+.audit-frontend/
+.pnpm-store/
+.next-check/
+dist-check/
+*.tsbuildinfo
 
 # prisma
 backend/prisma/dev.db
