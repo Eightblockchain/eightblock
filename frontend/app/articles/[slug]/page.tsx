@@ -9,7 +9,7 @@ import { RelatedArticles } from '@/components/articles/related-articles';
 import { siteConfig } from '@/lib/site-config';
 import { readingTime } from '@/lib/chain';
 import { jsonLd as toJsonLd } from '@/lib/json-ld';
-import { OG_SIZE, ogImagePath } from '@/lib/page-metadata';
+import { OG_SIZE, feedAlternates, ogImagePath } from '@/lib/page-metadata';
 import { fetchSupportWallets } from '@/lib/support-wallets';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
@@ -122,9 +122,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description,
         images: [ogImageUrl],
       },
-      alternates: {
-        canonical: url,
-      },
+      alternates: { canonical: url, ...feedAlternates },
       robots: {
         index: article.status === 'PUBLISHED',
         follow: article.status === 'PUBLISHED',

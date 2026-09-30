@@ -3,6 +3,11 @@ import { siteConfig } from '@/lib/site-config';
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
+/** RSS autodiscovery. A page's `alternates` replaces its parent's, so every page must include it. */
+export const feedAlternates = {
+  types: { 'application/rss+xml': [{ url: '/feed.xml', title: siteConfig.name }] },
+};
+
 export interface OgCardContent {
   title: string;
   description?: string;
@@ -44,7 +49,7 @@ export function pageMetadata({
   return {
     title: absoluteTitle ? { absolute: title } : title,
     description,
-    alternates: { canonical: path },
+    alternates: { canonical: path, ...feedAlternates },
     openGraph: {
       title: shareTitle,
       description,

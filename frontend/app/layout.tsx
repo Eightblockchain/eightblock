@@ -8,7 +8,7 @@ import { ReactQueryProvider } from '@/lib/react-query-provider';
 import { Toaster } from '@eightblock/ui/components/toaster';
 import { siteConfig } from '@/lib/site-config';
 import { jsonLd } from '@/lib/json-ld';
-import { OG_SIZE, ogImagePath } from '@/lib/page-metadata';
+import { OG_SIZE, feedAlternates, ogImagePath } from '@/lib/page-metadata';
 import '@eightblock/ui/styles/globals.css';
 const inter = Inter({
   subsets: ['latin'],
@@ -35,6 +35,7 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   metadataBase: new URL(siteConfig.url),
+  alternates: feedAlternates,
   openGraph: {
     title: siteConfig.name,
     description: siteConfig.description,
