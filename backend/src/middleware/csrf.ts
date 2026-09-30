@@ -8,7 +8,8 @@ import {
 } from '../utils/csrf.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const CSRF_EXEMPT_PATHS = ['/api/auth/wallet', '/api/auth/wallet/nonce'];
+/** Called by mail providers' servers, authenticated by the unsubscribe token in the URL. */
+const CSRF_EXEMPT_PATHS: string[] = ['/api/subscriptions/unsubscribe/one-click'];
 const allowedOriginSet = new Set(getAllowedOrigins());
 
 function extractOriginFromReferer(referer?: string | null) {
