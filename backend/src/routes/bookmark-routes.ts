@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { createRouter } from '../utils/async-router.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
   listBookmarks,
@@ -7,7 +7,7 @@ import {
   removeBookmark,
 } from '../controllers/bookmark-controller.js';
 
-const router = Router();
+const router = createRouter();
 
 router.use(requireAuth);
 router.get('/', listBookmarks);

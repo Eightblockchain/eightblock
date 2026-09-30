@@ -91,14 +91,13 @@ export default function SearchComponent() {
 
             {/* Search Results Dropdown */}
             {query.length > 0 && (
-              <div className="mt-2 max-h-[420px] overflow-y-auto rounded-2xl border border-border/60
-                bg-card shadow-2xl shadow-black/50 overflow-hidden">
+              <div className="mt-2 max-h-[420px] overflow-y-auto border border-border bg-card">
                 {query.length < 2 ? (
-                  <div className="p-5 text-center text-[13px] text-muted-foreground/40">
+                  <div className="p-5 text-center text-[13px] text-muted-foreground">
                     Type at least 2 characters…
                   </div>
                 ) : isLoading ? (
-                  <div className="p-5 text-center text-[13px] text-muted-foreground/40">
+                  <div className="p-5 text-center text-[13px] text-muted-foreground">
                     Searching…
                   </div>
                 ) : results.length > 0 ? (
@@ -108,29 +107,33 @@ export default function SearchComponent() {
                         key={article.slug}
                         href={`/articles/${article.slug}`}
                         onClick={closeSearch}
-                        className="block px-5 py-4 transition-colors hover:bg-card/60 group"
+                        className="block px-5 py-4 transition-colors hover:bg-muted group"
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-foreground/90 line-clamp-1 text-[14px]
-                              group-hover:text-foreground transition-colors">
+                            <h3
+                              className="font-display font-medium text-foreground line-clamp-1 text-[15px]
+                              group-hover:text-brand-blue transition-colors"
+                            >
                               {article.title}
                             </h3>
-                            <p className="mt-1 text-[13px] text-muted-foreground/50 line-clamp-1">
+                            <p className="mt-1 text-[13px] text-muted-foreground line-clamp-1">
                               {article.description}
                             </p>
                             <div className="mt-2 flex items-center gap-1.5">
                               {article.category && (
-                                <span className="rounded-lg border border-border/50 bg-background/60
-                                  px-2 py-0.5 font-mono text-[10px] text-muted-foreground/60">
+                                <span
+                                  className="rounded-full border border-border
+                                  px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+                                >
                                   {article.category}
                                 </span>
                               )}
                               {article.tags?.slice(0, 2).map((t: any) => (
                                 <span
                                   key={t.tag.id}
-                                  className="rounded-lg border border-accent/25 bg-accent/8
-                                    px-2 py-0.5 font-mono text-[10px] text-accent/80"
+                                  className="rounded-full border border-border
+                                    px-2 py-0.5 font-mono text-[10px] text-muted-foreground"
                                 >
                                   {t.tag.name}
                                 </span>
@@ -141,18 +144,16 @@ export default function SearchComponent() {
                       </Link>
                     ))}
                     <Link
-                      href={`/?search=${encodeURIComponent(query)}`}
+                      href="/writing"
                       onClick={closeSearch}
-                      className="flex items-center justify-center gap-2 px-5 py-3.5
-                        text-[13px] font-semibold text-primary/80 hover:text-primary
-                        hover:bg-primary/5 transition-colors border-t border-border/25"
+                      className="ledger-label flex items-center justify-center gap-2 px-5 py-3.5
+                        hover:text-brand-blue transition-colors border-t border-border"
                     >
-                      See all results for
-                      <span className="text-primary">&ldquo;{query}&rdquo;</span>
+                      Browse all writing
                     </Link>
                   </div>
                 ) : (
-                  <div className="p-5 text-center text-[13px] text-muted-foreground/40">
+                  <div className="p-5 text-center text-[13px] text-muted-foreground">
                     No articles found for{' '}
                     <span className="text-foreground/60">&ldquo;{query}&rdquo;</span>
                   </div>

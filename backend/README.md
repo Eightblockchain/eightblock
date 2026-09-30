@@ -177,10 +177,10 @@ Content-Type: application/json
 
 ## Testing the API
 
-Run the test script:
+Run the test suite (it needs a separate database in `TEST_DATABASE_URL`):
 
 ```bash
-./test-api.sh
+pnpm test
 ```
 
 Or test manually with curl:

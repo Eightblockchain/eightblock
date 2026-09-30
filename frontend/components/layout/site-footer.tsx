@@ -1,125 +1,86 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { Github, Twitter, Linkedin, Shield } from 'lucide-react';
+'use client';
 
-const footerLinks = {
-  platform: [
-    { href: '/',             label: 'Home' },
-    { href: '/#articles',    label: 'Articles' },
-    { href: '/midnight',     label: 'Midnight Hub' },
-    { href: '/bookmarks',    label: 'Bookmarks' },
-  ],
-  community: [
-    { href: '/contributors', label: 'Contributors' },
-    { href: '/github',       label: 'GitHub Repository' },
-    { href: '/privacy',      label: 'Privacy Policy' },
-    { href: '/terms',        label: 'Terms of Service' },
-  ],
-};
+import Link from 'next/link';
+import { Github, Twitter } from 'lucide-react';
+import { NewsletterSignup } from '@/components/newsletter-signup';
+import { siteConfig } from '@/lib/site-config';
+import { BrandMark } from '@eightblock/ui/components/brand-mark';
+
+const exploreLinks = [
+  { href: '/writing', label: 'Articles' },
+  { href: '/about', label: 'About' },
+  { href: '/newsletter', label: 'Newsletter' },
+];
 
 const socialLinks = [
-  {
-    href: 'https://github.com/Eightblockchain/eightblock',
-    icon: Github,
-    label: 'GitHub',
-  },
-  {
-    href: 'https://x.com/Eightblock66103',
-    icon: Twitter,
-    label: 'Twitter / X',
-  },
-  {
-    href: 'https://www.linkedin.com/company/eightblock/',
-    icon: Linkedin,
-    label: 'LinkedIn',
-  },
+  { href: siteConfig.links.github, label: 'GitHub', icon: Github },
+  { href: siteConfig.links.twitter, label: 'X / Twitter', icon: Twitter },
 ];
 
 export function SiteFooter() {
+  const year = new Date().getFullYear();
+
   return (
-    <footer className="border-t border-border bg-background">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-          {/* Brand column */}
-          <div className="md:col-span-2 space-y-4">
-            <Link href="/" className="inline-block">
-              <Image src="/logo.svg" alt="Eightblock" width={140} height={36} className="h-8 w-auto opacity-90" />
-            </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              Privacy-first blockchain education. Your hub for Midnight Network,
-              Zero-Knowledge proofs, and Web3 development.
-            </p>
-            <div className="flex gap-2 pt-1">
-              {socialLinks.map(({ href, icon: Icon, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="flex items-center justify-center h-9 w-9 rounded-lg border border-border bg-card text-muted-foreground hover:text-accent hover:border-accent/40 hover:bg-accent/5 transition-all duration-200"
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Platform links */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Platform</h4>
-            <ul className="space-y-2.5">
-              {footerLinks.platform.map(({ href, label }) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    className={`text-sm transition-colors ${
-                      label === 'Midnight Hub'
-                        ? 'text-primary hover:text-primary/80 flex items-center gap-1.5'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {label === 'Midnight Hub' && <Shield className="h-3 w-3" />}
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Community links */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Community</h4>
-            <ul className="space-y-2.5">
-              {footerLinks.community.map(({ href, label }) => (
-                <li key={href}>
-                  <Link href={href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+    <footer className="border-t border-border">
+      <div className="container-page grid grid-cols-1 gap-12 py-14 lg:grid-cols-12 lg:gap-8">
+        <div className="space-y-5 lg:col-span-5">
+          <Link href="/" className="inline-flex" aria-label={`${siteConfig.name} home`}>
+            <BrandMark className="h-9" />
+          </Link>
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            {siteConfig.tagline}
+          </p>
+          <div className="flex items-center gap-2">
+            {socialLinks.map(({ href, label, icon: Icon }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+              >
+                <Icon className="h-4 w-4" />
+              </a>
+            ))}
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()}{' '}
-            <span className="text-foreground font-medium">Eightblock</span>
-            {' · '}Open source under{' '}
-            <a
-              href="https://github.com/Eightblockchain/eightblock/blob/main/LICENSE"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              MPL-2.0
-            </a>
+        <div className="lg:col-span-3">
+          <p className="ledger-label mb-4">Explore</p>
+          <ul className="space-y-2.5">
+            {exploreLinks.map(({ href, label }) => (
+              <li key={href}>
+                <Link
+                  href={href}
+                  className="text-sm text-muted-foreground transition-colors hover:text-brand-blue"
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="lg:col-span-4">
+          <p className="ledger-label mb-4">Newsletter</p>
+          <NewsletterSignup variant="compact" />
+        </div>
+      </div>
+
+      <div className="border-t border-border">
+        <div className="container-page flex flex-col items-center justify-between gap-2 py-5 sm:flex-row">
+          <p className="ledger-label normal-case tracking-normal">
+            © {year} {siteConfig.name}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Built with ❤️ by the <span className="text-accent">Cardano community</span>
-          </p>
+          <nav aria-label="Legal" className="flex items-center gap-5">
+            <Link href="/privacy" className="ledger-label transition-colors hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/terms" className="ledger-label transition-colors hover:text-foreground">
+              Terms
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

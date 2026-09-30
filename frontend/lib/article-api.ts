@@ -26,12 +26,12 @@ export interface Comment {
   id: string;
   body: string;
   createdAt: string;
+  authorName?: string | null;
   author: {
     id: string;
-    walletAddress: string;
     name: string | null;
     avatarUrl: string | null;
-  };
+  } | null;
 }
 
 export interface PaginatedCommentsResponse {
@@ -51,7 +51,6 @@ export interface ArticleSummary {
   publishedAt: string;
   author: {
     id?: string;
-    walletAddress: string;
     name: string | null;
     avatarUrl: string | null;
   };

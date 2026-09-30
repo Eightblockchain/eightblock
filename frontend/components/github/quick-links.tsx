@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Code, BookOpen, GitPullRequest, Users, ExternalLink } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Card } from '@eightblock/ui/components/card';
 import { githubService } from '@/lib/services/github-service';
 
 const quickLinks = [

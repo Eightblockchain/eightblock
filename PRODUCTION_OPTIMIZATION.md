@@ -294,8 +294,8 @@ npm install -g artillery
 # Test article listing endpoint
 artillery quick --count 100 --num 10 http://localhost:5000/api/articles
 
-# Test trending articles
-artillery quick --count 50 --num 20 http://localhost:5000/api/views/trending
+# Test a single article
+artillery quick --count 50 --num 20 http://localhost:5000/api/articles/getting-started-cardano
 ```
 
 ### Cache Testing

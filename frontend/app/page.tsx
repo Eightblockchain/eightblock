@@ -1,37 +1,66 @@
-import { HomeClient } from '@/components/home/home-client';
-import type { Article } from '@/hooks/useInfiniteArticles';
+import type { Metadata } from 'next';
+import type { Article, ArticlesResponse } from '@/hooks/useInfiniteArticles';
+import { siteConfig } from '@/lib/site-config';
+import { NewsletterSignup } from '@/components/newsletter-signup';
+import {
+  FeaturedBlocks,
+  Hero,
+  Principles,
+  StatsStrip,
+  TopicsGrid,
+} from '@/components/home/home-sections';
 
-// Always render fresh — never serve a statically cached page
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: {
+    absolute: `${siteConfig.name} | ${siteConfig.hero.titleLead} ${siteConfig.hero.titleTrail}`,
+  },
+  description: siteConfig.hero.subtitle,
+  alternates: { canonical: '/' },
+};
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 
-async function fetchInitialData(): Promise<{ articles: Article[]; trending: Article[] }> {
+async function fetchJson<T>(path: string, revalidate: number): Promise<T | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
   try {
-    // Single fetch for both initial articles and trending computation
-    const res = await fetch(`${API_URL}/articles?page=1&limit=50`, {
-      next: { revalidate: 0 },
+    const res = await fetch(`${API_URL}${path}`, {
+      next: { revalidate },
+      signal: controller.signal,
     });
-    if (!res.ok) return { articles: [], trending: [] };
-    const data = await res.json();
-    const all: Article[] = Array.isArray(data) ? data : (data.articles ?? []);
-    const articles = all.slice(0, 10);
-
-    // Backend already orders by score DESC — top engaged articles are first
-    const trending = all
-      .filter((a) => (a._count?.likes || 0) + (a._count?.comments || 0) > 0)
-      .slice(0, 6);
-
-    return { articles, trending };
+    if (!res.ok) return null;
+    return (await res.json()) as T;
   } catch {
-    return { articles: [], trending: [] };
+    return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
 export default async function HomePage() {
-  const { articles, trending } = await fetchInitialData();
-  return <HomeClient initialArticles={articles} initialTrending={trending} />;
+  const [latestRes, popularRes, stats] = await Promise.all([
+    fetchJson<ArticlesResponse>('/articles?page=1&limit=50&sort=latest', 60),
+    fetchJson<ArticlesResponse>('/articles?page=1&limit=6&sort=score', 60),
+    fetchJson<{ count: number }>('/subscriptions/stats', 300),
+  ]);
+
+  const latest: Article[] = latestRes?.articles ?? [];
+  const popular: Article[] = popularRes?.articles ?? latest.slice(0, 6);
+  const total = latestRes?.pagination?.total ?? latest.length;
+  const heights = new Map(latest.map((article, i) => [article.id, total - i]));
+
+  return (
+    <>
+      <Hero latest={latest} total={total} />
+      <StatsStrip articles={latest} total={total} />
+      <FeaturedBlocks articles={popular} heights={heights} total={total} />
+      <TopicsGrid articles={latest} />
+      <Principles />
+      <section id="newsletter" className="scroll-mt-20">
+        <div className="container-page py-20">
+          <NewsletterSignup subscriberCount={stats?.count ?? 0} />
+        </div>
+      </section>
+    </>
+  );
 }
-
-// The rest of the components moved to components/home/home-client.tsx
-

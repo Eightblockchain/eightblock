@@ -3,6 +3,56 @@ import { prisma } from '../prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
+import { publishedTopics, topicFilter, topicSlug as toTagSlug } from '../utils/topics.js';
+import { draftArticleNewsletter } from '../services/newsletter-automation.js';
+import { VISIBLE_COMMENTS } from '../utils/comments.js';
+
+const ARTICLE_STATUSES = ['DRAFT', 'REVIEW', 'PUBLISHED'] as const;
+
+function queueNewsletterDraft(articleId: string) {
+  void draftArticleNewsletter(articleId).catch((error) =>
+    logger.error(`Newsletter draft for article ${articleId} failed: ${(error as Error).message}`)
+  );
+}
+
+/** Optional ?author= (username) and ?tag= (topic) filters shared by the public list endpoints. */
+function listFilters(req: Request) {
+  const author =
+    typeof req.query.author === 'string' ? req.query.author.trim().toLowerCase().slice(0, 30) : '';
+  const tag = typeof req.query.tag === 'string' ? toTagSlug(req.query.tag.slice(0, 60)) : '';
+  return { author, tag };
+}
+
+/**
+ * Tags are identified by slug, so "Cardano" and "cardano" resolve to the same tag
+ * (reusing the existing spelling) instead of colliding on the unique slug.
+ */
+async function resolveTags(names: string[]) {
+  const bySlug = new Map<string, string>();
+  for (const name of names) {
+    const slug = toTagSlug(name);
+    if (slug && !bySlug.has(slug)) bySlug.set(slug, name.trim());
+  }
+
+  const tags = [];
+  for (const [slug, name] of bySlug) {
+    const existing = await prisma.tag.findUnique({ where: { slug } });
+    if (existing) {
+      tags.push(existing);
+      continue;
+    }
+    try {
+      tags.push(await prisma.tag.create({ data: { name, slug } }));
+    } catch (error) {
+      // Lost a race with a concurrent request creating the same tag.
+      if ((error as { code?: string }).code !== 'P2002') throw error;
+      const created = await prisma.tag.findFirst({ where: { OR: [{ slug }, { name }] } });
+      if (!created) throw error;
+      tags.push(created);
+    }
+  }
+  return [...new Map(tags.map((tag) => [tag.id, tag])).values()];
+}
 
 /**
  * List published articles with pagination and caching (public endpoint)
@@ -10,12 +60,14 @@ import { getFullImageUrl } from '../utils/imgUrl.js';
  */
 export async function listArticles(req: Request, res: Response) {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
     const skip = (page - 1) * limit;
+    const sort = req.query.sort === 'latest' ? 'latest' : 'score';
+    const { author, tag } = listFilters(req);
 
     // Try to get from cache
-    const cacheKey = `articles:page:${page}:limit:${limit}`;
+    const cacheKey = `articles:page:${page}:limit:${limit}:sort:${sort}:author:${author}:tag:${tag}`;
     const cached = await cacheGet<unknown>(cacheKey);
 
     if (cached) {
@@ -23,12 +75,16 @@ export async function listArticles(req: Request, res: Response) {
       return res.json(cached);
     }
 
+    const where = {
+      status: 'PUBLISHED' as const,
+      ...(author && { author: { username: author } }),
+      ...(tag && (await topicFilter(tag))),
+    };
+
     // If not in cache, fetch from database
     const [articles, total] = await Promise.all([
       prisma.article.findMany({
-        where: {
-          status: 'PUBLISHED',
-        },
+        where,
         select: {
           id: true,
           title: true,
@@ -50,20 +106,20 @@ export async function listArticles(req: Request, res: Response) {
               id: true,
               walletAddress: true,
               name: true,
+              username: true,
               avatarUrl: true,
             },
           },
-          _count: { select: { likes: true, comments: true } },
+          _count: { select: { likes: true, comments: { where: VISIBLE_COMMENTS } } },
         },
-        orderBy: [{ score: 'desc' }, { publishedAt: 'desc' }],
+        orderBy:
+          sort === 'latest'
+            ? [{ publishedAt: 'desc' }, { createdAt: 'desc' }]
+            : [{ score: 'desc' }, { publishedAt: 'desc' }],
         skip,
         take: limit,
       }),
-      prisma.article.count({
-        where: {
-          status: 'PUBLISHED',
-        },
-      }),
+      prisma.article.count({ where }),
     ]);
 
     // Format author avatar URLs
@@ -100,81 +156,74 @@ export async function listArticles(req: Request, res: Response) {
 }
 
 /**
- * Get articles by wallet address
- * Returns all articles (including drafts) if walletAddress matches author
- * Supports pagination with page and limit query params
+ * Topics of published articles with counts, optionally for one author (?author=username).
  */
-export async function getArticlesByWallet(req: Request, res: Response) {
-  const { walletAddress } = req.params;
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
+export async function listTopics(req: Request, res: Response) {
+  const { author } = listFilters(req);
+  const cacheKey = `articles:page:topics:author:${author}`;
+  try {
+    const cached = await cacheGet<unknown>(cacheKey);
+    if (cached) return res.json(cached);
+
+    const topics = await publishedTopics(author ? { author: { username: author } } : {});
+    await cacheSet(cacheKey, topics, 300);
+    return res.json(topics);
+  } catch (error) {
+    logger.error(`listTopics: ${(error as Error).message}`);
+    return res.status(500).json({ error: 'Failed to fetch topics' });
+  }
+}
+
+/**
+ * Get the signed-in author's articles, including drafts.
+ * Query: page, limit (max 50), status (DRAFT | REVIEW | PUBLISHED).
+ */
+export async function getMyArticles(req: Request, res: Response) {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
   const skip = (page - 1) * limit;
+  const status = ARTICLE_STATUSES.find((s) => s === req.query.status);
+  const where = { authorId: userId, ...(status && { status }) };
 
   try {
-    // Find user by wallet address
-    const user = await prisma.user.findUnique({
-      where: { walletAddress },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const [articles, total] = await Promise.all([
+    const [articles, total, byStatus] = await Promise.all([
       prisma.article.findMany({
-        where: {
-          authorId: user.id,
-        },
+        where,
         select: {
           id: true,
           title: true,
           slug: true,
           description: true,
-          content: true,
-          category: true,
           featuredImage: true,
           status: true,
-          featured: true,
           publishedAt: true,
           createdAt: true,
           updatedAt: true,
           viewCount: true,
-          uniqueViews: true,
-          tags: { include: { tag: true } },
-          author: {
-            select: {
-              id: true,
-              walletAddress: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-          _count: { select: { likes: true, comments: true } },
+          tags: { select: { tag: { select: { id: true, name: true } } } },
+          _count: { select: { likes: true, comments: { where: VISIBLE_COMMENTS } } },
         },
         orderBy: { updatedAt: 'desc' },
         skip,
         take: limit,
       }),
-      prisma.article.count({
-        where: {
-          authorId: user.id,
-        },
-      }),
+      prisma.article.count({ where }),
+      prisma.article.groupBy({ by: ['status'], where: { authorId: userId }, _count: true }),
     ]);
 
-    // Format author avatar URLs
-    const articlesWithFormattedAvatars = articles.map((article) => {
-      return {
-        ...article,
-        author: {
-          ...article.author,
-          avatarUrl: getFullImageUrl(article.author.avatarUrl || ''),
-        },
-      };
-    });
+    const counts = { ALL: 0, DRAFT: 0, REVIEW: 0, PUBLISHED: 0 };
+    for (const row of byStatus) {
+      counts[row.status] = row._count;
+      counts.ALL += row._count;
+    }
 
     return res.json({
-      articles: articlesWithFormattedAvatars,
+      articles,
+      counts,
       pagination: {
         page,
         limit,
@@ -184,7 +233,7 @@ export async function getArticlesByWallet(req: Request, res: Response) {
       },
     });
   } catch (error) {
-    logger.error(`getArticlesByWallet: ${(error as Error).message}`);
+    logger.error(`getMyArticles: ${(error as Error).message}`);
     return res.status(500).json({ error: 'Failed to fetch user articles' });
   }
 }
@@ -200,28 +249,17 @@ export async function getArticle(req: Request, res: Response) {
       where: { slug },
       include: {
         tags: { include: { tag: true } },
-        comments: {
-          include: {
-            author: {
-              select: {
-                id: true,
-                walletAddress: true,
-                name: true,
-                avatarUrl: true,
-              },
-            },
-          },
-        },
         author: {
           select: {
             id: true,
             walletAddress: true,
             name: true,
+            username: true,
             avatarUrl: true,
             bio: true,
           },
         },
-        _count: { select: { likes: true, comments: true } },
+        _count: { select: { likes: true, comments: { where: VISIBLE_COMMENTS } } },
       },
     });
 
@@ -229,18 +267,13 @@ export async function getArticle(req: Request, res: Response) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
+    if (article.status !== 'PUBLISHED' && article.authorId !== req.user?.userId) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
     // Format author avatar URLs
     article.author.avatarUrl = getFullImageUrl(article.author.avatarUrl || '');
-    article.comments = article.comments.map((comment) => ({
-      ...comment,
-      author: {
-        ...comment.author,
-        avatarUrl: getFullImageUrl(comment.author.avatarUrl || ''),
-      },
-    }));
 
-    // Only allow access to draft articles if explicitly needed
-    // Frontend should handle this by checking wallet address
     return res.json(article);
   } catch (error) {
     logger.error(`getArticle: ${(error as Error).message}`);
@@ -264,28 +297,12 @@ export async function createArticle(req: Request, res: Response) {
     });
 
     if (existingArticle) {
-      return res.status(400).json({ error: 'An article with this slug already exists' });
+      return res.status(400).json({
+        error: 'An article with this URL already exists. Change the title to get a different one.',
+      });
     }
 
-    // Get or create tags
-    const tagRecords = await Promise.all(
-      tags.map(async (tagName: string) => {
-        const tagSlug = tagName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)/g, '');
-
-        const tag = await prisma.tag.upsert({
-          where: { name: tagName },
-          update: {},
-          create: {
-            name: tagName,
-            slug: tagSlug,
-          },
-        });
-        return tag;
-      })
-    );
+    const tagRecords = await resolveTags(tags);
 
     const created = await prisma.article.create({
       data: {
@@ -293,7 +310,7 @@ export async function createArticle(req: Request, res: Response) {
         slug,
         description: excerpt || '', // Map excerpt to description
         content,
-        category: tags[0] || 'General', // Use first tag as category or default to 'General'
+        category: tagRecords[0]?.name || 'General', // Use first tag as category or default to 'General'
         featuredImage: featuredImage || undefined,
         status,
         // publishedAt will use default value from schema (@default(now()))
@@ -319,6 +336,7 @@ export async function createArticle(req: Request, res: Response) {
 
     // Invalidate article list cache
     await cacheDelPattern('articles:page:*');
+    if (created.status === 'PUBLISHED') queueNewsletterDraft(created.id);
 
     // Format author avatar URLs
     created.author.avatarUrl = getFullImageUrl(created.author.avatarUrl || '');
@@ -338,7 +356,8 @@ export async function updateArticle(req: Request, res: Response) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const { title, slug, excerpt, content, tags = [], featuredImage, status } = req.body;
+  const { title, slug, excerpt, content, featuredImage, status } = req.body;
+  const tags: string[] | undefined = req.body.tags;
 
   try {
     // Check if article exists and user is the author
@@ -355,25 +374,19 @@ export async function updateArticle(req: Request, res: Response) {
       return res.status(403).json({ error: 'You can only edit your own articles' });
     }
 
-    // Get or create tags
-    const tagRecords = await Promise.all(
-      tags.map(async (tagName: string) => {
-        const tagSlug = tagName
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)/g, '');
-
-        const tag = await prisma.tag.upsert({
-          where: { name: tagName },
-          update: {},
-          create: {
-            name: tagName,
-            slug: tagSlug,
-          },
+    if (slug && slug !== existingArticle.slug) {
+      const taken = await prisma.article.findUnique({ where: { slug }, select: { id: true } });
+      if (taken) {
+        return res.status(409).json({
+          error: 'Another article already uses this URL. Change the title to get a different one.',
         });
-        return tag;
-      })
-    );
+      }
+    }
+
+    // Tags are replaced only when the request includes them, so partial updates keep them.
+    const tagRecords = tags ? await resolveTags(tags) : null;
+    // publishedAt defaults to the draft's creation time; readers should see the day it went live.
+    const publishing = status === 'PUBLISHED' && existingArticle.status !== 'PUBLISHED';
 
     const updated = await prisma.article.update({
       where: { id },
@@ -382,13 +395,16 @@ export async function updateArticle(req: Request, res: Response) {
         slug,
         description: excerpt !== undefined ? excerpt : existingArticle.description,
         content,
-        category: tags[0] || existingArticle.category,
+        category: tagRecords ? tagRecords[0]?.name || 'General' : existingArticle.category,
         featuredImage: featuredImage !== undefined ? featuredImage : existingArticle.featuredImage,
         status,
-        tags: {
-          deleteMany: {},
-          create: tagRecords.map((tag) => ({ tagId: tag.id })),
-        },
+        ...(publishing && { publishedAt: new Date() }),
+        ...(tagRecords && {
+          tags: {
+            deleteMany: {},
+            create: tagRecords.map((tag) => ({ tagId: tag.id })),
+          },
+        }),
       },
       include: {
         tags: { include: { tag: true } },
@@ -405,6 +421,7 @@ export async function updateArticle(req: Request, res: Response) {
 
     // Invalidate article list cache
     await cacheDelPattern('articles:page:*');
+    if (publishing) queueNewsletterDraft(id);
 
     // Format author avatar URLs
     updated.author.avatarUrl = getFullImageUrl(updated.author.avatarUrl || '');
@@ -441,10 +458,9 @@ export async function deleteArticle(req: Request, res: Response) {
       prisma.like.deleteMany({ where: { articleId: id } }),
       // Delete comments
       prisma.comment.deleteMany({ where: { articleId: id } }),
+      prisma.bookmark.deleteMany({ where: { articleId: id } }),
       // Delete tag associations
       prisma.tagOnArticle.deleteMany({ where: { articleId: id } }),
-      // Delete article views
-      prisma.articleView.deleteMany({ where: { articleId: id } }),
       // Finally delete the article
       prisma.article.delete({ where: { id } }),
     ]);
@@ -512,7 +528,7 @@ export async function getRelatedArticles(req: Request, res: Response) {
           _count: {
             select: {
               likes: true,
-              comments: true,
+              comments: { where: VISIBLE_COMMENTS },
             },
           },
         },
@@ -560,7 +576,7 @@ export async function getRelatedArticles(req: Request, res: Response) {
         _count: {
           select: {
             likes: true,
-            comments: true,
+            comments: { where: VISIBLE_COMMENTS },
           },
         },
       },

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Github, GitFork, AlertCircle, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@eightblock/ui/components/button';
 import { githubService } from '@/lib/services/github-service';
 
 export const RepositoryActions = () => {

@@ -2,6 +2,11 @@
 
 Complete guide to deploy your app on a VPS with GitHub continuous deployment.
 
+> **Outdated in parts.** The deploy script, CI workflow, migrations, ports (frontend 3006, backend from
+> `backend/.env`) and env files are documented in the "Production Deployment" section of `README.md`,
+> which takes precedence. Server provisioning (packages, PostgreSQL, Redis, nginx, SSL) below is still
+> useful, but do not copy the deploy script or workflow snippets; use the ones in the repository.
+
 ---
 
 ## 📋 Table of Contents
@@ -423,13 +428,27 @@ upstream backend {
     keepalive 64;
 }
 
+# Coarse flood protection in front of the API's own (Redis-backed) rate limits.
+# The server itself is exempt: server-rendered pages and `next build` call the API through its
+# public URL, so without this they share one bucket and get 503s. Replace YOUR_VPS_PUBLIC_IP.
+geo $api_limit_exempt {
+    default 0;
+    127.0.0.1 1;
+    ::1 1;
+    YOUR_VPS_PUBLIC_IP 1;
+}
+map $api_limit_exempt $api_limit_key {
+    0 $binary_remote_addr;
+    1 "";
+}
+limit_req_zone $api_limit_key zone=api_limit:10m rate=300r/m;
+
 server {
     listen 80;
     server_name api.yourdomain.com;
 
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=100r/m;
-    limit_req zone=api_limit burst=20 nodelay;
+    limit_req zone=api_limit burst=60 nodelay;
+    limit_req_status 429;
 
     # Large file uploads
     client_max_body_size 20M;
@@ -461,9 +480,10 @@ sudo nano /etc/nginx/sites-available/yourdomain.com
 **yourdomain.com:**
 
 ```nginx
+# The blog (PM2 `eightblock-frontend` on FRONTEND_PORT, default 3006)
 upstream frontend {
     least_conn;
-    server 127.0.0.1:3000;
+    server 127.0.0.1:3006;
     keepalive 64;
 }
 
@@ -490,9 +510,38 @@ server {
 ```
 
 ```bash
+# Create admin app config
+sudo nano /etc/nginx/sites-available/admin.yourdomain.com
+```
+
+**admin.yourdomain.com** (the admin app, PM2 `eightblock-admin` on `ADMIN_PORT`, default 3007). It must be a
+subdomain of the same site as the API so the sign-in cookie is sent; add its origin to `ALLOWED_ORIGINS`
+and set `ADMIN_URL` in `backend/.env`:
+
+```nginx
+server {
+    listen 80;
+    server_name admin.yourdomain.com;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript;
+
+    location / {
+        proxy_pass http://127.0.0.1:3007;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+```bash
 # Enable sites
 sudo ln -s /etc/nginx/sites-available/api.yourdomain.com /etc/nginx/sites-enabled/
 sudo ln -s /etc/nginx/sites-available/yourdomain.com /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/admin.yourdomain.com /etc/nginx/sites-enabled/
 
 # Test configuration
 sudo nginx -t
@@ -510,6 +559,7 @@ sudo apt install certbot python3-certbot-nginx -y
 # Get certificates
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 sudo certbot --nginx -d api.yourdomain.com
+sudo certbot --nginx -d admin.yourdomain.com
 
 # Auto-renewal is already set up
 # Test renewal
@@ -646,7 +696,7 @@ pm2 restart ecosystem.config.js
 echo "🏥 Checking health..."
 sleep 5
 curl -f http://localhost:5000/health || echo "⚠️  Backend health check failed"
-curl -f http://localhost:3000 || echo "⚠️  Frontend health check failed"
+curl -f http://localhost:3006 || echo "⚠️  Frontend health check failed"
 
 echo "✅ Deployment completed successfully!"
 ```
@@ -746,7 +796,7 @@ else
 fi
 
 # Check frontend
-if curl -f http://localhost:3000 > /dev/null 2>&1; then
+if curl -f http://localhost:3006 > /dev/null 2>&1; then
     echo "✅ Frontend is healthy"
 else
     echo "❌ Frontend is down! Restarting..."

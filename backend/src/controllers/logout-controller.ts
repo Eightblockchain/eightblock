@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { revokeToken, revokeUserTokens } from '../utils/token-revocation.js';
 import { verifyToken } from '../utils/jwt.js';
 import { CSRF_COOKIE_NAME, csrfCookieOptions } from '../utils/csrf.js';
+import { authCookieOptions } from './auth-controller.js';
 
 const csrfRemovalOptions = { ...csrfCookieOptions };
 delete csrfRemovalOptions.maxAge;
@@ -25,12 +26,7 @@ export async function logout(req: Request, res: Response) {
     }
 
     // Clear the auth cookie
-    res.clearCookie('auth_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-    });
+    res.clearCookie('auth_token', authCookieOptions);
     res.clearCookie(CSRF_COOKIE_NAME, csrfRemovalOptions);
 
     return res.json({ message: 'Logged out successfully' });
@@ -55,12 +51,7 @@ export async function revokeAllSessions(req: Request, res: Response) {
     await revokeUserTokens(decoded.userId);
 
     // Clear the current cookie
-    res.clearCookie('auth_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-    });
+    res.clearCookie('auth_token', authCookieOptions);
     res.clearCookie(CSRF_COOKIE_NAME, csrfRemovalOptions);
 
     return res.json({ message: 'All sessions revoked successfully' });

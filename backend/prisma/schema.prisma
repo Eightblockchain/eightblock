@@ -20,12 +20,14 @@ model Article {
   featured      Boolean        @default(false)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  /// Distinct readers (anonymous visitor ids) who have opened the article.
   uniqueViews   Int            @default(0)
+  /// Public view count, kept by page view tracking: once per reader per 30 minutes, never the author.
   viewCount     Int            @default(0)
   featuredImage String?
   score         Float          @default(0)
   author        User           @relation(fields: [authorId], references: [id])
-  views         ArticleView[]
+  pageViews     PageView[]
   bookmarks     Bookmark[]
   comments      Comment[]
   likes         Like[]
@@ -43,28 +45,40 @@ model Article {
   @@index([viewCount])
 }
 
-model ArticleView {
+/// One page load on the public site. Source of truth for the analytics dashboard.
+/// No IP address is stored: visitors are an anonymous cookie id, sessions end after 30 idle minutes.
+model PageView {
   id          String   @id @default(uuid())
-  articleId   String
-  userId      String?
   visitorId   String
-  ipAddress   String?
-  userAgent   String?
+  sessionId   String
+  userId      String?
+  path        String
+  articleId   String?
+  /// First page of its session: carries the session's referrer and campaign.
+  isEntry     Boolean  @default(false)
+  /// External referring host, e.g. "news.ycombinator.com". Null for direct and internal traffic.
   referrer    String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  /// ISO 3166-1 alpha-2 country code.
   country     String?
-  city        String?
+  /// desktop, mobile, tablet or other.
   device      String?
   browser     String?
   os          String?
-  viewedAt    DateTime @default(now())
-  timeOnPage  Int?
+  /// Seconds the page was visible and in use.
+  duration    Int      @default(0)
   scrollDepth Int?
-  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  article     Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
 
-  @@unique([articleId, visitorId, viewedAt])
-  @@index([articleId])
-  @@index([viewedAt])
-  @@index([visitorId])
+  @@index([createdAt])
+  @@index([visitorId, createdAt])
+  @@index([sessionId])
+  @@index([articleId, createdAt])
+  @@index([lastSeenAt])
 }
 
 model Bookmark {
@@ -81,48 +95,175 @@ model Bookmark {
 }
 
 model Comment {
-  id        String        @id @default(uuid())
-  body      String
-  articleId String
-  authorId  String
-  status    CommentStatus @default(PENDING)
-  createdAt DateTime      @default(now())
-  article   Article       @relation(fields: [articleId], references: [id])
-  author    User          @relation(fields: [authorId], references: [id])
+  id         String        @id @default(uuid())
+  body       String
+  articleId  String
+  authorId   String?
+  authorName String?
+  visitorId  String?
+  status     CommentStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  article    Article       @relation(fields: [articleId], references: [id])
+  author     User?         @relation(fields: [authorId], references: [id], onDelete: Restrict)
 
   @@index([articleId])
   @@index([articleId, createdAt]) // paginated comment queries per article
   @@index([authorId])
   @@index([createdAt])
   @@index([status])
+  @@index([visitorId])
 }
 
+// Claps come from signed-in users (userId) or anonymous visitors (visitorId cookie).
 model Like {
   id        String   @id @default(uuid())
   articleId String
-  userId    String
+  userId    String?
+  visitorId String?
   createdAt DateTime @default(now())
   article   Article  @relation(fields: [articleId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@unique([articleId, userId])
+  @@unique([articleId, visitorId])
   @@index([articleId, createdAt])
   @@index([createdAt])
   @@index([userId])
+  @@index([articleId, visitorId])
+}
+
+model AuthIdentity {
+  id         String       @id @default(uuid())
+  userId     String
+  provider   AuthProvider
+  providerId String
+  createdAt  DateTime     @default(now())
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+enum AuthProvider {
+  WALLET_CARDANO
+  GOOGLE
+  GITHUB
 }
 
 model Subscription {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  topics    String[]
-  createdAt DateTime @default(now())
+  id                String             @id @default(uuid())
+  email             String             @unique
+  topics            String[]
+  status            SubscriptionStatus @default(ACTIVE)
+  unsubscribeToken  String             @unique @default(uuid())
+  /// Secret in the confirmation link. Cleared on unsubscribe so an old link cannot resubscribe.
+  confirmToken      String?            @unique
+  /// Last confirmation email. Signups still PENDING a week later are dropped.
+  confirmSentAt     DateTime?
+  confirmedAt       DateTime?
+  /// Most recent unsubscribe. Kept when the address subscribes again.
+  unsubscribedAt    DateTime?
+  /// Why the address stopped receiving mail: "unsubscribed", "bounced" or "complained".
+  unsubscribeReason String?
+  createdAt         DateTime           @default(now())
+
+  @@index([createdAt])
+  @@index([unsubscribedAt])
+  @@index([status, confirmSentAt])
+}
+
+model NewsletterCampaign {
+  id             String               @id @default(uuid())
+  subject        String
+  /// Inbox preview text shown after the subject.
+  preheader      String?
+  htmlContent    String
+  /// Articles featured as cards below the message, in this order.
+  articleIds     String[]             @default([])
+  status         CampaignStatus       @default(DRAFT)
+  kind           CampaignKind         @default(MANUAL)
+  /// Set on campaigns the system creates so each is made once: "article:<id>" or "digest:<date>".
+  sourceKey      String?              @unique
+  sentAt         DateTime?
+  /// Delivered so far.
+  recipientCount Int                  @default(0)
+  failedCount    Int                  @default(0)
+  /// Active subscribers when sending started.
+  totalCount     Int                  @default(0)
+  lastError      String?
+  createdAt      DateTime             @default(now())
+  /// Bumped after every batch; a SENDING campaign that stops updating was interrupted.
+  updatedAt      DateTime             @updatedAt
+  deliveries     NewsletterDelivery[]
+}
+
+/// Newsletter behaviour edited from the dashboard. A single row; senders left empty fall back to .env.
+model NewsletterSettings {
+  id                String   @id @default("site")
+  fromAddress       String?
+  transactionalFrom String?
+  replyTo           String?
+  postalAddress     String?
+  doubleOptIn       Boolean  @default(true)
+  confirmExpiryDays Int      @default(7)
+  welcomeEmail      Boolean  @default(true)
+  accountWelcome    Boolean  @default(true)
+  articleDrafts     Boolean  @default(true)
+  digestEnabled     Boolean  @default(true)
+  /// 0 = Sunday … 6 = Saturday, in digestTimezone.
+  digestDay         Int      @default(1)
+  digestHour        Int      @default(9)
+  digestTimezone    String   @default("UTC")
+  digestMaxArticles Int      @default(10)
+  updatedAt         DateTime @updatedAt
+}
+
+/// One row per recipient, so a retried campaign never reaches anyone twice.
+model NewsletterDelivery {
+  id         String             @id @default(uuid())
+  campaignId String
+  email      String
+  status     DeliveryStatus
+  providerId String?
+  error      String?
+  createdAt  DateTime           @default(now())
+  campaign   NewsletterCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, email])
+}
+
+enum DeliveryStatus {
+  SENT
+  FAILED
+}
+
+enum SubscriptionStatus {
+  /// Signed up, waiting for the address owner to click the confirmation link.
+  PENDING
+  ACTIVE
+  UNSUBSCRIBED
+}
+
+enum CampaignKind {
+  MANUAL
+  /// Drafted automatically when an article is first published.
+  ARTICLE
+  /// The weekly roundup of articles no newsletter has covered yet.
+  DIGEST
+}
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
 }
 
 model Tag {
-  id           String         @id @default(uuid())
-  name         String         @unique
-  slug         String         @unique
-  usages       TagOnArticle[]
+  id     String         @id @default(uuid())
+  name   String         @unique
+  slug   String         @unique
+  usages TagOnArticle[]
 }
 
 model TagOnArticle {
@@ -135,21 +276,42 @@ model TagOnArticle {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  walletAddress String     @unique
-  name          String?
-  role          Role       @default(WRITER)
-  avatarUrl     String?
-  bio           String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  email         String?    @unique
-  articles      Article[]
-  bookmarks     Bookmark[]
-  comments      Comment[]
-  likes         Like[]
+  id              String         @id @default(uuid())
+  walletAddress   String?        @unique
+  name            String?
+  /// Public handle used in author page URLs (/authors/{username}).
+  username        String?        @unique
+  role            Role           @default(READER)
+  avatarUrl       String?
+  googleAvatarUrl String?
+  bio             String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  email           String?        @unique
+  articles        Article[]
+  identities      AuthIdentity[]
+  bookmarks       Bookmark[]
+  comments        Comment[]
+  likes           Like[]
+  authorProfile   AuthorProfile?
 
   @@index([walletAddress])
+}
+
+/// Public portfolio shown on the About page. There is a single row, owned by the site author.
+model AuthorProfile {
+  id         String   @id @default("site")
+  userId     String   @unique
+  headline   String?
+  intro      String?
+  story      String?
+  location   String?
+  focusAreas String[] @default([])
+  projects   Json     @default("[]")
+  links      Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum ArticleStatus {
@@ -168,4 +330,5 @@ enum Role {
   ADMIN
   EDITOR
   WRITER
+  READER
 }

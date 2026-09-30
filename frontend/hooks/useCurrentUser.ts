@@ -1,17 +1,21 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import type { UserRole } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-interface CurrentUser {
+export interface CurrentUser {
   id: string;
-  walletAddress: string;
+  walletAddress: string | null;
   name: string | null;
+  /** Handle for the public author page at /authors/{username}. */
+  username: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  googleAvatarUrl: string | null;
   email: string | null;
-  role: string;
+  role: UserRole;
   createdAt: string;
   _count: {
     articles: number;
@@ -44,7 +48,8 @@ export function useCurrentUser() {
   return useQuery({
     queryKey: ['current-user'],
     queryFn: fetchCurrentUser,
-    staleTime: 5 * 60 * 1000, // 5 minutes - user data doesn't change often
+    // Short enough that a role granted by an admin shows up on the next focus or navigation.
+    staleTime: 60 * 1000,
     retry: false, // Don't retry if user is not authenticated
   });
 }

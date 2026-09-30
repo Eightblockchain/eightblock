@@ -1,10 +1,10 @@
-import Redis, { Redis as RedisType } from 'ioredis';
+import { Redis } from 'ioredis';
 import { logger } from './logger.js';
 
 // Redis client instance
-let redisClient: RedisType | null = null;
+let redisClient: Redis | null = null;
 
-export function getRedisClient(): RedisType | null {
+export function getRedisClient(): Redis | null {
   if (redisClient) {
     return redisClient;
   }
@@ -22,7 +22,7 @@ export function getRedisClient(): RedisType | null {
     });
 
     redisClient.on('error', (err: Error) => {
-      logger.error('Redis Client Error:', err);
+      logger.error(`Redis Client Error: ${err.message}`);
     });
 
     redisClient.on('connect', () => {
@@ -81,9 +81,10 @@ export async function cacheDelPattern(pattern: string): Promise<void> {
   if (!client) return;
 
   try {
-    const keys = await client.keys(pattern);
-    if (keys.length > 0) {
-      await client.del(...keys);
+    // SCAN instead of KEYS: KEYS blocks Redis for the whole keyspace walk.
+    const stream = client.scanStream({ match: pattern, count: 200 });
+    for await (const keys of stream as AsyncIterable<string[]>) {
+      if (keys.length > 0) await client.unlink(...keys);
     }
   } catch (error) {
     logger.error(`Cache delete pattern error for ${pattern}:`, error);

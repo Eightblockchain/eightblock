@@ -2,9 +2,11 @@
 
 import { ArticleEngagement } from '@/components/articles/article-engagement';
 import { CommentsSection } from '@/components/articles/comments-section';
-import { useArticleTracking } from '@/hooks/useArticleTracking';
+import { NewsletterSignup } from '@/components/newsletter-signup';
+import { SupportCreator } from '@/components/support/support-creator';
 import { useArticleInteractions } from '@/hooks/useArticleInteractions';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { SignInDialog } from '@/components/auth/sign-in-dialog';
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Edit2 } from 'lucide-react';
@@ -12,39 +14,29 @@ import { Edit2 } from 'lucide-react';
 interface ArticleClientWrapperProps {
   articleId: string;
   articleSlug: string;
+  articleTitle: string;
   authorId: string | null;
   initialLikesCount: number;
   initialCommentsCount: number;
-  initialViewCount: number;
   isPublished: boolean;
 }
 
 export function ArticleClientWrapper({
   articleId,
   articleSlug,
+  articleTitle,
   authorId,
   initialLikesCount,
   initialCommentsCount,
-  initialViewCount,
   isPublished,
 }: ArticleClientWrapperProps) {
   const [likesCount, setLikesCount] = useState(initialLikesCount);
-  const [viewCount, setViewCount] = useState(initialViewCount);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   // Get authenticated user using React Query
   const { data: currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const userId = currentUser?.id || null;
   const isOwner = !!userId && !!authorId && userId === authorId;
-
-  // Track article view (automatic on mount) — increment local count and notify header
-  useArticleTracking({
-    articleId,
-    enabled: isPublished,
-    onTracked: () => {
-      setViewCount((v) => v + 1);
-      window.dispatchEvent(new CustomEvent('article-view-tracked'));
-    },
-  });
 
   // Get article interactions (likes, comments, bookmarks)
   const {
@@ -68,6 +60,7 @@ export function ArticleClientWrapper({
     userId,
     articleSlug,
     isPublished,
+    onAuthRequired: () => setSignInOpen(true),
   });
 
   // Once we know the user's like status, correct the count if the ISR-cached
@@ -76,15 +69,14 @@ export function ArticleClientWrapper({
   const countCorrectedRef = useRef(false);
   useEffect(() => {
     if (countCorrectedRef.current) return;
-    // Wait until we know who the user is (currentUser query resolved)
-    // and, if logged in, until the like-status query has also resolved.
-    if (isCurrentUserLoading || (userId !== null && isUserLikedLoading)) return;
+    // Wait until we know who the reader is and whether they already clapped.
+    if (isCurrentUserLoading || isUserLikedLoading) return;
     countCorrectedRef.current = true;
     if (userLiked && likesCount === 0) {
-      // The ISR page was cached before this user's like — bump to at least 1.
+      // The ISR page was cached before this user's like: bump to at least 1.
       setLikesCount(1);
     }
-  }, [isCurrentUserLoading, isUserLikedLoading, userId, userLiked, likesCount]);
+  }, [isCurrentUserLoading, isUserLikedLoading, userLiked, likesCount]);
 
   // Update likes count optimistically when user likes/unlikes
   const handleLikeWithOptimisticUpdate = () => {
@@ -122,10 +114,10 @@ export function ArticleClientWrapper({
   return (
     <>
       {isOwner && (
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 mb-4 flex justify-end">
+        <div className="container-read mb-4 flex justify-end">
           <Link
             href={`/articles/${articleSlug}/edit`}
-            className="inline-flex items-center gap-2 rounded-xl border border-border/60 bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+            className="btn-pill-outline text-muted-foreground hover:text-foreground"
           >
             <Edit2 className="h-3.5 w-3.5" />
             Edit article
@@ -140,7 +132,7 @@ export function ArticleClientWrapper({
         isLiking={likeMutation.isPending}
         onLike={handleLikeWithOptimisticUpdate}
         onComment={handleComment}
-        onShare={() => handleShare(articleSlug, '')}
+        onShare={() => handleShare(articleTitle, '')}
         onBookmark={handleBookmark}
       />
 
@@ -151,14 +143,29 @@ export function ArticleClientWrapper({
         isLoadingMoreComments={isFetchingMoreComments}
         isAuthenticated={!!userId}
         currentUserId={userId}
+        canModerate={currentUser?.role === 'ADMIN' || currentUser?.role === 'EDITOR'}
         isPostingComment={commentMutation.isPending}
         isUpdatingComment={updateCommentMutation.isPending}
-        deletingCommentId={deleteCommentMutation.isPending ? (deleteCommentMutation.variables as string) : null}
+        deletingCommentId={
+          deleteCommentMutation.isPending ? (deleteCommentMutation.variables as string) : null
+        }
         onPostComment={handlePostComment}
         onUpdateComment={handleUpdateComment}
         onDeleteComment={handleDeleteComment}
         onLoadMoreComments={loadMoreComments}
       />
+
+      <SignInDialog
+        open={signInOpen}
+        onOpenChange={setSignInOpen}
+        title="Sign in to save articles"
+        description="Saved articles live in your account so you can pick them up on any device."
+      />
+
+      <div className="container-read space-y-6 pb-16">
+        <SupportCreator />
+        <NewsletterSignup className="lg:grid-cols-1 lg:gap-6 sm:p-8" />
+      </div>
     </>
   );
 }

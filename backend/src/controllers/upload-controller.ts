@@ -5,6 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { logger } from '../utils/logger.js';
+import { prisma } from '../prisma/client.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -84,6 +85,21 @@ export async function deleteArticleImage(req: Request, res: Response) {
     // Extract filename from URL (e.g., /uploads/articles/article-123.webp -> article-123.webp)
     const filename = path.basename(imageUrl);
     const imagePath = path.join(__dirname, '../../uploads/articles', filename);
+
+    // Writers may only remove images that no one else's article uses.
+    const [user, usedByOthers] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { role: true } }),
+      prisma.article.findFirst({
+        where: {
+          authorId: { not: userId },
+          OR: [{ featuredImage: { contains: filename } }, { content: { contains: filename } }],
+        },
+        select: { id: true },
+      }),
+    ]);
+    if (usedByOthers && user?.role !== 'ADMIN' && user?.role !== 'EDITOR') {
+      return res.status(403).json({ error: 'This image is used in another author’s article' });
+    }
 
     // Check if file exists and delete it
     if (fs.existsSync(imagePath)) {

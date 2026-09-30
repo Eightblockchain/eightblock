@@ -126,13 +126,6 @@ export class CacheService {
   }
 
   /**
-   * Generate cache key for trending articles
-   */
-  trendingKey(): string {
-    return 'articles:trending';
-  }
-
-  /**
    * Generate cache key for featured articles
    */
   featuredKey(): string {

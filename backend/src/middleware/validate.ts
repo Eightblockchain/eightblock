@@ -5,7 +5,13 @@ export function validateBody<T>(schema: ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({ error: result.error.flatten() });
+      const issue = result.error.issues[0];
+      const field = issue?.path.join('.');
+      return res.status(400).json({
+        // Clients show `error` directly, so it must be a readable sentence.
+        error: field ? `${field}: ${issue.message}` : (issue?.message ?? 'Invalid request'),
+        details: result.error.flatten(),
+      });
     }
     req.body = result.data;
     return next();

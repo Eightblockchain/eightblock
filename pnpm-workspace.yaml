@@ -1,3 +1,5 @@
 packages:
   - frontend
+  - admin
   - backend
+  - packages/*
