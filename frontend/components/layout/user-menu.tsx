@@ -7,7 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Bookmark, FileText, LayoutDashboard, LogOut, PenLine, UserRound } from 'lucide-react';
 import { Avatar } from '@eightblock/ui/components/avatar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { canWrite, isAdmin, loginHref, signOut } from '@/lib/auth';
+import { useSignInDialog } from '@/components/auth/sign-in-dialog';
+import { canWrite, isAdmin, signOut } from '@/lib/auth';
 import { siteConfig } from '@/lib/site-config';
 import { cn } from '@eightblock/ui/utils';
 
@@ -28,6 +29,7 @@ export function UserMenu() {
   const { data: user, isLoading } = useCurrentUser();
   const pathname = usePathname();
   const handleSignOut = useSignOut();
+  const openSignIn = useSignInDialog();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -51,12 +53,9 @@ export function UserMenu() {
 
   if (!user) {
     return (
-      <Link
-        href={loginHref(pathname.startsWith('/auth') ? '/' : pathname)}
-        className="btn-pill-outline"
-      >
+      <button type="button" onClick={() => openSignIn()} className="btn-pill-outline">
         Sign in
-      </Link>
+      </button>
     );
   }
 

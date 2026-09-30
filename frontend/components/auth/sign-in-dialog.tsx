@@ -1,23 +1,27 @@
 'use client';
 
+import { createContext, useCallback, useContext, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { CornerMarks } from '@eightblock/ui/components/panel';
 import { BrandMark } from '@eightblock/ui/components/brand-mark';
 import { GoogleButton } from '@/components/auth/google-button';
 
-interface SignInDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface SignInCopy {
   title?: string;
   description?: string;
+}
+
+interface SignInDialogProps extends SignInCopy {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function SignInDialog({
   open,
   onOpenChange,
-  title = 'Sign in to continue',
-  description = 'Use your Google account. It takes a few seconds and you will come right back here.',
+  title = 'Sign in to Eightblock',
+  description = 'Comment on articles and save the ones you want to read later. Google opens in a small window and you stay right here.',
 }: SignInDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -38,9 +42,35 @@ export function SignInDialog({
           <Dialog.Description className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {description}
           </Dialog.Description>
-          <GoogleButton className="mt-6 h-11 w-full" />
+          <GoogleButton className="mt-6 h-11 w-full" onSignedIn={() => onOpenChange(false)} />
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+const SignInDialogContext = createContext<((copy?: SignInCopy) => void) | null>(null);
+
+/** One sign-in dialog for the whole site, so any button can open it without leaving the page. */
+export function SignInDialogProvider({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [copy, setCopy] = useState<SignInCopy>({});
+
+  const openSignIn = useCallback((next: SignInCopy = {}) => {
+    setCopy(next);
+    setOpen(true);
+  }, []);
+
+  return (
+    <SignInDialogContext.Provider value={openSignIn}>
+      {children}
+      <SignInDialog open={open} onOpenChange={setOpen} {...copy} />
+    </SignInDialogContext.Provider>
+  );
+}
+
+export function useSignInDialog() {
+  const openSignIn = useContext(SignInDialogContext);
+  if (!openSignIn) throw new Error('useSignInDialog must be used inside SignInDialogProvider');
+  return openSignIn;
 }

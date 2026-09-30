@@ -17,7 +17,8 @@ import { ThemeToggle } from '@eightblock/ui/components/theme-toggle';
 import { BrandHomeLink, BrandMark } from '@eightblock/ui/components/brand-mark';
 import { UserMenu, useSignOut } from '@/components/layout/user-menu';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { canWrite, isAdmin, loginHref } from '@/lib/auth';
+import { useSignInDialog } from '@/components/auth/sign-in-dialog';
+import { canWrite, isAdmin } from '@/lib/auth';
 import { siteConfig } from '@/lib/site-config';
 import { cn } from '@eightblock/ui/utils';
 
@@ -33,20 +34,23 @@ const navLinks = [
 
 function MobileAccount({ onNavigate }: { onNavigate: () => void }) {
   const { data: user, isLoading } = useCurrentUser();
-  const pathname = usePathname();
   const handleSignOut = useSignOut();
+  const openSignIn = useSignInDialog();
 
   if (isLoading) return null;
 
   if (!user) {
     return (
-      <Link
-        href={loginHref(pathname.startsWith('/auth') ? '/' : pathname)}
-        onClick={onNavigate}
+      <button
+        type="button"
+        onClick={() => {
+          onNavigate();
+          openSignIn();
+        }}
         className="btn-pill-outline mt-6 w-full"
       >
         Sign in
-      </Link>
+      </button>
     );
   }
 
