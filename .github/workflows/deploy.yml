@@ -1,64 +1,45 @@
 name: Deploy to VPS
 
+# Deploys main only after CI passed for that exact commit. Run manually from the Actions tab
+# (workflow_dispatch) to redeploy the current main.
 on:
-  push:
-    branches:
-      - main
-      - production
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@master
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 30m
+          envs: DEPLOY_SHA
           script: |
-            set -e
-
-            echo "🚀 Starting deployment..."
-
+            set -euo pipefail
             cd /var/www/eightblock
 
-            # Pull latest code
-            echo "📥 Pulling latest code..."
-            git fetch origin
-            git checkout main
-            git reset --hard origin/main
+            echo "Checking out $DEPLOY_SHA"
+            git fetch --prune origin
+            git checkout -f main
+            git reset --hard "$DEPLOY_SHA"
 
-            # Backend updates
-            echo "🔧 Updating backend..."
-            cd backend
-            pnpm install
-            npx prisma generate
-            npx prisma db push
-            pnpm build
-
-            # Frontend updates
-            echo "🎨 Building frontend..."
-            cd ../frontend
-            pnpm install
-            pnpm build
-
-            # Restart applications
-            echo "♻️  Restarting services..."
-            pm2 restart eightblock-backend
-            pm2 restart eightblock-frontend
-
-            echo "========================================"
-            echo "✅ Deployment completed at $(date)"
-            echo "========================================"
-            pm2 status
-
-            echo ""
-            echo "📋 Service Status:"
-            pm2 list
+            bash ./deploy.sh
