@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url';
+
 const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api');
 const adminUrl = (process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001').replace(/\/$/, '');
 
@@ -26,8 +28,10 @@ const config = {
 
   poweredByHeader: false,
 
-  // PM2 runs several instances; reading ISR pages from disk lets one pick up the other's re-renders.
+  // PM2 runs several instances; reading ISR pages from disk lets one pick up the other's re-renders,
+  // and the cache handler shares revalidations between them.
   cacheMaxMemorySize: 0,
+  cacheHandler: fileURLToPath(new URL('./cache-handler.cjs', import.meta.url)),
 
   // Compiler optimizations
   compiler: {

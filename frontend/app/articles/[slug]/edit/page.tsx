@@ -94,7 +94,11 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
     queryKey: ['article', slug],
     queryFn: () => fetchArticleBySlug(slug),
     enabled: !!slug,
+    // A background refetch would replace what the author is typing with the saved version.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
+  const loadedArticleId = useRef<string | null>(null);
 
   const isPublished = article?.status === 'PUBLISHED';
   // Drafts have no public page, so leaving the editor goes back to the article list.
@@ -102,7 +106,8 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
 
   // Initialize form when article is loaded
   useEffect(() => {
-    if (!article) return;
+    if (!article || loadedArticleId.current === article.id) return;
+    loadedArticleId.current = article.id;
     const exit = article.status === 'PUBLISHED' ? `/articles/${article.slug}` : '/my-articles';
 
     // Check if user is the author using cookie-based auth
