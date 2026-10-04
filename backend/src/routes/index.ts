@@ -15,6 +15,7 @@ import analyticsRoutes from '../routes/analytics-routes.js';
 import webhookRoutes from '../routes/webhook-routes.js';
 import supportWalletRoutes from '../routes/support-wallet-routes.js';
 import categoryRoutes from '../routes/category-routes.js';
+import emailTemplateRoutes from '../routes/email-template-routes.js';
 
 const router = createRouter();
 
@@ -28,6 +29,7 @@ router.use('/tags', tagRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/newsletters', newsletterRoutes);
+router.use('/email-templates', emailTemplateRoutes);
 router.use('/bookmarks', bookmarkRoutes);
 router.use('/portfolio', portfolioRoutes);
 router.use('/support-wallets', supportWalletRoutes);

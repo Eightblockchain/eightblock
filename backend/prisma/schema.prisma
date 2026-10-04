@@ -218,6 +218,21 @@ model NewsletterSettings {
   updatedAt         DateTime @updatedAt
 }
 
+/// An admin's wording for one automatic email. Without a row the built-in wording is used;
+/// a null field also falls back to it, while an empty string means the admin left it blank.
+model EmailTemplate {
+  key           String   @id
+  subject       String
+  preheader     String?
+  eyebrow       String?
+  heading       String?
+  body          String?
+  buttonLabel   String?
+  note          String?
+  articlesLabel String?
+  updatedAt     DateTime @updatedAt
+}
+
 /// One row per recipient, so a retried campaign never reaches anyone twice.
 model NewsletterDelivery {
   id         String             @id @default(uuid())

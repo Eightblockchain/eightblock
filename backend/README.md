@@ -139,6 +139,21 @@ DELETE /api/categories/:id      # admin; articles keep their other categories
 
 Filter articles with `GET /api/articles?category=cardano`.
 
+### Email templates
+
+The wording of the automatic emails (confirmation, welcomes, account welcome, weekly digest and new-article drafts) is edited in the admin. The branded layout stays in code; without a saved template the built-in wording is used. Admin only.
+
+```bash
+GET    /api/email-templates              # every template with its variables and current wording
+GET    /api/email-templates/:key         # plus the built-in defaults
+PUT    /api/email-templates/:key         # { "copy": { "subject": "...", "body": "<p>Hi {{email}}</p>", ... } }
+DELETE /api/email-templates/:key         # back to the built-in wording
+POST   /api/email-templates/:key/preview # { "copy": ... } rendered with sample values, not saved
+POST   /api/email-templates/:key/test    # { "copy": ... } sent to the signed-in admin
+```
+
+`{{name}}` inserts a variable (escaped in the message). `{{#name}}...{{/name}}` shows its content only when the variable is set, and `{{^name}}...{{/name}}` only when it is not. Unknown variables are rejected when saving.
+
 ### Users
 
 #### Get User by Wallet

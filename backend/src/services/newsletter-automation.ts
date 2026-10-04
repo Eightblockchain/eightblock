@@ -1,15 +1,10 @@
 import { prisma } from '../prisma/client.js';
-import { emailConfigured } from './email-service.js';
+import { articleAnnouncementContent, digestContent, emailConfigured } from './email-service.js';
 import { startDelivery } from './newsletter-delivery.js';
 import { getNewsletterSettings, type Settings } from './newsletter-settings.js';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-const shorten = (value: string, max: number) => {
-  const clean = value.replace(/\s+/g, ' ').trim();
-  return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
-};
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -77,7 +72,7 @@ export async function draftArticleNewsletter(articleId: string) {
   if (!(await getNewsletterSettings()).articleDrafts) return false;
   const article = await prisma.article.findUnique({
     where: { id: articleId },
-    select: { title: true, description: true, status: true },
+    select: { title: true, description: true, status: true, author: { select: { name: true } } },
   });
   if (article?.status !== 'PUBLISHED') return false;
 
@@ -91,9 +86,11 @@ export async function draftArticleNewsletter(articleId: string) {
       {
         kind: 'ARTICLE',
         sourceKey: `article:${articleId}`,
-        subject: shorten(article.title, 200),
-        preheader: shorten(article.description, 200) || null,
-        htmlContent: '',
+        ...(await articleAnnouncementContent({
+          title: article.title,
+          description: article.description,
+          author: article.author?.name,
+        })),
         articleIds: [articleId],
       },
     ],
@@ -159,19 +156,13 @@ export async function sendWeeklyDigest(now = new Date()): Promise<DigestOutcome>
     return { sent: false, reason: 'No active subscribers' };
   }
 
-  const [lead] = fresh;
   const sourceKey = `digest:${localTime(now, settings.digestTimezone).date}`;
   await prisma.newsletterCampaign.createMany({
     data: [
       {
         kind: 'DIGEST',
         sourceKey,
-        subject:
-          fresh.length === 1
-            ? `This week on Eightblock: ${shorten(lead.title, 150)}`
-            : `This week on Eightblock: ${shorten(lead.title, 120)} and ${fresh.length - 1} more`,
-        preheader: shorten(fresh.map((a) => a.title).join(' · '), 200),
-        htmlContent: "<p>Here's what's new on Eightblock this week.</p>",
+        ...(await digestContent(fresh.map((a) => a.title))),
         articleIds: fresh.map((a) => a.id),
       },
     ],
