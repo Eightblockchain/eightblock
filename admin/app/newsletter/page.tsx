@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FilePlus2, FlaskConical, Loader2, Send, Settings2 } from 'lucide-react';
+import { Download, FilePlus2, FlaskConical, Loader2, Mail, Send, Settings2 } from 'lucide-react';
 import { RichTextEditor } from '@eightblock/ui/editor/RichTextEditor';
 import { ArticlePicker } from '@/components/newsletter/article-picker';
 import { AutomationPanel } from '@/components/newsletter/automation-panel';
@@ -209,10 +209,16 @@ export default function NewsletterAdmin() {
             Newsletter
           </h1>
         </div>
-        <Link href="/newsletter/settings" className="btn-pill-outline h-9 px-4 text-xs">
-          <Settings2 className="h-3.5 w-3.5" />
-          Settings
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/emails" className="btn-pill-outline h-9 px-4 text-xs">
+            <Mail className="h-3.5 w-3.5" />
+            Automatic emails
+          </Link>
+          <Link href="/newsletter/settings" className="btn-pill-outline h-9 px-4 text-xs">
+            <Settings2 className="h-3.5 w-3.5" />
+            Settings
+          </Link>
+        </div>
       </div>
       <p className="mt-3 text-sm text-muted-foreground">
         {active.toLocaleString()} active subscriber{active === 1 ? '' : 's'}

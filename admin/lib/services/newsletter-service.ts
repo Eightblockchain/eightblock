@@ -128,7 +128,8 @@ function csrfHeader(): Record<string, string> {
   return match ? { 'X-CSRF-Token': decodeURIComponent(match[1]) } : {};
 }
 
-async function request<T>(
+/** Admin API call that throws the server's own message (`{ error }`) when it fails. */
+export async function request<T>(
   path: string,
   fallback: string,
   init?: { method?: string; body?: unknown }
