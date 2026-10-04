@@ -12,7 +12,7 @@ interface FeedArticle {
   title: string;
   description: string | null;
   content: string | null;
-  category: string | null;
+  categories?: { category: { name: string } }[];
   featuredImage: string | null;
   publishedAt: string | null;
   createdAt: string;
@@ -57,9 +57,10 @@ async function fetchLatest(): Promise<FeedArticle[]> {
 function item(article: FeedArticle) {
   const url = `${BASE_URL}/articles/${article.slug}`;
   const published = new Date(article.publishedAt ?? article.createdAt).toUTCString();
-  const categories = [article.category, ...(article.tags ?? []).map((t) => t.tag.name)].filter(
-    (name, index, all): name is string => !!name && all.indexOf(name) === index
-  );
+  const categories = [
+    ...(article.categories ?? []).map((c) => c.category.name),
+    ...(article.tags ?? []).map((t) => t.tag.name),
+  ].filter((name, index, all): name is string => !!name && all.indexOf(name) === index);
   const image = article.featuredImage?.startsWith('https://')
     ? `<p><img src="${escape(article.featuredImage)}" alt="" /></p>`
     : '';

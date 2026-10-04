@@ -1,3 +1,5 @@
+import type { ArticleCategoryLink } from '@/lib/categories';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export interface Article {
@@ -6,7 +8,7 @@ export interface Article {
   slug: string;
   description: string;
   content: string;
-  category: string;
+  categories?: ArticleCategoryLink[];
   status: string;
   featuredImage?: string;
   publishedAt: string;
@@ -30,6 +32,8 @@ export interface CreateArticleData {
   excerpt: string;
   content: string;
   tags: string[];
+  /** Ids in the author's order; the first is the main category. Required to publish. */
+  categoryIds: string[];
   featuredImage?: string;
   status: 'DRAFT' | 'PUBLISHED';
 }
@@ -40,6 +44,7 @@ export interface UpdateArticleData {
   excerpt: string;
   content: string;
   tags: string[];
+  categoryIds: string[];
   featuredImage?: string;
   status: 'DRAFT' | 'PUBLISHED';
 }
@@ -58,6 +63,7 @@ export interface MyArticle {
   updatedAt: string;
   viewCount: number;
   tags: Array<{ tag: { id: string; name: string } }>;
+  categories?: ArticleCategoryLink[];
   _count: { likes: number; comments: number };
 }
 

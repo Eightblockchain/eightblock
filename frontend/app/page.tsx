@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { Article, ArticlesResponse } from '@/hooks/useInfiniteArticles';
 import { siteConfig } from '@/lib/site-config';
+import type { PublishedCategory } from '@/lib/categories';
 import { ogImagePath, pageMetadata } from '@/lib/page-metadata';
 import { NewsletterSignup } from '@/components/newsletter-signup';
 import {
@@ -39,10 +40,11 @@ async function fetchJson<T>(path: string, revalidate: number): Promise<T | null>
 }
 
 export default async function HomePage() {
-  const [latestRes, popularRes, stats] = await Promise.all([
+  const [latestRes, popularRes, stats, categories] = await Promise.all([
     fetchJson<ArticlesResponse>('/articles?page=1&limit=50&sort=latest', 60),
     fetchJson<ArticlesResponse>('/articles?page=1&limit=6&sort=score', 60),
     fetchJson<{ count: number }>('/subscriptions/stats', 300),
+    fetchJson<PublishedCategory[]>('/categories', 300),
   ]);
 
   const latest: Article[] = latestRes?.articles ?? [];
@@ -52,7 +54,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero latest={latest} total={total} />
+      <Hero latest={latest} total={total} categories={categories ?? []} />
       <StatsStrip articles={latest} total={total} />
       <FeaturedBlocks articles={popular} heights={heights} total={total} />
       <TopicsGrid articles={latest} />

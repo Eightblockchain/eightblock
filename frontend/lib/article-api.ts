@@ -1,3 +1,5 @@
+import type { ArticleCategoryLink } from '@/lib/categories';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // CSRF token handling
@@ -46,7 +48,7 @@ export interface ArticleSummary {
   slug: string;
   description: string;
   content: string;
-  category: string;
+  categories?: ArticleCategoryLink[];
   featuredImage?: string | null;
   publishedAt: string;
   author: {

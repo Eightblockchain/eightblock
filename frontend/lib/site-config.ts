@@ -22,18 +22,10 @@ export const siteConfig = {
     subtitle:
       'Research notes, tutorials and field reports from building on real networks. Written plainly, so you can learn blockchain without the noise.',
   },
+  /** Default topics printed on generated social cards. */
   networks: ['Cardano', 'Midnight', 'Safrochain', 'Ethereum', 'Zero-Knowledge'],
-  categories: [
-    'Cardano',
-    'Midnight',
-    'Safrochain',
-    'Zero-Knowledge',
-    'Smart Contracts',
-    'Ethereum',
-    'DeFi',
-    'Governance',
-    'Tutorials',
-  ],
+  /** Tags suggested on the home page even before anything is published under them. */
+  topics: ['Zero-Knowledge', 'Smart Contracts', 'Ethereum', 'DeFi', 'Governance', 'Tutorials'],
   principles: [
     {
       title: 'Built, then written',

@@ -57,8 +57,10 @@ export type ArticleSort = 'score' | 'latest';
 export interface ArticleFilters {
   /** Author username. */
   author?: string;
-  /** Topic slug, matched against tags and categories. */
+  /** Topic slug, matched against tags. */
   tag?: string;
+  /** Category slug, such as "cardano". */
+  category?: string;
 }
 
 export async function getPublishedArticlesPaginated(
@@ -70,6 +72,7 @@ export async function getPublishedArticlesPaginated(
   const query = new URLSearchParams({ page: String(page), limit: String(limit), sort });
   if (filters.author) query.set('author', filters.author);
   if (filters.tag) query.set('tag', filters.tag);
+  if (filters.category) query.set('category', filters.category);
   return fetcher(`/articles?${query}`);
 }
 

@@ -26,8 +26,8 @@ export function topicLabel(slug: string, known?: { name: string; slug: string }[
 }
 
 /**
- * Topics = configured topics + categories actually used by posts.
- * Each post counts once per topic (by category or tag). Topics with posts come first;
+ * Topics = configured topics + tags actually used by posts.
+ * Each post counts once per topic. Topics with posts come first;
  * configured topics without posts fill the remaining slots.
  */
 export function buildTopics(articles: Article[], configured: string[], limit?: number): Topic[] {
@@ -38,14 +38,10 @@ export function buildTopics(articles: Article[], configured: string[], limit?: n
   };
 
   configured.forEach(ensure);
-  articles.forEach((a) => a.category && ensure(a.category));
+  articles.forEach((a) => a.tags?.forEach((t) => ensure(t.tag.name)));
 
   for (const article of articles) {
-    const slugs = new Set(
-      [article.category, ...(article.tags ?? []).map((t) => t.tag.name)]
-        .filter(Boolean)
-        .map(topicSlug)
-    );
+    const slugs = new Set((article.tags ?? []).map((t) => topicSlug(t.tag.name)));
     slugs.forEach((slug) => {
       const topic = topics.get(slug);
       if (topic) topic.count += 1;

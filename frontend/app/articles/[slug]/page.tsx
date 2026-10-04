@@ -11,6 +11,7 @@ import { readingTime } from '@/lib/chain';
 import { jsonLd as toJsonLd } from '@/lib/json-ld';
 import { OG_SIZE, feedAlternates, ogImagePath } from '@/lib/page-metadata';
 import { fetchSupportWallets } from '@/lib/support-wallets';
+import { primaryLabel } from '@/lib/categories';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.eightblock.dev/api';
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://eightblock.dev';
@@ -95,7 +96,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const tags: string[] = article.tags?.map((t: any) => t.tag.name) ?? [];
     const ogImageUrl =
       sanitizeOgImageUrl(article.featuredImage) ??
-      ogImagePath({ title, description, eyebrow: article.category || 'Article', topics: tags });
+      ogImagePath({
+        title,
+        description,
+        eyebrow: primaryLabel(article)?.name || 'Article',
+        topics: tags,
+      });
 
     const ogImageEntry = { url: ogImageUrl, ...OG_SIZE, alt: title };
 
@@ -148,7 +154,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const canonicalUrl = `${BASE_URL}/articles/${slug}`;
   const safeImage =
     sanitizeOgImageUrl(article.featuredImage) ??
-    `${BASE_URL}${ogImagePath({ title: article.title, description: article.description || undefined, eyebrow: article.category || 'Article' })}`;
+    `${BASE_URL}${ogImagePath({ title: article.title, description: article.description || undefined, eyebrow: primaryLabel(article)?.name || 'Article' })}`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -177,6 +183,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     datePublished: article.publishedAt,
     dateModified: article.updatedAt || article.publishedAt,
     keywords: article.tags?.map((t: any) => t.tag.name).join(', ') || '',
+    ...(article.categories?.length && {
+      articleSection: article.categories.map((c: any) => c.category.name),
+    }),
   };
 
   const breadcrumbLd = {
@@ -200,7 +209,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           slug: article.slug,
           title: article.title,
           description: article.description,
-          category: article.category,
+          categories: article.categories,
           status: article.status,
           featured: article.featured,
           featuredImage: article.featuredImage,

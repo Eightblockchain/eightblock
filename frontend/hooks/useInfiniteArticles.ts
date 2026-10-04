@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { getPublishedArticlesPaginated, type ArticleFilters, type ArticleSort } from '@/lib/api';
+import type { ArticleCategoryLink } from '@/lib/categories';
 
 export interface Article {
   id: string;
@@ -9,7 +10,7 @@ export interface Article {
   slug: string;
   description: string;
   content: string;
-  category: string;
+  categories?: ArticleCategoryLink[];
   status: string;
   featured: boolean;
   featuredImage?: string;
@@ -53,7 +54,15 @@ export function useInfiniteArticles(
   filters: ArticleFilters = {}
 ) {
   return useInfiniteQuery<ArticlesResponse>({
-    queryKey: ['articles', 'infinite', sort, limit, filters.author ?? null, filters.tag ?? null],
+    queryKey: [
+      'articles',
+      'infinite',
+      sort,
+      limit,
+      filters.author ?? null,
+      filters.tag ?? null,
+      filters.category ?? null,
+    ],
     queryFn: ({ pageParam = 1 }) =>
       getPublishedArticlesPaginated(pageParam as number, limit, sort, filters),
     getNextPageParam: (lastPage) => {

@@ -8,6 +8,12 @@ import { Panel, PanelBar } from '@eightblock/ui/components/panel';
 import { TopicChip } from '@eightblock/ui/components/topic-chip';
 import { topicSlug } from '@/lib/topics';
 import {
+  articleCategories,
+  categoryHref,
+  primaryLabel,
+  type ArticleCategoryLink,
+} from '@/lib/categories';
+import {
   ARTICLE_VIEW_COUNT,
   type ArticleViewCountDetail,
 } from '@/components/analytics/page-tracker';
@@ -19,7 +25,7 @@ interface ArticleHeaderProps {
     title: string;
     description: string;
     content?: string;
-    category: string;
+    categories?: ArticleCategoryLink[];
     status: string;
     featured: boolean;
     featuredImage?: string;
@@ -57,7 +63,8 @@ export function ArticleHeader({
     return () => window.removeEventListener(ARTICLE_VIEW_COUNT, onCount);
   }, [article.slug]);
 
-  const categoryHref = `/writing?tag=${topicSlug(article.category ?? '')}`;
+  const crumb = primaryLabel(article);
+  const categories = articleCategories(article);
 
   const author = article.author;
   const details: { label: string; value: React.ReactNode }[] = [
@@ -90,14 +97,14 @@ export function ArticleHeader({
           <Link href="/writing" className="transition-colors hover:text-brand-blue">
             Articles
           </Link>
-          {article.category && (
+          {crumb && (
             <>
               <span className="text-muted-foreground">/</span>
               <Link
-                href={categoryHref}
+                href={crumb.href}
                 className="text-foreground transition-colors hover:text-brand-blue"
               >
-                {article.category}
+                {crumb.name}
               </Link>
             </>
           )}
@@ -105,9 +112,20 @@ export function ArticleHeader({
 
         <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-8">
-            <div className="flex items-center gap-3">
-              {article.category && <TopicChip category={article.category} />}
-              {article.status === 'DRAFT' && <span className="ledger-label">Draft</span>}
+            <div className="flex flex-wrap items-center gap-2">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={categoryHref(category.slug)}
+                  className="group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40"
+                >
+                  <TopicChip
+                    category={category.name}
+                    className="transition-colors group-hover:border-brand-blue/50 group-hover:text-brand-blue"
+                  />
+                </Link>
+              ))}
+              {article.status === 'DRAFT' && <span className="ledger-label ml-1">Draft</span>}
             </div>
 
             <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.06] tracking-[-0.03em] text-foreground sm:text-5xl lg:text-[3.25rem]">

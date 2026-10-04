@@ -47,19 +47,23 @@ export function tagParam(value: string | string[] | undefined): string | null {
 /** Title, description, canonical URL and a generated social card for a list page. */
 export function listingMetadata({
   path,
-  tag,
+  query,
   title,
   description,
 }: {
   path: string;
-  tag: string | null;
+  /** Active filters, in the order they appear in the canonical URL. */
+  query: Record<string, string | null>;
   title: string;
   description: string;
 }): Metadata {
+  const search = new URLSearchParams(
+    Object.entries(query).filter((entry): entry is [string, string] => Boolean(entry[1]))
+  ).toString();
   return pageMetadata({
     title,
     description,
-    path: `${BASE_URL}${path}${tag ? `?tag=${encodeURIComponent(tag)}` : ''}`,
+    path: `${BASE_URL}${path}${search ? `?${search}` : ''}`,
   });
 }
 

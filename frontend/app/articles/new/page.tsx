@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { RichTextEditor } from '@eightblock/ui/editor/RichTextEditor';
 import { TagInput } from '@/components/editor/TagInput';
+import { CategoryPicker } from '@/components/editor/CategoryPicker';
 import {
   ArrowLeft,
   Save,
@@ -38,6 +39,9 @@ function NewArticlePageEditor() {
   const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null);
   const [featuredImagePreview, setFeaturedImagePreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [categoryMissing, setCategoryMissing] = useState(false);
+  const categoryRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -152,11 +156,29 @@ function NewArticlePageEditor() {
     }
   };
 
+  const handleCategoriesChange = (ids: string[]) => {
+    setCategoryIds(ids);
+    if (ids.length) setCategoryMissing(false);
+  };
+
   const handleSubmit = async (status: 'DRAFT' | 'PUBLISHED') => {
     if (!formData.title || !formData.content) {
       toast({
         title: 'Add a title and some content',
         description: 'Both are needed before the article can be saved.',
+        variant: 'warning',
+      });
+      return;
+    }
+    if (status === 'PUBLISHED' && categoryIds.length === 0) {
+      setCategoryMissing(true);
+      setPreview(false);
+      requestAnimationFrame(() =>
+        categoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      );
+      toast({
+        title: 'Pick a blockchain first',
+        description: 'Published articles need at least one category. Drafts can wait.',
         variant: 'warning',
       });
       return;
@@ -182,6 +204,7 @@ function NewArticlePageEditor() {
           excerpt: formData.excerpt,
           content: formData.content,
           tags: tagsArray,
+          categoryIds,
           featuredImage: featuredImageUrl || undefined,
           status,
         }),
@@ -371,6 +394,13 @@ function NewArticlePageEditor() {
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
             {/* ── Main writing area ── */}
             <div className="space-y-0">
+              <CategoryPicker
+                ref={categoryRef}
+                value={categoryIds}
+                onChange={handleCategoriesChange}
+                invalid={categoryMissing}
+              />
+
               {/* Title + slug */}
               <div className="rounded-t-2xl border border-b-0 border-border bg-card dark:border-border/40 px-6 pt-7 pb-5">
                 {/* Section label */}
@@ -578,8 +608,14 @@ function NewArticlePageEditor() {
                   </button>
 
                   {/* Requirements */}
-                  {(!formData.title || !formData.content) && (
+                  {(!formData.title || !formData.content || categoryIds.length === 0) && (
                     <div className="pt-1 space-y-1">
+                      {categoryIds.length === 0 && (
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                          Blockchain required to publish
+                        </p>
+                      )}
                       {!formData.title && (
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                           <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />

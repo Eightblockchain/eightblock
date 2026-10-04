@@ -28,7 +28,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   if (!tag) {
     return listingMetadata({
       path,
-      tag: null,
+      query: {},
       title: name,
       description: author.bio || `${count} by ${name} on Eightblock.`,
     });
@@ -36,7 +36,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const topic = await tagLabel(tag, author.username);
   return listingMetadata({
     path,
-    tag,
+    query: { tag },
     title: `${topic} articles by ${name}`,
     description: `Everything ${name} has published about ${topic} on Eightblock.`,
   });
