@@ -35,6 +35,7 @@ const articleSchema = z.object({
   excerpt: z.string().max(500).optional(),
   content: z.string().min(1).max(500_000),
   tags: z.array(z.string().trim().min(1).max(40)).max(10).optional(),
+  categoryIds: z.array(z.string().min(1).max(64)).max(5, 'Pick up to 5 categories').optional(),
   featuredImage: z.string().max(500).optional(),
   status: z.enum(['DRAFT', 'PUBLISHED']).optional(),
 });

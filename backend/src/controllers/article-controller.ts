@@ -3,7 +3,13 @@ import { prisma } from '../prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { cacheGet, cacheSet, cacheDelPattern } from '../utils/redis.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
-import { publishedTopics, topicFilter, topicSlug as toTagSlug } from '../utils/topics.js';
+import {
+  categoryFilter,
+  publishedTopics,
+  topicFilter,
+  topicSlug as toTagSlug,
+} from '../utils/topics.js';
+import { articleCategories } from '../utils/categories.js';
 import { draftArticleNewsletter } from '../services/newsletter-automation.js';
 import { VISIBLE_COMMENTS } from '../utils/comments.js';
 
@@ -15,12 +21,27 @@ function queueNewsletterDraft(articleId: string) {
   );
 }
 
-/** Optional ?author= (username) and ?tag= (topic) filters shared by the public list endpoints. */
+/** Optional ?author= (username), ?tag= and ?category= filters shared by the public list endpoints. */
 function listFilters(req: Request) {
   const author =
     typeof req.query.author === 'string' ? req.query.author.trim().toLowerCase().slice(0, 30) : '';
   const tag = typeof req.query.tag === 'string' ? toTagSlug(req.query.tag.slice(0, 60)) : '';
-  return { author, tag };
+  const category =
+    typeof req.query.category === 'string' ? toTagSlug(req.query.category.slice(0, 60)) : '';
+  return { author, tag, category };
+}
+
+const PUBLISH_NEEDS_CATEGORY = 'Pick at least one category before publishing.';
+
+/** Checks the ids exist and keeps the author's order. Null when one of them is unknown. */
+async function resolveCategories(ids: string[]) {
+  const unique = [...new Set(ids)];
+  if (!unique.length) return [];
+  const found = await prisma.category.findMany({
+    where: { id: { in: unique } },
+    select: { id: true },
+  });
+  return found.length === unique.length ? unique : null;
 }
 
 /**
@@ -64,10 +85,10 @@ export async function listArticles(req: Request, res: Response) {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 10));
     const skip = (page - 1) * limit;
     const sort = req.query.sort === 'latest' ? 'latest' : 'score';
-    const { author, tag } = listFilters(req);
+    const { author, tag, category } = listFilters(req);
 
     // Try to get from cache
-    const cacheKey = `articles:page:${page}:limit:${limit}:sort:${sort}:author:${author}:tag:${tag}`;
+    const cacheKey = `articles:page:${page}:limit:${limit}:sort:${sort}:author:${author}:tag:${tag}:category:${category}`;
     const cached = await cacheGet<unknown>(cacheKey);
 
     if (cached) {
@@ -78,7 +99,8 @@ export async function listArticles(req: Request, res: Response) {
     const where = {
       status: 'PUBLISHED' as const,
       ...(author && { author: { username: author } }),
-      ...(tag && (await topicFilter(tag))),
+      ...(tag && topicFilter(tag)),
+      ...(category && categoryFilter(category)),
     };
 
     // If not in cache, fetch from database
@@ -91,7 +113,6 @@ export async function listArticles(req: Request, res: Response) {
           slug: true,
           description: true,
           content: true,
-          category: true,
           featuredImage: true,
           status: true,
           featured: true,
@@ -101,6 +122,7 @@ export async function listArticles(req: Request, res: Response) {
           viewCount: true,
           uniqueViews: true,
           tags: { include: { tag: true } },
+          categories: articleCategories,
           author: {
             select: {
               id: true,
@@ -205,6 +227,7 @@ export async function getMyArticles(req: Request, res: Response) {
           updatedAt: true,
           viewCount: true,
           tags: { select: { tag: { select: { id: true, name: true } } } },
+          categories: articleCategories,
           _count: { select: { likes: true, comments: { where: VISIBLE_COMMENTS } } },
         },
         orderBy: { updatedAt: 'desc' },
@@ -249,6 +272,7 @@ export async function getArticle(req: Request, res: Response) {
       where: { slug },
       include: {
         tags: { include: { tag: true } },
+        categories: articleCategories,
         author: {
           select: {
             id: true,
@@ -288,9 +312,26 @@ export async function createArticle(req: Request, res: Response) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const { title, slug, excerpt, content, tags = [], featuredImage, status = 'DRAFT' } = req.body;
+  const {
+    title,
+    slug,
+    excerpt,
+    content,
+    tags = [],
+    categoryIds = [],
+    featuredImage,
+    status = 'DRAFT',
+  } = req.body;
 
   try {
+    const categories = await resolveCategories(categoryIds);
+    if (!categories) {
+      return res.status(400).json({ error: 'One of the categories no longer exists.' });
+    }
+    if (status === 'PUBLISHED' && !categories.length) {
+      return res.status(400).json({ error: PUBLISH_NEEDS_CATEGORY });
+    }
+
     // Check if slug already exists
     const existingArticle = await prisma.article.findUnique({
       where: { slug },
@@ -310,7 +351,6 @@ export async function createArticle(req: Request, res: Response) {
         slug,
         description: excerpt || '', // Map excerpt to description
         content,
-        category: tagRecords[0]?.name || 'General', // Use first tag as category or default to 'General'
         featuredImage: featuredImage || undefined,
         status,
         // publishedAt will use default value from schema (@default(now()))
@@ -320,9 +360,13 @@ export async function createArticle(req: Request, res: Response) {
         tags: {
           create: tagRecords.map((tag) => ({ tagId: tag.id })),
         },
+        categories: {
+          create: categories.map((categoryId, position) => ({ categoryId, position })),
+        },
       },
       include: {
         tags: { include: { tag: true } },
+        categories: articleCategories,
         author: {
           select: {
             id: true,
@@ -358,12 +402,13 @@ export async function updateArticle(req: Request, res: Response) {
 
   const { title, slug, excerpt, content, featuredImage, status } = req.body;
   const tags: string[] | undefined = req.body.tags;
+  const categoryIds: string[] | undefined = req.body.categoryIds;
 
   try {
     // Check if article exists and user is the author
     const existingArticle = await prisma.article.findUnique({
       where: { id },
-      include: { author: true },
+      include: { author: true, categories: { select: { categoryId: true } } },
     });
 
     if (!existingArticle) {
@@ -383,7 +428,15 @@ export async function updateArticle(req: Request, res: Response) {
       }
     }
 
-    // Tags are replaced only when the request includes them, so partial updates keep them.
+    // Tags and categories are replaced only when the request includes them, so partial updates keep them.
+    const categories = categoryIds ? await resolveCategories(categoryIds) : undefined;
+    if (categories === null) {
+      return res.status(400).json({ error: 'One of the categories no longer exists.' });
+    }
+    const categoryCount = categories?.length ?? existingArticle.categories.length;
+    if (status === 'PUBLISHED' && !categoryCount) {
+      return res.status(400).json({ error: PUBLISH_NEEDS_CATEGORY });
+    }
     const tagRecords = tags ? await resolveTags(tags) : null;
     // publishedAt defaults to the draft's creation time; readers should see the day it went live.
     const publishing = status === 'PUBLISHED' && existingArticle.status !== 'PUBLISHED';
@@ -395,7 +448,6 @@ export async function updateArticle(req: Request, res: Response) {
         slug,
         description: excerpt !== undefined ? excerpt : existingArticle.description,
         content,
-        category: tagRecords ? tagRecords[0]?.name || 'General' : existingArticle.category,
         featuredImage: featuredImage !== undefined ? featuredImage : existingArticle.featuredImage,
         status,
         ...(publishing && { publishedAt: new Date() }),
@@ -405,9 +457,16 @@ export async function updateArticle(req: Request, res: Response) {
             create: tagRecords.map((tag) => ({ tagId: tag.id })),
           },
         }),
+        ...(categories && {
+          categories: {
+            deleteMany: {},
+            create: categories.map((categoryId, position) => ({ categoryId, position })),
+          },
+        }),
       },
       include: {
         tags: { include: { tag: true } },
+        categories: articleCategories,
         author: {
           select: {
             id: true,
@@ -525,6 +584,7 @@ export async function getRelatedArticles(req: Request, res: Response) {
               tag: true,
             },
           },
+          categories: articleCategories,
           _count: {
             select: {
               likes: true,
@@ -573,6 +633,7 @@ export async function getRelatedArticles(req: Request, res: Response) {
             tag: true,
           },
         },
+        categories: articleCategories,
         _count: {
           select: {
             likes: true,

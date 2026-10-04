@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import { prisma } from '../prisma/client.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
+import { articleCategories, categoryLabel } from '../utils/categories.js';
 import {
   renderAccountWelcome,
   renderConfirmSubscription,
@@ -188,7 +189,7 @@ export async function loadEmailArticles(ids: string[] | null, latest = 3): Promi
       slug: true,
       description: true,
       content: true,
-      category: true,
+      categories: articleCategories,
       featuredImage: true,
       author: { select: { name: true } },
     },
@@ -200,7 +201,7 @@ export async function loadEmailArticles(ids: string[] | null, latest = 3): Promi
     title: a.title,
     url: `${siteUrl}/articles/${a.slug}`,
     excerpt: a.description,
-    category: a.category,
+    category: categoryLabel(a.categories),
     author: a.author?.name ?? null,
     imageUrl: a.featuredImage ? getFullImageUrl(a.featuredImage) : null,
     readingMinutes: readingMinutes(a.content),

@@ -11,6 +11,7 @@ import {
   type CampaignContent,
 } from '../services/email-service.js';
 import { recoverInterrupted, startDelivery } from '../services/newsletter-delivery.js';
+import { articleCategories, categoryLabel } from '../utils/categories.js';
 import {
   digestCandidates,
   nextDigestAt,
@@ -109,13 +110,18 @@ export async function listArticles(req: Request, res: Response) {
       id: true,
       title: true,
       slug: true,
-      category: true,
+      categories: articleCategories,
       publishedAt: true,
       featuredImage: true,
       author: { select: { name: true } },
     },
   });
-  return res.json(articles);
+  return res.json(
+    articles.map(({ categories, ...article }) => ({
+      ...article,
+      category: categoryLabel(categories),
+    }))
+  );
 }
 
 export async function previewCampaign(req: Request, res: Response) {

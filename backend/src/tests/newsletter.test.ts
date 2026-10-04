@@ -501,6 +501,7 @@ describe.skipIf(!hasDatabase)('newsletter sending', () => {
         slug: `vitest-${run}-article-${articleSeq}`,
         excerpt: `Excerpt ${articleSeq}`,
         content: '<p>Body</p>',
+        categoryIds: ['cardano'],
         status,
       });
       expect(res.status).toBe(201);
@@ -756,7 +757,6 @@ describe.skipIf(!hasDatabase)('newsletter sending', () => {
           slug: `vitest-${run}-no-draft`,
           description: 'x',
           content: '<p>x</p>',
-          category: 'Research',
           status: 'PUBLISHED',
           publishedAt: new Date(),
           authorId: adminId,

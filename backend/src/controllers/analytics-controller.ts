@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../prisma/client.js';
 import { isValidTimeZone, sourceName } from '../utils/analytics.js';
+import { CATEGORY_LABEL_SQL } from '../utils/categories.js';
 
 const INTERVALS = ['hour', 'day', 'week', 'month', 'year'] as const;
 type Interval = (typeof INTERVALS)[number];
@@ -387,7 +388,7 @@ export const getContent = withRange(async (_req, res, range) => {
       claps AS (${counted('"Like"')}),
       comments AS (${counted('"Comment"')}),
       bookmarks AS (${counted('"Bookmark"')})
-      SELECT a."id", a."title", a."slug", a."publishedAt", a."category",
+      SELECT a."id", a."title", a."slug", a."publishedAt", ${CATEGORY_LABEL_SQL} AS "category",
              u."name" AS "authorName", u."username" AS "authorUsername",
              COALESCE(v.views, 0) AS views, COALESCE(v.visitors, 0) AS visitors,
              COALESCE(v."avgDuration", 0) AS "avgDuration", COALESCE(v."avgScroll", 0) AS "avgScroll",
@@ -528,7 +529,7 @@ export async function getActivity(req: Request, res: Response) {
              NULL::text AS title, NULL::text AS slug, u."role"::text AS detail
       FROM "User" u
       UNION ALL
-      SELECT 'published', a."id", a."publishedAt", u."name", u."username", a."title", a."slug", a."category"
+      SELECT 'published', a."id", a."publishedAt", u."name", u."username", a."title", a."slug", ${CATEGORY_LABEL_SQL}
       FROM "Article" a JOIN "User" u ON u."id" = a."authorId" WHERE a."status" = 'PUBLISHED'
       UNION ALL
       SELECT 'comment', c."id", c."createdAt", COALESCE(u."name", c."authorName"), u."username", a."title", a."slug", left(c."body", 300)
