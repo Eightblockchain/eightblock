@@ -109,7 +109,8 @@ export interface PickableArticle {
   id: string;
   title: string;
   slug: string;
-  category: string;
+  /** Category names, comma separated. Null when uncategorized. */
+  category: string | null;
   publishedAt: string;
   featuredImage: string | null;
   author: { name: string | null } | null;

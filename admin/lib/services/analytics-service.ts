@@ -94,7 +94,7 @@ export interface ArticleStats {
   title: string;
   slug: string;
   publishedAt: string;
-  category: string;
+  category: string | null;
   authorName: string | null;
   authorUsername: string | null;
   views: number;

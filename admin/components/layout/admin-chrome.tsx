@@ -24,6 +24,7 @@ import { siteConfig, siteHref } from '@/lib/site-config';
 const adminLinks = [
   { href: '/', label: 'Overview' },
   { href: '/analytics', label: 'Analytics' },
+  { href: '/categories', label: 'Categories' },
   { href: '/newsletter', label: 'Newsletter' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/support', label: 'Support' },
