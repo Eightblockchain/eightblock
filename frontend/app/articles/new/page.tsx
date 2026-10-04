@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeArticleHtml } from '@/lib/article-html';
 import { useRouter } from 'next/navigation';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { RichTextEditor } from '@eightblock/ui/editor/RichTextEditor';
@@ -386,7 +386,7 @@ function NewArticlePageEditor() {
             )}
             <div
               className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(formData.content) }}
             />
           </div>
         ) : (

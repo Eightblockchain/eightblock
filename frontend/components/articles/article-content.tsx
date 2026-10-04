@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeArticleHtml } from '@/lib/article-html';
 
 function ReadingProgress() {
   const [pct, setPct] = useState(0);
@@ -28,7 +28,7 @@ interface ArticleContentProps {
 }
 
 export function ArticleContent({ content }: ArticleContentProps) {
-  const safeHtml = useMemo(() => DOMPurify.sanitize(content ?? ''), [content]);
+  const safeHtml = useMemo(() => sanitizeArticleHtml(content), [content]);
 
   return (
     <>

@@ -77,7 +77,12 @@ export default function AdminOverviewPage() {
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {actions.map(({ href, title, body, icon: Icon }) => (
-          <Link key={href} href={href} className="group">
+          <Link
+            key={href}
+            href={href}
+            {...(href.startsWith('http') && { target: '_blank', rel: 'noopener noreferrer' })}
+            className="group"
+          >
             <Panel className="h-full p-6 transition-colors group-hover:border-foreground/40">
               <div className="flex items-start justify-between">
                 <Icon className="h-5 w-5 text-brand-blue" />

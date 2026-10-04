@@ -65,7 +65,12 @@ export function BarList({
                       {label}
                     </a>
                   ) : (
-                    <a href={siteHref(row.href)} className="min-w-0 hover:underline">
+                    <a
+                      href={siteHref(row.href)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 hover:underline"
+                    >
                       {label}
                     </a>
                   )

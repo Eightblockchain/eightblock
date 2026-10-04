@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, use, useMemo } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeArticleHtml } from '@/lib/article-html';
 import { useRouter } from 'next/navigation';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -530,7 +530,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
             )}
             <div
               className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(formData.content) }}
             />
           </div>
         ) : (

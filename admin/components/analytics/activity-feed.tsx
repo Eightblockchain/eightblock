@@ -40,6 +40,8 @@ function Actor({ item, fallback }: { item: ActivityItem; fallback: string }) {
     return (
       <a
         href={siteHref(`/authors/${item.username}`)}
+        target="_blank"
+        rel="noopener noreferrer"
         className="font-medium text-foreground hover:underline"
       >
         {name}
@@ -54,6 +56,8 @@ function Target({ item }: { item: ActivityItem }) {
   return (
     <a
       href={siteHref(`/articles/${item.slug}`)}
+      target="_blank"
+      rel="noopener noreferrer"
       className="font-medium text-foreground underline decoration-muted-foreground/40 underline-offset-2 hover:decoration-foreground"
     >
       {item.title}
