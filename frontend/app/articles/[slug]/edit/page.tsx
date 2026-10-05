@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect, use, useMemo } from 'react';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeArticleHtml } from '@/lib/article-html';
 import { useRouter } from 'next/navigation';
 import { AuthGate } from '@/components/auth/auth-gate';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RichTextEditor } from '@eightblock/ui/editor/RichTextEditor';
 import { TagInput } from '@/components/editor/TagInput';
+import { CategoryPicker } from '@/components/editor/CategoryPicker';
+import { articleCategories, type ArticleCategoryLink } from '@/lib/categories';
 import {
   ArrowLeft,
   Save,
@@ -42,7 +44,7 @@ interface Article {
   slug: string;
   description: string;
   content: string;
-  category: string;
+  categories?: ArticleCategoryLink[];
   status: string;
   featuredImage?: string;
   tags: Array<{
@@ -68,6 +70,9 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
   const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null);
   const [featuredImagePreview, setFeaturedImagePreview] = useState<string | null>(null);
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [categoryMissing, setCategoryMissing] = useState(false);
+  const categoryRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -94,7 +99,11 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
     queryKey: ['article', slug],
     queryFn: () => fetchArticleBySlug(slug),
     enabled: !!slug,
+    // A background refetch would replace what the author is typing with the saved version.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
+  const loadedArticleId = useRef<string | null>(null);
 
   const isPublished = article?.status === 'PUBLISHED';
   // Drafts have no public page, so leaving the editor goes back to the article list.
@@ -102,7 +111,8 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
 
   // Initialize form when article is loaded
   useEffect(() => {
-    if (!article) return;
+    if (!article || loadedArticleId.current === article.id) return;
+    loadedArticleId.current = article.id;
     const exit = article.status === 'PUBLISHED' ? `/articles/${article.slug}` : '/my-articles';
 
     // Check if user is the author using cookie-based auth
@@ -153,6 +163,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
       featuredImageUrl: article.featuredImage || '',
       status: article.status as 'DRAFT' | 'PUBLISHED',
     });
+    setCategoryIds(articleCategories(article).map((c) => c.id));
 
     if (article.featuredImage) {
       setFeaturedImagePreview(article.featuredImage);
@@ -190,6 +201,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
+        categoryIds,
         featuredImage: featuredImageUrl,
         status,
       });
@@ -306,11 +318,31 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [formData.title, formData.content]);
 
+  const handleCategoriesChange = (ids: string[]) => {
+    setCategoryIds(ids);
+    if (ids.length) setCategoryMissing(false);
+  };
+
   const handleSubmit = (status: 'DRAFT' | 'PUBLISHED') => {
     if (!formData.title || !formData.content) {
       toast({
         title: 'Add a title and some content',
         description: 'Both are needed before the article can be saved.',
+        variant: 'warning',
+      });
+      return;
+    }
+    if (status === 'PUBLISHED' && categoryIds.length === 0) {
+      setCategoryMissing(true);
+      setPreview(false);
+      requestAnimationFrame(() =>
+        categoryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      );
+      toast({
+        title: 'Pick a blockchain first',
+        description: isPublished
+          ? 'Articles are now filed by blockchain. Choose at least one to save your changes.'
+          : 'Published articles need at least one category. Drafts can wait.',
         variant: 'warning',
       });
       return;
@@ -498,7 +530,7 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
             )}
             <div
               className="prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(formData.content) }}
             />
           </div>
         ) : (
@@ -506,6 +538,14 @@ function EditArticlePageEditor({ params }: { params: Promise<{ slug: string }> }
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
             {/* ── Main writing area ── */}
             <div className="space-y-0">
+              <CategoryPicker
+                ref={categoryRef}
+                value={categoryIds}
+                onChange={handleCategoriesChange}
+                invalid={categoryMissing}
+                initial={articleCategories(article)}
+              />
+
               {/* Title + slug */}
               <div className="rounded-t-2xl border border-b-0 border-border bg-card px-6 pt-7 pb-5">
                 <div className="flex items-center gap-2 mb-4">

@@ -24,7 +24,9 @@ import { siteConfig, siteHref } from '@/lib/site-config';
 const adminLinks = [
   { href: '/', label: 'Overview' },
   { href: '/analytics', label: 'Analytics' },
+  { href: '/categories', label: 'Categories' },
   { href: '/newsletter', label: 'Newsletter' },
+  { href: '/emails', label: 'Emails' },
   { href: '/portfolio', label: 'Portfolio' },
   { href: '/support', label: 'Support' },
   { href: '/users', label: 'Users' },
@@ -112,7 +114,15 @@ function AccountMenu() {
           </div>
           <div className="py-1">
             {siteLinks.map(({ href, label, icon: Icon }) => (
-              <a key={label} href={href} role="menuitem" className={itemClass}>
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className={itemClass}
+              >
                 <Icon className="h-4 w-4" />
                 {label}
               </a>
@@ -198,6 +208,9 @@ function MobileMenu({ signedIn }: { signedIn: boolean }) {
               <a
                 key={label}
                 href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
                 className="py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {label}
@@ -262,7 +275,12 @@ export function AdminChrome({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="hidden items-center gap-2 md:flex">
-            <a href={siteConfig.siteUrl} className="btn-pill-outline mr-1 hidden lg:inline-flex">
+            <a
+              href={siteConfig.siteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-pill-outline mr-1 hidden lg:inline-flex"
+            >
               View site
               <ArrowUpRight className="h-4 w-4" />
             </a>

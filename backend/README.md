@@ -116,12 +116,43 @@ Content-Type: application/json
   "slug": "my-article",
   "description": "Article description",
   "content": "Full article content in markdown",
-  "category": "Tutorial",
-  "authorId": "user_id_here",
   "status": "PUBLISHED",
-  "tagIds": ["tag_id_1", "tag_id_2"]
+  "tags": ["Plutus", "Smart Contracts"],
+  "categoryIds": ["cardano"]
 }
 ```
+
+Publishing requires at least one category. Drafts can be saved without one.
+
+### Categories
+
+Blockchains articles are filed under (Cardano, Midnight, ...). Anyone can list them; only admins manage them.
+
+```bash
+GET    /api/categories          # with published article counts
+GET    /api/categories/manage   # admin, with total article counts
+POST   /api/categories          # admin: { "name": "Cardano", "description": null }
+PUT    /api/categories/order    # admin: { "ids": [...] }
+PUT    /api/categories/:id      # admin
+DELETE /api/categories/:id      # admin; articles keep their other categories
+```
+
+Filter articles with `GET /api/articles?category=cardano`.
+
+### Email templates
+
+The wording of the automatic emails (confirmation, welcomes, account welcome, weekly digest and new-article drafts) is edited in the admin. The branded layout stays in code; without a saved template the built-in wording is used. Admin only.
+
+```bash
+GET    /api/email-templates              # every template with its variables and current wording
+GET    /api/email-templates/:key         # plus the built-in defaults
+PUT    /api/email-templates/:key         # { "copy": { "subject": "...", "body": "<p>Hi {{email}}</p>", ... } }
+DELETE /api/email-templates/:key         # back to the built-in wording
+POST   /api/email-templates/:key/preview # { "copy": ... } rendered with sample values, not saved
+POST   /api/email-templates/:key/test    # { "copy": ... } sent to the signed-in admin
+```
+
+`{{name}}` inserts a variable (escaped in the message). `{{#name}}...{{/name}}` shows its content only when the variable is set, and `{{^name}}...{{/name}}` only when it is not. Unknown variables are rejected when saving.
 
 ### Users
 
@@ -163,11 +194,10 @@ Content-Type: application/json
 - `slug`: String (Unique)
 - `description`: String
 - `content`: String (Markdown)
-- `category`: String
 - `status`: Enum (DRAFT, REVIEW, PUBLISHED)
 - `featured`: Boolean
 - `publishedAt`: DateTime
-- Tags, Comments, Likes: Relations
+- Tags, Categories, Comments, Likes: Relations
 
 ### Tag
 

@@ -3,6 +3,7 @@ import { prisma } from '../prisma/client.js';
 import { logger } from '../utils/logger.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
 import { VISIBLE_COMMENTS } from '../utils/comments.js';
+import { articleCategories } from '../utils/categories.js';
 
 const BOOKMARK_ARTICLE_SELECT = {
   id: true,
@@ -10,7 +11,6 @@ const BOOKMARK_ARTICLE_SELECT = {
   slug: true,
   description: true,
   content: true,
-  category: true,
   featuredImage: true,
   status: true,
   featured: true,
@@ -20,6 +20,7 @@ const BOOKMARK_ARTICLE_SELECT = {
   viewCount: true,
   uniqueViews: true,
   tags: { include: { tag: true } },
+  categories: articleCategories,
   author: {
     select: {
       id: true,

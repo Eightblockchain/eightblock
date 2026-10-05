@@ -87,6 +87,7 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
         where: { OR: [{ id: { in: createdTagIds } }, { slug: { startsWith: `vitest-${run}` } }] },
       }),
       prisma.subscription.deleteMany({ where: { email: { startsWith: `vitest-${run}` } } }),
+      prisma.category.deleteMany({ where: { slug: { startsWith: `vitest-${run}` } } }),
       prisma.user.deleteMany({ where: { id: { in: ids } } }),
     ]);
     await prisma.$disconnect();
@@ -159,7 +160,6 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
           slug: `vitest-${run}-illustrated`,
           description: 'x',
           content: '<p>x</p>',
-          category: 'Guide',
           featuredImage: ok.body.imageUrl,
           authorId: users.writer.id,
         },
@@ -189,6 +189,7 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
         content: '<p>Hello</p>',
         excerpt: 'Short',
         tags: ['Cardano'],
+        categoryIds: ['cardano'],
         status: 'PUBLISHED',
       });
       expect(res.status).toBe(201);
@@ -233,7 +234,7 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
       expect(res.status).toBe(201);
       const names = res.body.tags.map((t: { tag: { name: string } }) => t.tag.name).sort();
       expect(names).toEqual(['Cardano', `Vitest ${run} Case`].sort());
-      expect(res.body.category).toBe('Cardano');
+      expect(res.body.categories).toEqual([]);
     });
 
     it('shows drafts to their author only', async () => {
@@ -292,6 +293,147 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
 
       const others = await get('/api/articles/mine', 'other');
       expect(others.body.articles.some((a: { id: string }) => a.id === articleId)).toBe(false);
+    });
+  });
+
+  describe('categories', () => {
+    const categoryNames = (body: { categories: { category: { name: string } }[] }) =>
+      body.categories.map((c) => c.category.name);
+
+    it('requires a category to publish but not to save a draft', async () => {
+      const piece = { title: 'Uncategorized', content: '<p>x</p>' };
+      const refused = await post('/api/articles', 'writer').send({
+        ...piece,
+        slug: `vitest-${run}-uncategorized`,
+        status: 'PUBLISHED',
+      });
+      expect(refused.status).toBe(400);
+      expect(refused.body.error).toMatch(/category/);
+
+      const draft = await post('/api/articles', 'writer').send({
+        ...piece,
+        slug: `vitest-${run}-uncategorized`,
+        status: 'DRAFT',
+      });
+      expect(draft.status).toBe(201);
+      const id = draft.body.id;
+      expect(
+        (await put(`/api/articles/${id}`, 'writer').send({ status: 'PUBLISHED' })).status
+      ).toBe(400);
+
+      const published = await put(`/api/articles/${id}`, 'writer').send({
+        status: 'PUBLISHED',
+        categoryIds: ['midnight', 'cardano', 'midnight'],
+      });
+      expect(published.status).toBe(200);
+      expect(categoryNames(published.body)).toEqual(['Midnight', 'Cardano']);
+
+      // Edits that leave categories out keep them.
+      const edited = await put(`/api/articles/${id}`, 'writer').send({
+        title: 'Now categorized',
+        status: 'PUBLISHED',
+      });
+      expect(edited.status).toBe(200);
+      expect(categoryNames(edited.body)).toEqual(['Midnight', 'Cardano']);
+      expect(categoryNames((await get(`/api/articles/vitest-${run}-uncategorized`)).body)).toEqual([
+        'Midnight',
+        'Cardano',
+      ]);
+    });
+
+    it('rejects categories that do not exist', async () => {
+      const res = await post('/api/articles', 'writer').send({
+        title: 'Ghost',
+        slug: `vitest-${run}-ghost`,
+        content: 'x',
+        categoryIds: ['cardano', randomUUID()],
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toMatch(/no longer exists/);
+    });
+
+    it('filters published articles by category', async () => {
+      const res = await get(`/api/articles?category=midnight&author=vitest-${run}-writer&limit=50`);
+      expect(res.status).toBe(200);
+      const slugs = res.body.articles.map((a: { slug: string }) => a.slug);
+      expect(slugs).toContain(`vitest-${run}-uncategorized`);
+      expect(slugs).not.toContain(articleSlug);
+    });
+
+    it('lets only admins manage categories', async () => {
+      const name = `Vitest ${run} Chain`;
+      for (const who of ['editor', 'writer'] as const) {
+        expect((await post('/api/categories', who).send({ name })).status).toBe(403);
+      }
+      expect((await get('/api/categories/manage', 'editor')).status).toBe(403);
+
+      const created = await post('/api/categories', 'admin').send({ name, description: '  ' });
+      expect(created.status).toBe(201);
+      expect(created.body).toMatchObject({
+        name,
+        slug: `vitest-${run}-chain`,
+        description: null,
+        articleCount: 0,
+      });
+      expect((await post('/api/categories', 'admin').send({ name })).status).toBe(409);
+      expect((await post('/api/categories', 'admin').send({ name: '!!!' })).status).toBe(400);
+
+      const renamed = await put(`/api/categories/${created.body.id}`, 'admin').send({
+        name: `Vitest ${run} Renamed`,
+        description: 'A test chain',
+      });
+      expect(renamed.status).toBe(200);
+      expect(renamed.body).toMatchObject({
+        slug: `vitest-${run}-renamed`,
+        description: 'A test chain',
+      });
+      expect(
+        (await put(`/api/categories/${created.body.id}`, 'admin').send({ name: 'Cardano' })).status
+      ).toBe(409);
+      expect(
+        (await put(`/api/categories/${randomUUID()}`, 'admin').send({ name: 'x' })).status
+      ).toBe(404);
+    });
+
+    it('lists categories publicly with published counts, in the saved order', async () => {
+      const mine = await prisma.category.findUniqueOrThrow({
+        where: { slug: `vitest-${run}-renamed` },
+      });
+      const all = (await get('/api/categories/manage', 'admin')).body as { id: string }[];
+      const ids = [mine.id, ...all.map((c) => c.id).filter((id) => id !== mine.id)];
+      const reordered = await put('/api/categories/order', 'admin').send({ ids });
+      expect(reordered.status).toBe(200);
+      expect(reordered.body[0].id).toBe(mine.id);
+
+      const res = await get('/api/categories');
+      expect(res.status).toBe(200);
+      expect(res.body[0]).toMatchObject({ id: mine.id, count: 0 });
+      const midnight = res.body.find((c: { slug: string }) => c.slug === 'midnight');
+      expect(midnight.count).toBeGreaterThanOrEqual(1);
+      expect(midnight).not.toHaveProperty('createdAt');
+
+      // Restore the seeded order for anything else using this database.
+      await put('/api/categories/order', 'admin').send({ ids: ids.slice(1) });
+    });
+
+    it('removes a deleted category from its articles without deleting them', async () => {
+      const temp = await post('/api/categories', 'admin').send({ name: `Vitest ${run} Temp` });
+      const article = await post('/api/articles', 'writer').send({
+        title: 'Two chains',
+        slug: `vitest-${run}-two-chains`,
+        content: 'x',
+        categoryIds: [temp.body.id, 'cardano'],
+        status: 'PUBLISHED',
+      });
+      expect(article.status).toBe(201);
+
+      expect((await del(`/api/categories/${temp.body.id}`, 'writer')).status).toBe(403);
+      expect((await del(`/api/categories/${temp.body.id}`, 'admin')).status).toBe(204);
+      expect((await del(`/api/categories/${temp.body.id}`, 'admin')).status).toBe(404);
+
+      const after = await get(`/api/articles/vitest-${run}-two-chains`);
+      expect(after.status).toBe(200);
+      expect(categoryNames(after.body)).toEqual(['Cardano']);
     });
   });
 
@@ -451,13 +593,14 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
       }
     });
 
-    it('filters by topic through tags or category, however the topic is spelled', async () => {
+    it('filters by topic through tags, however the topic is spelled', async () => {
       const topic = `Vitest ${run} Topic`;
       const created = await post('/api/articles', 'writer').send({
         title: 'Topic piece',
         slug: `vitest-${run}-topic-piece`,
         content: '<p>Topic</p>',
         tags: [topic],
+        categoryIds: ['midnight'],
         status: 'PUBLISHED',
       });
       expect(created.status).toBe(201);
@@ -588,6 +731,7 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
         title: 'To delete',
         slug: `vitest-${run}-delete`,
         content: 'x',
+        categoryIds: ['cardano'],
         status: 'PUBLISHED',
       });
       await post('/api/bookmarks', 'reader').send({ articleId: temp.body.id });
@@ -834,7 +978,6 @@ describe.skipIf(!hasDatabase)('API against a real database', () => {
           slug: `vitest-${run}-counted`,
           description: 'x',
           content: '<p>x</p>',
-          category: 'Guide',
           status: 'PUBLISHED',
           authorId: users.writer.id,
         },

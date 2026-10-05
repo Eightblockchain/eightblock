@@ -4,6 +4,8 @@
  * small-screen tweaks for clients that support it.
  */
 
+import type { EmailCopy } from './email-copy.js';
+
 export interface EmailArticle {
   title: string;
   url: string;
@@ -380,207 +382,71 @@ const textBody = (lines: (string | null | undefined)[]) =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-export interface ConfirmSubscriptionOptions {
-  email: string;
-  confirmUrl: string;
+export interface MessageOptions {
+  /** Filled-in wording; see email-copy.ts. */
+  copy: EmailCopy;
   siteUrl: string;
   logoSrc: string;
-  expiresInDays: number;
-  postalAddress?: string | null;
-}
-
-/**
- * Double opt-in: nothing else is sent to the address until this link is clicked. It is not
- * newsletter mail yet, so it has no unsubscribe link; ignoring it is the way to say no.
- */
-export function renderConfirmSubscription(options: ConfirmSubscriptionOptions): RenderedEmail {
-  const site = options.siteUrl.replace(/\/$/, '');
-  const title = 'Confirm your subscription';
-  const reason =
-    'You are receiving this because someone entered this address on the Eightblock newsletter form.';
-  const intro = `Please confirm that you want the Eightblock newsletter at ${options.email}. Until you do, we won't send anything else to this address.`;
-  const ignore = `Didn't ask for this? Ignore this email and you won't be subscribed. The link expires in ${options.expiresInDays} days.`;
-
-  const body = `
-    ${eyebrow('One more step')}
-    <h1 style="${CONTENT_STYLES.h1}">${escapeHtml(title)}</h1>
-    <p style="${CONTENT_STYLES.p}">${escapeHtml(intro)}</p>
-    ${button('Confirm subscription', options.confirmUrl)}
-    <p style="margin:20px 0 0;font-family:${SANS};font-size:13px;line-height:1.6;color:${COLORS.muted};word-break:break-all;" class="eb-muted">
-      Or paste this link into your browser:<br>
-      <a href="${escapeHtml(options.confirmUrl)}" style="color:${COLORS.link};text-decoration:none;" class="eb-link">${escapeHtml(options.confirmUrl)}</a>
-    </p>
-    <p class="eb-line" style="margin:28px 0 0;padding-top:20px;border-top:1px solid ${COLORS.line};font-family:${SANS};font-size:14px;line-height:1.7;color:${COLORS.body};">${escapeHtml(ignore)}</p>
-  `;
-
-  return {
-    html: layout({
-      siteUrl: site,
-      logoSrc: options.logoSrc,
-      title,
-      preheader: 'Click the button to start receiving new articles.',
-      label: 'Newsletter',
-      body,
-      reason,
-      postalAddress: options.postalAddress,
-    }),
-    text: textBody([
-      title,
-      '',
-      intro,
-      '',
-      `Confirm subscription: ${options.confirmUrl}`,
-      '',
-      ignore,
-      '',
-      textFooter(reason, site, undefined, options.postalAddress),
-    ]),
-  };
-}
-
-export interface WelcomeOptions {
-  articles: EmailArticle[];
-  siteUrl: string;
-  logoSrc: string;
-  /** The address had unsubscribed before and just signed up again. */
-  returning?: boolean;
+  /** Top-right of the header, such as "Newsletter". */
+  label: string;
+  /** Footer line saying why this address got the email. */
+  reason: string;
+  /** Where the button goes; `showLink` also prints the address for clients that block buttons. */
+  button: { href: string; showLink?: boolean };
+  articles?: EmailArticle[];
   unsubscribeUrl?: string;
   postalAddress?: string | null;
 }
 
-/** Sent after a newsletter signup. */
-export function renderWelcome(options: WelcomeOptions): RenderedEmail {
-  const site = options.siteUrl.replace(/\/$/, '');
-  const reason =
-    'You are receiving this because this address was subscribed to the Eightblock newsletter.';
-  const copy = options.returning
-    ? {
-        eyebrow: 'Subscription renewed',
-        title: 'Welcome back',
-        preheader: 'You are subscribed again. Here is what you missed.',
-        paragraphs: [
-          "You're subscribed to the Eightblock newsletter again. New articles on Cardano, smart contracts and decentralized systems will reach this inbox again.",
-          'Changed your mind? The unsubscribe link at the bottom of every email works in one click.',
-        ],
-        articlesLabel: 'Catch up on these',
-      }
-    : {
-        eyebrow: 'Subscription confirmed',
-        title: "You're on the list",
-        preheader: 'Your subscription is confirmed. Here is where to start.',
-        paragraphs: [
-          "Thanks for subscribing to Eightblock. You'll get new articles on Cardano, smart contracts and decentralized systems, written by people who build them, delivered straight to your inbox.",
-          'No noise and no spam. Every email has a one-click unsubscribe link at the bottom.',
-        ],
-        articlesLabel: 'Start with these',
-      };
+const hasText = (html: string) => html.replace(/<[^>]+>/g, '').trim().length > 0;
 
-  const intro = `
-    ${eyebrow(copy.eyebrow)}
-    <h1 style="${CONTENT_STYLES.h1}">${escapeHtml(copy.title)}</h1>
-    ${copy.paragraphs.map((p) => `<p style="${CONTENT_STYLES.p}">${escapeHtml(p)}</p>`).join('')}
-    ${button('Browse the articles', `${site}/writing`)}
+/** The one-off emails (confirmations and welcomes): admin wording inside the fixed layout. */
+export function renderMessage(options: MessageOptions): RenderedEmail {
+  const site = options.siteUrl.replace(/\/$/, '');
+  const { copy, button: action } = options;
+  const articles = options.articles ?? [];
+  const note = hasText(copy.note) ? copy.note : '';
+
+  const body = `
+    ${copy.eyebrow ? eyebrow(copy.eyebrow) : ''}
+    ${copy.heading ? `<h1 style="${CONTENT_STYLES.h1}">${escapeHtml(copy.heading)}</h1>` : ''}
+    ${hasText(copy.body) ? styleContent(copy.body) : ''}
+    ${copy.buttonLabel ? button(copy.buttonLabel, action.href) : ''}
+    ${
+      action.showLink
+        ? `<p style="margin:20px 0 0;font-family:${SANS};font-size:13px;line-height:1.6;color:${COLORS.muted};word-break:break-all;" class="eb-muted">
+      Or paste this link into your browser:<br>
+      <a href="${escapeHtml(action.href)}" style="color:${COLORS.link};text-decoration:none;" class="eb-link">${escapeHtml(action.href)}</a>
+    </p>`
+        : ''
+    }
+    ${note ? `<div class="eb-line" style="margin:28px 0 0;padding-top:20px;border-top:1px solid ${COLORS.line};">${styleContent(note)}</div>` : ''}
+    ${articlesSection(articles, copy.articlesLabel)}
   `;
 
   return {
     html: layout({
       siteUrl: site,
       logoSrc: options.logoSrc,
-      title: copy.title,
+      title: copy.subject || copy.heading,
       preheader: copy.preheader,
-      label: 'Newsletter',
-      body: `${intro}${articlesSection(options.articles, copy.articlesLabel)}`,
-      reason,
+      label: options.label,
+      body,
+      reason: options.reason,
       unsubscribeUrl: options.unsubscribeUrl,
       postalAddress: options.postalAddress,
     }),
     text: textBody([
-      copy.title,
+      copy.heading,
       '',
-      ...copy.paragraphs.flatMap((p) => [p, '']),
-      `Browse the articles: ${site}/writing`,
-      articlesText(options.articles, copy.articlesLabel),
+      htmlToText(copy.body),
       '',
-      textFooter(reason, site, options.unsubscribeUrl, options.postalAddress),
-    ]),
-  };
-}
-
-export interface AccountWelcomeOptions {
-  name: string | null;
-  email: string;
-  /** Whether the address already receives the newsletter. */
-  subscribed: boolean;
-  siteUrl: string;
-  logoSrc: string;
-  postalAddress?: string | null;
-}
-
-const ACCOUNT_FEATURES = [
-  ['Bookmarks', 'Save articles and pick up where you left off on any device.'],
-  ['Claps and comments', 'Show what helped you and join the discussion under each article.'],
-  ['Your profile', 'Add a name, photo and short bio so other readers know who you are.'],
-] as const;
-
-/** Sent once, when someone creates an account. Transactional, so it has no unsubscribe link. */
-export function renderAccountWelcome(options: AccountWelcomeOptions): RenderedEmail {
-  const site = options.siteUrl.replace(/\/$/, '');
-  const firstName = options.name?.trim().split(/\s+/)[0];
-  const title = firstName ? `Welcome to Eightblock, ${firstName}` : 'Welcome to Eightblock';
-  const reason =
-    'You are receiving this because an Eightblock account was created with this address.';
-  const intro = `Your account is ready. You can sign in any time with Google using ${options.email}.`;
-  const newsletter = options.subscribed
-    ? 'This address is also subscribed to the newsletter, so new articles will keep arriving here.'
-    : 'Creating an account does not subscribe you to the newsletter. If you would like new articles by email, you can subscribe in one click.';
-
-  const features = ACCOUNT_FEATURES.map(
-    ([name, detail]) => `
-    <tr><td class="eb-line" style="padding:14px 0;border-top:1px solid ${COLORS.line};">
-      <p style="margin:0 0 2px;font-family:${SANS};font-size:15px;font-weight:600;line-height:1.5;color:${COLORS.ink};" class="eb-ink">${escapeHtml(name)}</p>
-      <p style="margin:0;font-family:${SANS};font-size:14px;line-height:1.6;color:${COLORS.body};">${escapeHtml(detail)}</p>
-    </td></tr>`
-  ).join('');
-
-  const body = `
-    ${eyebrow('Account created')}
-    <h1 style="${CONTENT_STYLES.h1}">${escapeHtml(title)}</h1>
-    <p style="${CONTENT_STYLES.p}">${escapeHtml(intro)}</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;">${features}</table>
-    ${button('Set up your profile', `${site}/settings`)}
-    <p class="eb-line" style="margin:28px 0 0;padding-top:20px;border-top:1px solid ${COLORS.line};font-family:${SANS};font-size:14px;line-height:1.7;color:${COLORS.body};">
-      ${escapeHtml(newsletter)}${
-        options.subscribed
-          ? ''
-          : ` <a href="${escapeHtml(`${site}/newsletter`)}" style="color:${COLORS.link};font-weight:600;text-decoration:none;" class="eb-link">Subscribe to the newsletter &rarr;</a>`
-      }
-    </p>
-  `;
-
-  return {
-    html: layout({
-      siteUrl: site,
-      logoSrc: options.logoSrc,
-      title,
-      preheader: 'Your account is ready. Here is what you can do with it.',
-      label: 'Account',
-      body,
-      reason,
-      postalAddress: options.postalAddress,
-    }),
-    text: textBody([
-      title,
+      copy.buttonLabel ? `${copy.buttonLabel}: ${action.href}` : null,
       '',
-      intro,
+      note ? htmlToText(note) : null,
+      articlesText(articles, copy.articlesLabel),
       '',
-      ...ACCOUNT_FEATURES.flatMap(([name, detail]) => [`- ${name}: ${detail}`]),
-      '',
-      `Set up your profile: ${site}/settings`,
-      '',
-      newsletter,
-      options.subscribed ? null : `Subscribe: ${site}/newsletter`,
-      '',
-      textFooter(reason, site, undefined, options.postalAddress),
+      textFooter(options.reason, site, options.unsubscribeUrl, options.postalAddress),
     ]),
   };
 }

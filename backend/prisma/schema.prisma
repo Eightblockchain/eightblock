@@ -13,7 +13,6 @@ model Article {
   slug          String         @unique
   description   String
   content       String
-  category      String
   authorId      String
   publishedAt   DateTime       @default(now())
   status        ArticleStatus  @default(DRAFT)
@@ -32,6 +31,7 @@ model Article {
   comments      Comment[]
   likes         Like[]
   tags          TagOnArticle[]
+  categories    ArticleCategory[]
 
   @@index([authorId])
   @@index([authorId, status])
@@ -218,6 +218,21 @@ model NewsletterSettings {
   updatedAt         DateTime @updatedAt
 }
 
+/// An admin's wording for one automatic email. Without a row the built-in wording is used;
+/// a null field also falls back to it, while an empty string means the admin left it blank.
+model EmailTemplate {
+  key           String   @id
+  subject       String
+  preheader     String?
+  eyebrow       String?
+  heading       String?
+  body          String?
+  buttonLabel   String?
+  note          String?
+  articlesLabel String?
+  updatedAt     DateTime @updatedAt
+}
+
 /// One row per recipient, so a retried campaign never reaches anyone twice.
 model NewsletterDelivery {
   id         String             @id @default(uuid())
@@ -273,6 +288,31 @@ model TagOnArticle {
   tag       Tag     @relation(fields: [tagId], references: [id])
 
   @@id([articleId, tagId])
+}
+
+/// Blockchains articles are filed under, such as Cardano or Midnight. Managed from the admin app;
+/// everything else an article covers is a free-form tag.
+model Category {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  slug        String            @unique
+  description String?
+  position    Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  articles    ArticleCategory[]
+}
+
+model ArticleCategory {
+  articleId  String
+  categoryId String
+  /// Order the author picked them in. The first is shown as the article's main category.
+  position   Int      @default(0)
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, categoryId])
+  @@index([categoryId])
 }
 
 model User {

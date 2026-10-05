@@ -59,7 +59,7 @@ function MobileAccount({ onNavigate }: { onNavigate: () => void }) {
     { href: '/bookmarks', label: 'Saved articles', show: true },
     { href: '/articles/new', label: 'Write an article', show: canWrite(user.role) },
     { href: '/my-articles', label: 'My articles', show: canWrite(user.role) },
-    { href: siteConfig.adminUrl, label: 'Admin', show: isAdmin(user.role) },
+    { href: siteConfig.adminUrl, label: 'Admin', show: isAdmin(user.role), external: true },
   ].filter((link) => link.show);
 
   return (
@@ -77,6 +77,7 @@ function MobileAccount({ onNavigate }: { onNavigate: () => void }) {
             key={link.href}
             href={link.href}
             onClick={onNavigate}
+            {...(link.external && { target: '_blank', rel: 'noopener noreferrer' })}
             className="py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             {link.label}

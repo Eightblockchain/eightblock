@@ -155,8 +155,8 @@ export function ArticlePicker({
                         {article.title}
                       </span>
                       <span className="block truncate text-xs text-muted-foreground">
-                        {article.category} · {article.author?.name ?? 'Unknown'} ·{' '}
-                        {shortDate(article.publishedAt)}
+                        {article.category && `${article.category} · `}
+                        {article.author?.name ?? 'Unknown'} · {shortDate(article.publishedAt)}
                       </span>
                     </span>
                   </button>

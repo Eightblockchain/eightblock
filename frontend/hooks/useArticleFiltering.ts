@@ -21,7 +21,7 @@ export function useArticleFiltering(
       return (
         article.title.toLowerCase().includes(query) ||
         article.description.toLowerCase().includes(query) ||
-        article.category?.toLowerCase().includes(query) ||
+        article.categories?.some((c) => c.category.name.toLowerCase().includes(query)) ||
         article.tags?.some((t) => t.tag.name.toLowerCase().includes(query))
       );
     });

@@ -111,7 +111,14 @@ export function UserMenu() {
               </>
             )}
             {isAdmin(user.role) && (
-              <a href={siteConfig.adminUrl} role="menuitem" className={itemClass}>
+              <a
+                href={siteConfig.adminUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className={itemClass}
+              >
                 <LayoutDashboard className="h-4 w-4" />
                 Admin
               </a>

@@ -37,8 +37,8 @@ describe('chain helpers', () => {
 });
 
 describe('topics', () => {
-  const article = (category: string, tags: string[] = []) =>
-    ({ category, tags: tags.map((name) => ({ tag: { name } })) }) as unknown as Article;
+  const article = (...tags: string[]) =>
+    ({ tags: tags.map((name) => ({ tag: { name } })) }) as unknown as Article;
 
   it('builds URL-safe topic slugs', () => {
     expect(topicSlug('Smart Contracts')).toBe('smart-contracts');
@@ -53,7 +53,7 @@ describe('topics', () => {
 
   it('merges topics that only differ in spelling', () => {
     const topics = buildTopics(
-      [article('Smart contracts', ['Smart Contracts'])],
+      [article('Smart contracts', 'Smart Contracts')],
       ['Smart Contracts']
     );
     expect(topics).toEqual([{ label: 'Smart Contracts', slug: 'smart-contracts', count: 1 }]);
@@ -61,7 +61,7 @@ describe('topics', () => {
 
   it('counts each article once per topic and puts used topics first', () => {
     const topics = buildTopics(
-      [article('Guide', ['Cardano', 'guide']), article('Cardano')],
+      [article('Cardano', 'guide'), article('Cardano')],
       ['DeFi', 'Cardano']
     );
     expect(topics.map((t) => [t.slug, t.count])).toEqual([

@@ -8,6 +8,7 @@ import { ShareButton } from '@eightblock/ui/components/share-button';
 import { useInfiniteArticles } from '@/hooks/useInfiniteArticles';
 import { getPublishedArticlesPaginated, getPublishedTopics } from '@/lib/api';
 import { topicLabel } from '@/lib/topics';
+import type { PublishedCategory } from '@/lib/categories';
 import { cn } from '@eightblock/ui/utils';
 
 const PAGE_SIZE = 15;
@@ -54,6 +55,11 @@ interface ArticleArchiveProps {
   tag: string | null;
   /** Display name of the active topic, when the server already resolved it. */
   tagName?: string | null;
+  /** Active category slug from `?category=`. Combines with the topic. */
+  category?: string | null;
+  categoryName?: string | null;
+  /** Offer category filters. Left out on pages that only filter by topic. */
+  categories?: PublishedCategory[];
   /** Only this author's articles (username). */
   author?: string;
   /** Number the cards as blocks. Only meaningful for the full, unfiltered chain. */
@@ -69,6 +75,9 @@ export function ArticleArchive({
   basePath,
   tag,
   tagName,
+  category = null,
+  categoryName = null,
+  categories,
   author,
   numbered = false,
   shareAll = true,
@@ -77,7 +86,11 @@ export function ArticleArchive({
   const observerTarget = useRef<HTMLDivElement>(null);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
-    useInfiniteArticles(PAGE_SIZE, 'latest', { author, tag: tag ?? undefined });
+    useInfiniteArticles(PAGE_SIZE, 'latest', {
+      author,
+      tag: tag ?? undefined,
+      category: category ?? undefined,
+    });
 
   const { data: topics } = useQuery({
     queryKey: ['topics', author ?? null],
@@ -108,60 +121,115 @@ export function ArticleArchive({
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const chips = [
-    { label: 'All', slug: null as string | null, count: allTotal },
-    ...(topics ?? []).map((t) => ({
-      label: t.name,
-      slug: t.slug as string | null,
-      count: t.count as number | undefined,
-    })),
-  ];
-  const activeLabel = tag ? tagName || topicLabel(tag, topics) : null;
-  if (tag && activeLabel && !chips.some((c) => c.slug === tag)) {
-    chips.push({ label: activeLabel, slug: tag, count: data ? total : undefined });
+  const filtered = Boolean(tag || category);
+  const topicChips = (topics ?? []).map((t) => ({
+    label: t.name,
+    slug: t.slug as string | null,
+    count: t.count as number | undefined,
+  }));
+  const tagLabel = tag ? tagName || topicLabel(tag, topics) : null;
+  if (tag && tagLabel && !topicChips.some((c) => c.slug === tag)) {
+    topicChips.push({ label: tagLabel, slug: tag, count: data ? total : undefined });
   }
-  const hrefFor = (slug: string | null) =>
-    slug ? `${basePath}?tag=${encodeURIComponent(slug)}` : basePath;
+
+  const categoryChips = (categories ?? [])
+    .filter((c) => c.count > 0 || c.slug === category)
+    .map((c) => ({ label: c.name, slug: c.slug, count: c.count }));
+  if (category && categoryName && !categoryChips.some((c) => c.slug === category)) {
+    categoryChips.push({ label: categoryName, slug: category, count: data ? total : 0 });
+  }
+
+  const activeLabel = [categoryName, tagLabel].filter(Boolean).join(' · ') || null;
+
+  const hrefFor = (next: { category?: string | null; tag?: string | null }) => {
+    const query = new URLSearchParams();
+    const nextCategory = next.category === undefined ? category : next.category;
+    const nextTag = next.tag === undefined ? tag : next.tag;
+    if (nextCategory) query.set('category', nextCategory);
+    if (nextTag) query.set('tag', nextTag);
+    const search = query.toString();
+    return search ? `${basePath}?${search}` : basePath;
+  };
+  const shareHref = hrefFor({});
+
+  const chipClass = (active: boolean) =>
+    cn(
+      'inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
+      active
+        ? 'border-foreground bg-foreground text-background'
+        : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
+    );
+  const countBadge = (count: number | undefined, active: boolean) =>
+    count !== undefined && (
+      <span className={cn('font-mono text-[10px]', active ? 'opacity-80' : 'opacity-70')}>
+        {count}
+      </span>
+    );
 
   return (
     <>
       <div className="sticky top-16 z-30 border-b border-border bg-background">
         <div className="container-page flex items-center gap-4 py-3">
           <nav
-            aria-label="Filter by topic"
-            className="scrollbar-hide flex min-w-0 flex-1 gap-2 overflow-x-auto"
+            aria-label="Filter articles"
+            className="scrollbar-hide flex min-w-0 flex-1 items-center gap-2 overflow-x-auto"
           >
-            {chips.map(({ label, slug, count }) => {
+            <Link
+              href={basePath}
+              scroll={false}
+              aria-current={!filtered ? 'page' : undefined}
+              className={chipClass(!filtered)}
+            >
+              All
+              {countBadge(allTotal, !filtered)}
+            </Link>
+
+            {categoryChips.length > 0 && (
+              <>
+                <span className="h-5 w-px shrink-0 bg-border" aria-hidden="true" />
+                {categoryChips.map(({ label, slug, count }) => {
+                  const active = category === slug;
+                  return (
+                    <Link
+                      key={`category-${slug}`}
+                      href={hrefFor({ category: active ? null : slug })}
+                      scroll={false}
+                      aria-current={active ? 'page' : undefined}
+                      title={active ? `Stop filtering by ${label}` : `Only ${label} articles`}
+                      className={chipClass(active)}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-gold" aria-hidden="true" />
+                      {label}
+                      {countBadge(count, active)}
+                    </Link>
+                  );
+                })}
+              </>
+            )}
+
+            {topicChips.length > 0 && (
+              <span className="h-5 w-px shrink-0 bg-border" aria-hidden="true" />
+            )}
+            {topicChips.map(({ label, slug, count }) => {
               const active = tag === slug;
               return (
                 <Link
-                  key={slug ?? 'all'}
-                  href={hrefFor(slug)}
+                  key={`tag-${slug}`}
+                  href={hrefFor({ tag: active ? null : slug })}
                   scroll={false}
                   aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors',
-                    active
-                      ? 'border-foreground bg-foreground text-background'
-                      : 'border-border text-muted-foreground hover:border-foreground/40 hover:text-foreground'
-                  )}
+                  className={chipClass(active)}
                 >
                   {label}
-                  {count !== undefined && (
-                    <span
-                      className={cn('font-mono text-[10px]', active ? 'opacity-80' : 'opacity-70')}
-                    >
-                      {count}
-                    </span>
-                  )}
+                  {countBadge(count, active)}
                 </Link>
               );
             })}
           </nav>
-          {(tag || shareAll) && (
+          {(filtered || shareAll) && (
             <ShareButton
-              url={hrefFor(tag)}
-              label={tag ? 'Share topic' : 'Share'}
+              url={shareHref}
+              label={filtered ? 'Share filter' : 'Share'}
               className="h-8 shrink-0 px-3 text-xs"
             />
           )}
@@ -185,7 +253,7 @@ export function ArticleArchive({
                 ? `Nothing published under “${activeLabel}” so far.`
                 : 'No articles published yet.'}
             </p>
-            {tag && (
+            {filtered && (
               <Link href={basePath} scroll={false} className="btn-pill-outline mt-6">
                 Show all articles
               </Link>
@@ -199,7 +267,7 @@ export function ArticleArchive({
               <BlockCard
                 key={article.id}
                 article={article}
-                height={numbered && !tag ? total - i : undefined}
+                height={numbered && !filtered ? total - i : undefined}
                 priority={i < 3}
               />
             ))}

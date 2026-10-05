@@ -7,6 +7,7 @@ import { BlockPattern } from '@/components/chain/block-pattern';
 import { CornerMarks } from '@eightblock/ui/components/panel';
 import { TopicChip } from '@eightblock/ui/components/topic-chip';
 import { BlockStats } from '@/components/articles/article-stats';
+import { chipLabels } from '@/lib/categories';
 
 interface BlockCardProps {
   article: Article;
@@ -21,6 +22,7 @@ interface BlockCardProps {
  */
 export function BlockCard({ article, height, className, priority }: BlockCardProps) {
   const hash = articleHash(article);
+  const chips = chipLabels(article);
 
   return (
     <article
@@ -68,9 +70,11 @@ export function BlockCard({ article, height, className, priority }: BlockCardPro
         </div>
 
         <div className="flex flex-1 flex-col p-5">
-          {article.category && (
-            <div className="mb-4">
-              <TopicChip category={article.category} />
+          {chips.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {chips.map((name) => (
+                <TopicChip key={name} category={name} />
+              ))}
             </div>
           )}
           <h3 className="font-display text-[1.2rem] font-semibold leading-snug tracking-[-0.01em] text-foreground transition-colors group-hover:text-brand-blue line-clamp-3">

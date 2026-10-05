@@ -24,7 +24,10 @@ function clientSearch(articles: any[], query: string) {
       let score = 0;
       const titleLower = article.title.toLowerCase();
       const descLower = (article.description || '').toLowerCase();
-      const categoryLower = (article.category || '').toLowerCase();
+      const categoryLower = (article.categories ?? [])
+        .map((c: any) => c.category.name)
+        .join(' ')
+        .toLowerCase();
 
       words.forEach((word) => {
         if (titleLower.includes(word)) score += 10;
@@ -121,14 +124,15 @@ export default function SearchComponent() {
                               {article.description}
                             </p>
                             <div className="mt-2 flex items-center gap-1.5">
-                              {article.category && (
+                              {article.categories?.map((c: any) => (
                                 <span
+                                  key={c.category.id}
                                   className="rounded-full border border-border
                                   px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
                                 >
-                                  {article.category}
+                                  {c.category.name}
                                 </span>
-                              )}
+                              ))}
                               {article.tags?.slice(0, 2).map((t: any) => (
                                 <span
                                   key={t.tag.id}

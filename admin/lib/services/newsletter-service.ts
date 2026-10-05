@@ -109,7 +109,8 @@ export interface PickableArticle {
   id: string;
   title: string;
   slug: string;
-  category: string;
+  /** Category names, comma separated. Null when uncategorized. */
+  category: string | null;
   publishedAt: string;
   featuredImage: string | null;
   author: { name: string | null } | null;
@@ -127,7 +128,8 @@ function csrfHeader(): Record<string, string> {
   return match ? { 'X-CSRF-Token': decodeURIComponent(match[1]) } : {};
 }
 
-async function request<T>(
+/** Admin API call that throws the server's own message (`{ error }`) when it fails. */
+export async function request<T>(
   path: string,
   fallback: string,
   init?: { method?: string; body?: unknown }

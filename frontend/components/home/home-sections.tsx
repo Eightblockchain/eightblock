@@ -9,11 +9,20 @@ import { CornerMarks } from '@eightblock/ui/components/panel';
 import { Eyebrow, SectionHeader } from '@eightblock/ui/components/section-header';
 import { BlockCard } from '@/components/articles/block-card';
 import { ChainPanel } from '@/components/home/chain-panel';
+import { categoryHref, type PublishedCategory } from '@/lib/categories';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-export function Hero({ latest, total }: { latest: Article[]; total: number }) {
-  const { hero, networks } = siteConfig;
+export function Hero({
+  latest,
+  total,
+  categories,
+}: {
+  latest: Article[];
+  total: number;
+  categories: PublishedCategory[];
+}) {
+  const { hero } = siteConfig;
 
   return (
     <section className="border-b border-border">
@@ -46,28 +55,32 @@ export function Hero({ latest, total }: { latest: Article[]; total: number }) {
         </div>
       </div>
 
-      <div className="border-t border-border">
-        <div className="container-page flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:gap-8">
-          <span className="ledger-label shrink-0">Networks covered</span>
-          <nav aria-label="Networks" className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            {networks.map((network) => (
-              <Link
-                key={network}
-                href={`/writing?tag=${topicSlug(network)}`}
-                className="text-sm font-medium text-foreground/75 transition-colors hover:text-brand-blue"
-              >
-                {network}
-              </Link>
-            ))}
-          </nav>
+      {categories.length > 0 && (
+        <div className="border-t border-border">
+          <div className="container-page flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:gap-8">
+            <span className="ledger-label shrink-0">Networks covered</span>
+            <nav aria-label="Networks" className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={categoryHref(category.slug)}
+                  className="text-sm font-medium text-foreground/75 transition-colors hover:text-brand-blue"
+                >
+                  {category.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
 
 export function StatsStrip({ articles, total }: { articles: Article[]; total: number }) {
-  const topics = new Set(articles.map((a) => a.category).filter(Boolean)).size;
+  const topics = new Set(
+    articles.flatMap((a) => (a.tags ?? []).map((t) => t.tag.name.toLowerCase()))
+  ).size;
   const minutes = articles.reduce((sum, a) => sum + readingTime(a.content), 0);
 
   const stats = [
@@ -155,7 +168,7 @@ export function FeaturedBlocks({
 }
 
 export function TopicsGrid({ articles }: { articles: Article[] }) {
-  const topics = buildTopics(articles, siteConfig.categories, 9);
+  const topics = buildTopics(articles, siteConfig.topics, 9);
 
   return (
     <section className="border-b border-border">

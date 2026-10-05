@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import type { Article } from '@/hooks/useInfiniteArticles';
 import { formatBlockHeight, timeAgo } from '@/lib/chain';
+import { chipLabels } from '@/lib/categories';
 import { cn } from '@eightblock/ui/utils';
 import { Panel, PanelBar } from '@eightblock/ui/components/panel';
 
@@ -33,6 +34,7 @@ export function ChainPanel({ articles, total }: ChainPanelProps) {
         <ol className="py-2">
           {articles.map((article, i) => {
             const isLast = i === articles.length - 1;
+            const labels = chipLabels(article);
             return (
               <li key={article.id}>
                 <Link
@@ -61,9 +63,9 @@ export function ChainPanel({ articles, total }: ChainPanelProps) {
                       <span className="text-foreground">{formatBlockHeight(total - i)}</span>
                       <span aria-hidden="true">·</span>
                       <span suppressHydrationWarning>{timeAgo(article.publishedAt)}</span>
-                      {article.category && (
+                      {labels.length > 0 && (
                         <span className="ml-auto hidden truncate sm:inline">
-                          {article.category}
+                          {labels.join(' · ')}
                         </span>
                       )}
                     </span>

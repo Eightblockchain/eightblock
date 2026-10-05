@@ -3,14 +3,20 @@ import { fileURLToPath } from 'url';
 import { Resend } from 'resend';
 import { prisma } from '../prisma/client.js';
 import { getFullImageUrl } from '../utils/imgUrl.js';
+import { articleCategories, categoryLabel } from '../utils/categories.js';
 import {
-  renderAccountWelcome,
-  renderConfirmSubscription,
+  renderMessage,
   renderNewsletter,
-  renderWelcome,
   type EmailArticle,
   type RenderedEmail,
 } from './email-template.js';
+import {
+  fillCopy,
+  getCopy,
+  sampleVariables,
+  type EmailCopy,
+  type TemplateKey,
+} from './email-copy.js';
 import { getNewsletterSettings } from './newsletter-settings.js';
 
 const DEFAULT_FROM = 'Eightblock <newsletter@news.eightblock.dev>';
@@ -164,6 +170,11 @@ export function withCampaignTracking(
   });
 }
 
+const shorten = (value: string, max: number) => {
+  const clean = value.replace(/\s+/g, ' ').trim();
+  return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
+};
+
 const readingMinutes = (html: string) =>
   Math.max(
     1,
@@ -188,7 +199,7 @@ export async function loadEmailArticles(ids: string[] | null, latest = 3): Promi
       slug: true,
       description: true,
       content: true,
-      category: true,
+      categories: articleCategories,
       featuredImage: true,
       author: { select: { name: true } },
     },
@@ -200,7 +211,7 @@ export async function loadEmailArticles(ids: string[] | null, latest = 3): Promi
     title: a.title,
     url: `${siteUrl}/articles/${a.slug}`,
     excerpt: a.description,
-    category: a.category,
+    category: categoryLabel(a.categories),
     author: a.author?.name ?? null,
     imageUrl: a.featuredImage ? getFullImageUrl(a.featuredImage) : null,
     readingMinutes: readingMinutes(a.content),
@@ -246,6 +257,137 @@ export async function previewCampaign(campaign: CampaignContent) {
   return renderCampaign(campaign, articles, { unsubscribeUrl: '#', postalAddress });
 }
 
+const REASONS = {
+  confirm:
+    'You are receiving this because someone entered this address on the Eightblock newsletter form.',
+  welcome:
+    'You are receiving this because this address was subscribed to the Eightblock newsletter.',
+  account: 'You are receiving this because an Eightblock account was created with this address.',
+};
+
+interface Composed extends RenderedEmail {
+  subject: string;
+}
+
+interface ComposeContext {
+  logoSrc: string;
+  postalAddress: string | null;
+}
+
+/**
+ * Double opt-in: nothing else is sent to the address until this link is clicked. It is not
+ * newsletter mail yet, so it has no unsubscribe link; ignoring it is the way to say no.
+ */
+function composeConfirm(
+  copy: EmailCopy,
+  data: { email: string; confirmUrl: string; expiresInDays: number },
+  ctx: ComposeContext
+): Composed {
+  const { siteUrl } = config();
+  const filled = fillCopy(copy, { email: data.email, expiresInDays: data.expiresInDays, siteUrl });
+  return {
+    subject: filled.subject,
+    ...renderMessage({
+      copy: filled,
+      siteUrl,
+      logoSrc: ctx.logoSrc,
+      label: 'Newsletter',
+      reason: REASONS.confirm,
+      button: { href: data.confirmUrl, showLink: true },
+      postalAddress: ctx.postalAddress,
+    }),
+  };
+}
+
+function composeWelcome(
+  copy: EmailCopy,
+  data: { email: string; articles: EmailArticle[]; unsubscribeUrl?: string },
+  ctx: ComposeContext
+): Composed {
+  const { siteUrl } = config();
+  const filled = fillCopy(copy, { email: data.email, siteUrl });
+  return {
+    subject: filled.subject,
+    ...renderMessage({
+      copy: filled,
+      siteUrl,
+      logoSrc: ctx.logoSrc,
+      label: 'Newsletter',
+      reason: REASONS.welcome,
+      button: { href: `${siteUrl}/writing` },
+      articles: data.articles.map((a) => ({ ...a, url: trackUrl(a.url, 'welcome') })),
+      unsubscribeUrl: data.unsubscribeUrl,
+      postalAddress: ctx.postalAddress,
+    }),
+  };
+}
+
+/** Transactional, so it has no unsubscribe link. */
+function composeAccountWelcome(
+  copy: EmailCopy,
+  data: { name: string | null; email: string; subscribed: boolean },
+  ctx: ComposeContext
+): Composed {
+  const { siteUrl } = config();
+  const name = data.name?.trim() ?? '';
+  const filled = fillCopy(copy, {
+    firstName: name.split(/\s+/)[0],
+    name,
+    email: data.email,
+    subscribed: data.subscribed,
+    siteUrl,
+  });
+  return {
+    subject: filled.subject,
+    ...renderMessage({
+      copy: filled,
+      siteUrl,
+      logoSrc: ctx.logoSrc,
+      label: 'Account',
+      reason: REASONS.account,
+      button: { href: `${siteUrl}/settings` },
+      postalAddress: ctx.postalAddress,
+    }),
+  };
+}
+
+/** Subject, preview text and message of the weekly digest campaign. */
+export async function digestContent(titles: string[]) {
+  const { copy } = await getCopy('weekly-digest');
+  const filled = fillCopy(copy, {
+    leadTitle: shorten(titles[0] ?? '', 120),
+    count: titles.length,
+    moreCount: Math.max(titles.length - 1, 0),
+    titles: titles.join(' · '),
+    siteUrl: config().siteUrl,
+  });
+  return {
+    subject: shorten(filled.subject, 200),
+    preheader: shorten(filled.preheader, 200) || null,
+    htmlContent: filled.body,
+  };
+}
+
+/** Subject, preview text and message of the draft queued when an article is first published. */
+export async function articleAnnouncementContent(article: {
+  title: string;
+  description: string;
+  author?: string | null;
+}) {
+  const { copy } = await getCopy('article-announcement');
+  const filled = fillCopy(copy, {
+    title: article.title,
+    description: article.description,
+    author: article.author,
+    siteUrl: config().siteUrl,
+  });
+  return {
+    subject: shorten(filled.subject, 200) || shorten(article.title, 200),
+    preheader: shorten(filled.preheader, 200) || null,
+    htmlContent: filled.body,
+  };
+}
+
 export async function sendConfirmSubscriptionEmail(email: string, confirmToken: string) {
   const mailer = resend();
   if (!mailer) {
@@ -255,20 +397,22 @@ export async function sendConfirmSubscriptionEmail(email: string, confirmToken: 
   const { siteUrl } = config();
   const { transactionalFrom, replyTo, postalAddress, settings } = await senders();
   const logo = inlineLogo();
-  const { html, text } = renderConfirmSubscription({
-    email,
-    confirmUrl: `${siteUrl}/newsletter/confirm?token=${encodeURIComponent(confirmToken)}`,
-    siteUrl,
-    logoSrc: logo.src,
-    expiresInDays: settings.confirmExpiryDays,
-    postalAddress,
-  });
+  const { copy } = await getCopy('subscription-confirm');
+  const { subject, html, text } = composeConfirm(
+    copy,
+    {
+      email,
+      confirmUrl: `${siteUrl}/newsletter/confirm?token=${encodeURIComponent(confirmToken)}`,
+      expiresInDays: settings.confirmExpiryDays,
+    },
+    { logoSrc: logo.src, postalAddress }
+  );
 
   const result = await mailer.emails.send({
     from: transactionalFrom,
     to: email,
     replyTo,
-    subject: 'Confirm your Eightblock newsletter subscription',
+    subject,
     html,
     text,
     attachments: [logo.attachment],
@@ -289,27 +433,22 @@ export async function sendSubscriptionEmail(
     console.warn('[email] EMAIL_PROVIDER_API_KEY not set - skipping subscription email');
     return null;
   }
-  const { siteUrl } = config();
   const { transactionalFrom, replyTo, postalAddress, settings } = await senders();
   if (!settings.welcomeEmail) return null;
   const articles = await loadEmailArticles(null, 3);
   const logo = inlineLogo();
-  const { html, text } = renderWelcome({
-    returning,
-    articles: articles.map((a) => ({ ...a, url: trackUrl(a.url, 'welcome') })),
-    siteUrl,
-    logoSrc: logo.src,
-    unsubscribeUrl: unsubscribeLinks(unsubscribeToken).page,
-    postalAddress,
-  });
+  const { copy } = await getCopy(returning ? 'newsletter-welcome-back' : 'newsletter-welcome');
+  const { subject, html, text } = composeWelcome(
+    copy,
+    { email, articles, unsubscribeUrl: unsubscribeLinks(unsubscribeToken).page },
+    { logoSrc: logo.src, postalAddress }
+  );
 
   const result = await mailer.emails.send({
     from: transactionalFrom,
     to: email,
     replyTo,
-    subject: returning
-      ? "You're back on the Eightblock newsletter"
-      : "You're subscribed to the Eightblock newsletter",
+    subject,
     html,
     text,
     headers: listHeaders(unsubscribeToken),
@@ -326,7 +465,6 @@ export async function sendAccountWelcomeEmail(user: { email: string; name: strin
     console.warn('[email] EMAIL_PROVIDER_API_KEY not set - skipping account welcome email');
     return null;
   }
-  const { siteUrl } = config();
   const { transactionalFrom, replyTo, postalAddress, settings } = await senders();
   if (!settings.accountWelcome) return null;
   const subscription = await prisma.subscription.findUnique({
@@ -334,24 +472,140 @@ export async function sendAccountWelcomeEmail(user: { email: string; name: strin
     select: { status: true },
   });
   const logo = inlineLogo();
-  const { html, text } = renderAccountWelcome({
-    name: user.name,
-    email: user.email,
-    subscribed: subscription?.status === 'ACTIVE',
-    siteUrl,
-    logoSrc: logo.src,
-    postalAddress,
-  });
+  const { copy } = await getCopy('account-welcome');
+  const { subject, html, text } = composeAccountWelcome(
+    copy,
+    { name: user.name, email: user.email, subscribed: subscription?.status === 'ACTIVE' },
+    { logoSrc: logo.src, postalAddress }
+  );
 
   const result = await mailer.emails.send({
     from: transactionalFrom,
     to: user.email,
     replyTo,
-    subject: 'Welcome to Eightblock, your account is ready',
+    subject,
     html,
     text,
     attachments: [logo.attachment],
     tags: [{ name: 'category', value: 'account-welcome' }],
+  });
+  if (result.error) throw new Error(result.error.message);
+  return result.data;
+}
+
+/** Who a template preview or test is addressed to; sample values fill in the rest. */
+export interface TemplateRecipient {
+  email?: string;
+  name?: string | null;
+}
+
+/**
+ * Renders a template with unsaved wording, using the same code as the real send. Campaign
+ * templates (digest, article draft) show the newsletter they would create.
+ */
+async function composeTemplate(
+  key: TemplateKey,
+  copy: EmailCopy,
+  recipient: TemplateRecipient,
+  ctx: ComposeContext
+): Promise<Composed> {
+  const sample = sampleVariables(key);
+  const email = recipient.email ?? String(sample.email ?? 'ada@example.com');
+  switch (key) {
+    case 'subscription-confirm':
+      return composeConfirm(
+        copy,
+        {
+          email,
+          confirmUrl: `${config().siteUrl}/newsletter/confirm?token=preview`,
+          expiresInDays: (await getNewsletterSettings()).confirmExpiryDays,
+        },
+        ctx
+      );
+    case 'newsletter-welcome':
+    case 'newsletter-welcome-back':
+      return composeWelcome(
+        copy,
+        { email, articles: await loadEmailArticles(null, 3), unsubscribeUrl: '#' },
+        ctx
+      );
+    case 'account-welcome':
+      return composeAccountWelcome(
+        copy,
+        { name: recipient.name ?? String(sample.name), email, subscribed: false },
+        ctx
+      );
+    case 'weekly-digest':
+    case 'article-announcement': {
+      const articles = await loadEmailArticles(null, key === 'weekly-digest' ? 3 : 1);
+      const filled = fillCopy(copy, {
+        ...sample,
+        ...(articles.length && {
+          leadTitle: articles[0].title,
+          count: articles.length,
+          moreCount: articles.length - 1,
+          titles: articles.map((a) => a.title).join(' · '),
+          title: articles[0].title,
+          description: articles[0].excerpt,
+          author: articles[0].author,
+        }),
+        siteUrl: config().siteUrl,
+      });
+      const campaign = {
+        subject: shorten(filled.subject, 200),
+        preheader: shorten(filled.preheader, 200) || null,
+        htmlContent: filled.body,
+        articleIds: [],
+      };
+      return {
+        subject: campaign.subject,
+        ...renderCampaign(campaign, articles, {
+          unsubscribeUrl: '#',
+          logoSrc: ctx.logoSrc,
+          postalAddress: ctx.postalAddress,
+        }),
+      };
+    }
+  }
+}
+
+export async function previewTemplate(key: TemplateKey, copy: EmailCopy) {
+  const { postalAddress } = await senders();
+  const { subject, html, text } = await composeTemplate(
+    key,
+    copy,
+    {},
+    {
+      logoSrc: hostedLogo(),
+      postalAddress,
+    }
+  );
+  return { subject, preheader: fillCopy(copy, sampleVariables(key)).preheader || null, html, text };
+}
+
+export async function sendTestTemplate(
+  key: TemplateKey,
+  copy: EmailCopy,
+  recipient: { email: string; name: string | null }
+) {
+  const mailer = resend();
+  if (!mailer) throw new EmailNotConfiguredError();
+  const { transactionalFrom, from, replyTo, postalAddress } = await senders();
+  const logo = inlineLogo();
+  const { subject, html, text } = await composeTemplate(key, copy, recipient, {
+    logoSrc: logo.src,
+    postalAddress,
+  });
+  const campaign = key === 'weekly-digest' || key === 'article-announcement';
+  const result = await mailer.emails.send({
+    from: campaign ? from : transactionalFrom,
+    to: recipient.email,
+    replyTo,
+    subject: `[Test] ${subject}`,
+    html,
+    text,
+    attachments: [logo.attachment],
+    tags: [{ name: 'category', value: 'template-test' }],
   });
   if (result.error) throw new Error(result.error.message);
   return result.data;

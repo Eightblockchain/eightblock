@@ -86,6 +86,7 @@ describe.skipIf(!hasDatabase)('newsletter sending', () => {
     delete process.env.EMAIL_PROVIDER_API_KEY;
     delete process.env.TRUST_PROXY;
     await prisma.newsletterSettings.deleteMany();
+    await prisma.emailTemplate.deleteMany();
     await prisma.newsletterCampaign.deleteMany({
       where: { subject: { startsWith: `vitest-${run}` } },
     });
@@ -501,6 +502,7 @@ describe.skipIf(!hasDatabase)('newsletter sending', () => {
         slug: `vitest-${run}-article-${articleSeq}`,
         excerpt: `Excerpt ${articleSeq}`,
         content: '<p>Body</p>',
+        categoryIds: ['cardano'],
         status,
       });
       expect(res.status).toBe(201);
@@ -619,6 +621,130 @@ describe.skipIf(!hasDatabase)('newsletter sending', () => {
     expect(message.headers).toBeUndefined();
     expect(message.html).toContain('Welcome to Eightblock, Ada');
     expect(message.html).toContain('/newsletter"');
+  });
+
+  describe('email templates', () => {
+    const put = (key: string, copy: Record<string, string>) =>
+      request(app)
+        .put(`/api/email-templates/${key}`)
+        .set('Origin', SITE)
+        .set('Cookie', cookie)
+        .send({ copy });
+    const remove = (key: string) =>
+      request(app).delete(`/api/email-templates/${key}`).set('Origin', SITE).set('Cookie', cookie);
+    afterEach(() => prisma.emailTemplate.deleteMany());
+
+    it('lists every automatic email for admins only', async () => {
+      expect((await request(app).get('/api/email-templates')).status).toBe(401);
+      const res = await get('/api/email-templates');
+      expect(res.status).toBe(200);
+      expect(res.body.map((t: { key: string }) => t.key)).toEqual([
+        'subscription-confirm',
+        'newsletter-welcome',
+        'newsletter-welcome-back',
+        'account-welcome',
+        'weekly-digest',
+        'article-announcement',
+      ]);
+      expect(res.body[0]).toMatchObject({
+        name: 'Confirm subscription',
+        customized: false,
+        copy: { subject: 'Confirm your Eightblock newsletter subscription' },
+      });
+      expect(res.body[0].variables.map((v: { name: string }) => v.name)).toContain('email');
+      expect((await get('/api/email-templates/nope')).status).toBe(404);
+    });
+
+    it('rejects unknown variables, open sections and empty required fields', async () => {
+      const base = (await get('/api/email-templates/subscription-confirm')).body.copy;
+      const typo = await put('subscription-confirm', { ...base, body: '<p>Hi {{emial}}</p>' });
+      expect(typo.status).toBe(400);
+      expect(typo.body.error).toMatch(/^Message: \{\{emial\}\} is not a variable/);
+      const open = await put('subscription-confirm', { ...base, heading: '{{#email}}Hi' });
+      expect(open.body.error).toBe('Heading: Close {{#email}} with {{/email}}.');
+      expect((await put('subscription-confirm', { ...base, buttonLabel: '' })).body.error).toBe(
+        'Button cannot be empty.'
+      );
+      expect(await prisma.emailTemplate.count()).toBe(0);
+    });
+
+    it('sends the saved wording, previews and tests drafts, and resets to the default', async () => {
+      const base = (await get('/api/email-templates/subscription-confirm')).body.copy;
+      const copy = {
+        ...base,
+        subject: 'Confirm {{email}} for Eightblock',
+        heading: 'Almost there',
+        body: '<p>One click for {{email}} & you are in.</p>',
+      };
+
+      const preview = await post('/api/email-templates/subscription-confirm/preview').send({
+        copy,
+      });
+      expect(preview.status).toBe(200);
+      expect(preview.body.subject).toBe('Confirm ada@example.com for Eightblock');
+      expect(preview.body.html).toContain('Almost there');
+      expect(preview.body.html).toContain('One click for ada@example.com & you are in.');
+      expect(await prisma.emailTemplate.count()).toBe(0);
+
+      mocks.emailSend.mockResolvedValue({ data: { id: 'tpl-test' }, error: null });
+      const test = await post('/api/email-templates/subscription-confirm/test').send({ copy });
+      expect(test.body).toEqual({ to: `vitest-${run}-admin@example.invalid` });
+      expect(mocks.emailSend.mock.calls[0][0]).toMatchObject({
+        to: `vitest-${run}-admin@example.invalid`,
+        subject: `[Test] Confirm vitest-${run}-admin@example.invalid for Eightblock`,
+      });
+      mocks.emailSend.mockClear();
+
+      const saved = await put('subscription-confirm', copy);
+      expect(saved.status).toBe(200);
+      expect(saved.body).toMatchObject({ customized: true, copy: { heading: 'Almost there' } });
+      expect(saved.body.defaults.heading).toBe('Confirm your subscription');
+
+      const email = `vitest-${run}-templated@example.invalid`;
+      const signup = await anonymous('/api/subscriptions')
+        .set('X-Forwarded-For', '198.51.100.7')
+        .send({ email });
+      expect(signup.status).toBe(202);
+      const sent = await sentEmail();
+      expect(sent.subject).toBe(`Confirm ${email} for Eightblock`);
+      expect(sent.html).toContain('Almost there');
+      expect(sent.html).toContain(`href="${SITE}/newsletter/confirm?token=`);
+
+      const reset = await remove('subscription-confirm');
+      expect(reset.body).toMatchObject({
+        customized: false,
+        copy: { heading: 'Confirm your subscription' },
+      });
+      expect(await prisma.emailTemplate.count()).toBe(0);
+    });
+
+    it('words the automatic newsletters from their templates', async () => {
+      await put('article-announcement', {
+        subject: 'New: {{title}} by {{author}}',
+        preheader: '',
+        body: '<p>Fresh from {{author}}.</p>',
+      });
+      await put('weekly-digest', {
+        subject: '{{count}} new on Eightblock',
+        preheader: '{{titles}}',
+        body: '',
+      });
+      const { articleAnnouncementContent, digestContent } = await import(
+        '../services/email-service.js'
+      );
+      expect(
+        await articleAnnouncementContent({ title: 'Plutus', description: 'D', author: 'Ada' })
+      ).toEqual({
+        subject: 'New: Plutus by Ada',
+        preheader: null,
+        htmlContent: '<p>Fresh from Ada.</p>',
+      });
+      expect(await digestContent(['One', 'Two'])).toEqual({
+        subject: '2 new on Eightblock',
+        preheader: 'One · Two',
+        htmlContent: '',
+      });
+    });
   });
 
   describe('settings', () => {
@@ -756,7 +882,6 @@ describe.skipIf(!hasDatabase)('newsletter sending', () => {
           slug: `vitest-${run}-no-draft`,
           description: 'x',
           content: '<p>x</p>',
-          category: 'Research',
           status: 'PUBLISHED',
           publishedAt: new Date(),
           authorId: adminId,

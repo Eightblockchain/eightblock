@@ -151,6 +151,8 @@ export function ContentTable({
                 <td className="max-w-[360px] px-3 py-3">
                   <a
                     href={siteHref(`/articles/${a.slug}`)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="line-clamp-1 font-medium text-foreground hover:underline"
                   >
                     {a.title}
