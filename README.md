@@ -26,41 +26,67 @@ deploy.sh   # Zero-downtime production deploy (run on the server)
 
 ## Getting Started
 
-Requirements: Node.js 22.22+ or 24.15+, pnpm 9+, PostgreSQL 15+ and Redis 7+ (or Docker)
+### Requirements
 
-1. **Install dependencies**
+- Node.js 22.22+ or 24.15+
+- pnpm 9+ (`npm install -g pnpm`)
+- Docker Desktop (recommended), or PostgreSQL 15+ and Redis 7+ installed natively
 
-   ```bash
-   pnpm install
-   ```
+> **Windows users:** commands are given for macOS/Linux first, with the PowerShell
+> equivalent when it differs. After installing pnpm, open a new terminal so the
+> PATH is refreshed (`pnpm -v` should print a version).
 
-2. **Start PostgreSQL and Redis**
+### 1. Install dependencies
 
-   ```bash
-   docker compose up -d        # or run them natively (brew / apt)
-   ```
+```bash
+pnpm install
+```
 
-3. **Environment variables**
+### 2. Start PostgreSQL and Redis
 
-   ```bash
-   cp .env.example backend/.env           # keep the Backend section
-   cp .env.example frontend/.env.local    # keep the Frontend section
-   cp .env.example admin/.env.local       # keep the Admin app section
-   ```
+```bash
+docker compose up -d        # or run them natively (brew / apt)
+docker compose ps           # both services should be running
+```
 
-4. **Database setup**
+### 3. Set up environment variables
 
-   ```bash
-   cd backend
-   pnpm prisma migrate dev
-   pnpm prisma db seed
-   ```
+Each app has its own env file. Copy `.env.example` into each one and keep the
+matching section (Backend, Frontend, Admin app):
 
-5. **Run the app**
+```bash
+# macOS / Linux
+cp .env.example backend/.env
+cp .env.example frontend/.env.local
+cp .env.example admin/.env.local
+```
 
-   ```bash
-   pnpm dev    # blog on http://localhost:3000, admin on http://localhost:3001, API on the backend PORT
-   ```
+```powershell
+# Windows (PowerShell)
+Copy-Item .env.example backend\.env
+Copy-Item .env.example frontend\.env.local
+Copy-Item .env.example admin\.env.local
+```
+
+Make sure `DATABASE_URL` in `backend/.env` matches the credentials in
+`docker-compose.yml`.
+
+### 4. Set up the database
+
+```bash
+cd backend
+pnpm prisma migrate dev
+pnpm prisma db seed
+cd ..
+```
+
+### 5. Run the app
+
+```bash
+pnpm dev
+```
+
+The blog runs on http://localhost:3000, the admin app on http://localhost:3001 and the API on the backend `PORT`.
 
 ### Useful Commands
 
@@ -74,9 +100,47 @@ Requirements: Node.js 22.22+ or 24.15+, pnpm 9+, PostgreSQL 15+ and Redis 7+ (or
 | `pnpm test`         | Vitest suites for every app                         |
 | `pnpm format`       | Format files with Prettier                          |
 
-Backend integration tests need a migrated, disposable database: set `TEST_DATABASE_URL` and run
-`pnpm --filter ./backend test`. The tests create and remove their own data; without the variable
-they are skipped.
+### Running the tests
+
+```bash
+pnpm lint
+pnpm test
+```
+
+Backend integration tests need a migrated, disposable database. They are skipped
+unless `TEST_DATABASE_URL` is set. They create and remove their own data, so
+**always use a separate database, never your development one**.
+
+1. Create an empty PostgreSQL database named `eightblock_test` (with `psql` or any
+   PostgreSQL client).
+2. Apply the migrations to it, then run the tests:
+
+```bash
+# macOS / Linux
+DATABASE_URL="postgresql://eightblock:eightblock_dev@localhost:5432/eightblock_test" \
+  pnpm --filter ./backend exec prisma migrate deploy
+TEST_DATABASE_URL="postgresql://eightblock:eightblock_dev@localhost:5432/eightblock_test" \
+  pnpm test
+```
+
+```powershell
+# Windows (PowerShell)
+$env:DATABASE_URL="postgresql://eightblock:eightblock_dev@localhost:5432/eightblock_test"
+pnpm --filter ./backend exec prisma migrate deploy
+$env:TEST_DATABASE_URL="postgresql://eightblock:eightblock_dev@localhost:5432/eightblock_test"
+pnpm test
+
+# Clear them afterwards so they don't leak into pnpm dev
+Remove-Item Env:DATABASE_URL, Env:TEST_DATABASE_URL
+```
+
+Adjust the user, password and port if your `docker-compose.yml` differs. To run
+only the backend suite: `pnpm --filter ./backend test`.
+
+### Troubleshooting
+
+- **`pnpm` is not recognized (Windows):** install it with `npm install -g pnpm`, then open a new terminal.
+- **Services won't start:** check that Docker Desktop is running, then run `docker compose ps`.
 
 ## Frontend (Next.js)
 
