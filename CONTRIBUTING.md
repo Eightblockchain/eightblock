@@ -20,12 +20,10 @@ Thanks for helping build the Cardano + blockchain education hub! Contributions o
    ```bash
    pnpm install
    ```
-3. **Set up environment**
-   - Copy `.env.example` to `.env` at the repo root and adjust values.
-   - Run `pnpm --filter backend prisma migrate dev` to sync the database.
-4. **Run services**
-   - Backend: `pnpm --filter backend dev`
-   - Frontend: `pnpm --filter frontend dev`
+3. **Set up the project** by following [Getting Started](README.md#getting-started) in the README
+   (Docker services, per-app env files, database migrations and seed).
+4. **Run the apps** with `pnpm dev` (or `pnpm dev:frontend`, `pnpm dev:admin`, `pnpm dev:backend`
+   to start only one of them).
 5. **Test & lint**
    ```bash
    pnpm lint
